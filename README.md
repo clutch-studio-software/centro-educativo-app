@@ -50,6 +50,4 @@ Cuando la rama `develop` sea estable y esté lista para la entrega oficial:
 
 ### 👥 Integrantes del Equipo
 * Erick Vicentin (Responsable de Entorno y GitHub)
-* Damian Ramirez
-* Lautaro Höfer
-* Fabricio Alegre
+* Santiago Nicksich
