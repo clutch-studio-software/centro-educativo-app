@@ -3,16 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Icon from '../components/atoms/Icon';
 import SuccessModal from '../components/molecules/SuccessModal';
-import { db, auth } from '../services/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { auth } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
+import {
+  validateParentAndStudentsForm,
+  validateAdminUserForm,
+  validateResetPasswordDni
+} from '../utils/adminValidators';
+import {
+  fetchAdminDashboardData,
+  createParentAndStudentsApi,
+  createAdministrativeUserApi,
+  resetUserPasswordToDniApi,
+  updateUserProfileApi
+} from '../services/adminService';
+
+const INITIAL_STUDENTS_STATE = [
+  { nombre: '', dni: '', fechaNacimiento: '', nivel: 'inicial', genero: 'Masculino' }
+];
 
 const AdminPanel = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Tab State
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' or 'create'
+  // Tab State ('dashboard' or 'create')
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   // Creation Type State ('parent_student' or 'administrative')
   const [creationType, setCreationType] = useState('parent_student');
@@ -21,9 +36,7 @@ const AdminPanel = () => {
   const [parentName, setParentName] = useState('');
   const [parentEmail, setParentEmail] = useState('');
   const [parentDni, setParentDni] = useState('');
-  const [students, setStudents] = useState([
-    { nombre: '', dni: '', fechaNacimiento: '', nivel: 'inicial', genero: 'Masculino' }
-  ]);
+  const [students, setStudents] = useState(INITIAL_STUDENTS_STATE);
 
   // Form State for creating Administrative/Staff User
   const [adminName, setAdminName] = useState('');
@@ -66,7 +79,7 @@ const AdminPanel = () => {
       // 1. Check local mock/real context
       const savedUser = localStorage.getItem('school_user');
       const currentUser = savedUser ? JSON.parse(savedUser) : null;
-      
+
       if (currentUser && currentUser.role === 'user_admin') {
         return;
       }
@@ -88,34 +101,26 @@ const AdminPanel = () => {
     checkAdminAuth();
   }, [navigate]);
 
-  // Fetch Firestore users and students on mount & when dashboard tab is active
+  // Fetch Firestore users and students via adminService
   const fetchDashboardData = async () => {
     setIsLoadingData(true);
     setDataError('');
+    /**
+     * Mock Data Fallback:
+     * Cuando Firestore no está accesible (por ejemplo, en desarrollo local sin emuladores activos),
+     * se inyecta este dataset simulado para permitir la visualización y pruebas de la interfaz
+     * sin bloquear el flujo del panel.
+     */
     try {
-      // In v2 / emulator, or real environment
-      const parentsSnap = await getDocs(collection(db, 'users'));
-      const studentsSnap = await getDocs(collection(db, 'students'));
-
-      const parents = parentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const students = studentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
+      const { parents, students: fetchedStudents, errorMessage } = await fetchAdminDashboardData();
       setParentsList(parents);
-      setStudentsList(students);
+      setStudentsList(fetchedStudents);
+      if (errorMessage) {
+        setDataError(errorMessage);
+      }
     } catch (err) {
       console.error("Error cargando datos de Firestore:", err);
-      setDataError("No se pudieron cargar datos reales de Firestore. Mostrando datos simulados.");
-      
-      // Fallback a datos simulados premium para visualización en local
-      setParentsList([
-        { id: 'parent-1', nombre: 'Eduardo Gómez', email: 'eduardo@ejemplo.com', emailInvalid: false, studentIds: ['student-1', 'student-2'] },
-        { id: 'parent-2', nombre: 'María Rodríguez', email: 'maria.invalid@gmail.com', emailInvalid: true, studentIds: ['student-3'] }
-      ]);
-      setStudentsList([
-        { id: 'student-1', studentID_login: 'EST-2026-88123', parentId: 'parent-1', emailPadre: 'eduardo@ejemplo.com', nombre: 'Lucía Gómez', dni: '48123456', nivel: 'inicial', status: 'active' },
-        { id: 'student-2', studentID_login: 'EST-2026-90412', parentId: 'parent-1', emailPadre: 'eduardo@ejemplo.com', nombre: 'Mateo Gómez', dni: '45123987', nivel: 'primaria', status: 'pendingParentActivation' },
-        { id: 'student-3', studentID_login: 'EST-2026-10492', parentId: 'parent-2', emailPadre: 'maria.invalid@gmail.com', nombre: 'Sofía Rodríguez', dni: '42987123', nivel: 'secundaria', status: 'pendingParentActivation' }
-      ]);
+      setDataError("No se pudieron cargar datos del panel.");
     } finally {
       setIsLoadingData(false);
     }
@@ -127,66 +132,50 @@ const AdminPanel = () => {
     }
   }, [activeTab]);
 
+  const resetParentForm = () => {
+    setParentEmail('');
+    setParentName('');
+    setParentDni('');
+    setStudents(INITIAL_STUDENTS_STATE);
+  };
+
+  const resetAdminForm = () => {
+    setAdminEmail('');
+    setAdminName('');
+    setAdminDni('');
+    setAdminRole('Staff');
+  };
+
   // Handler to call api cf_createParentAndStudents
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
 
-    if (!parentEmail.trim() || !parentName.trim() || !parentDni.trim()) {
-      setFormError('Por favor, completa todos los datos del tutor (nombre, email y DNI).');
-      return;
-    }
+    const validationError = validateParentAndStudentsForm(
+      { parentEmail, parentName, parentDni },
+      students
+    );
 
-    // Validate students list
-    for (const std of students) {
-      if (!std.nombre.trim() || !std.dni.trim() || !std.fechaNacimiento || !std.genero) {
-        setFormError('Por favor, completa todos los datos de los estudiantes (incluyendo género).');
-        return;
-      }
+    if (validationError) {
+      setFormError(validationError);
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
-      
-      let token = 'mock-admin-token';
-      if (auth.currentUser) {
-        token = await auth.currentUser.getIdToken();
-      }
-
-      const response = await fetch(`${FUNCTIONS_BASE_URL}/cf_createParentAndStudents`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          parentEmail: parentEmail.trim(),
-          parentName: parentName.trim(),
-          parentDni: parentDni.trim(),
-          students
-        })
+      await createParentAndStudentsApi({
+        parentEmail,
+        parentName,
+        parentDni,
+        students
       });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Error en la petición.');
-      }
-
-      await response.json();
 
       setSuccessModalData({
         title: '¡Tutor y Alumnos Creados!',
         message: `Se ha registrado a ${parentName} con DNI ${parentDni}. Las cuentas han sido activadas. El tutor podrá ingresar usando su DNI como contraseña temporal.`
       });
       setSuccessModalOpen(true);
-
-      // Reset Form
-      setParentEmail('');
-      setParentName('');
-      setParentDni('');
-      setStudents([{ nombre: '', dni: '', fechaNacimiento: '', nivel: 'inicial', genero: 'Masculino' }]);
-
+      resetParentForm();
     } catch (err) {
       console.error(err);
       setFormError(`Fallo al registrar: ${err.message || 'Error de conexión.'}`);
@@ -199,53 +188,33 @@ const AdminPanel = () => {
     e.preventDefault();
     setFormError('');
 
-    if (!adminEmail.trim() || !adminName.trim() || !adminRole || !adminDni.trim()) {
-      setFormError('Por favor, completa todos los campos del formulario (incluyendo DNI).');
+    const validationError = validateAdminUserForm({
+      adminEmail,
+      adminName,
+      adminRole,
+      adminDni
+    });
+
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
-      
-      let token = 'mock-admin-token';
-      if (auth.currentUser) {
-        token = await auth.currentUser.getIdToken();
-      }
-
-      const response = await fetch(`${FUNCTIONS_BASE_URL}/cf_createAdministrativeUser`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          email: adminEmail.trim(),
-          name: adminName.trim(),
-          role: adminRole,
-          dni: adminDni.trim()
-        })
+      await createAdministrativeUserApi({
+        email: adminEmail,
+        name: adminName,
+        role: adminRole,
+        dni: adminDni
       });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Error en la petición.');
-      }
-
-      await response.json();
 
       setSuccessModalData({
         title: '¡Usuario Creado!',
         message: `Se ha registrado a ${adminName} con el rol de ${adminRole}. Cuenta activa. El usuario podrá ingresar utilizando su DNI como contraseña temporal.`
       });
       setSuccessModalOpen(true);
-
-      // Reset Form
-      setAdminEmail('');
-      setAdminName('');
-      setAdminDni('');
-      setAdminRole('Staff');
-
+      resetAdminForm();
     } catch (err) {
       console.error(err);
       setFormError(`Fallo al registrar: ${err.message || 'Error de conexión.'}`);
@@ -273,34 +242,18 @@ const AdminPanel = () => {
 
   // Restablecer contraseña al DNI
   const handleResetPassword = async (userId, userType, userDni) => {
-    if (!userDni) {
-      alert('Error: El DNI del usuario es requerido para el restablecimiento.');
+    const validationError = validateResetPasswordDni(userDni);
+    if (validationError) {
+      alert(validationError);
       return;
     }
+
     if (!window.confirm(`¿Estás seguro de que deseas restablecer la contraseña al DNI (${userDni}) por defecto?`)) {
       return;
     }
+
     try {
-      const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
-      let token = 'mock-admin-token';
-      if (auth.currentUser) {
-        token = await auth.currentUser.getIdToken();
-      }
-
-      const response = await fetch(`${FUNCTIONS_BASE_URL}/cf_resetUserPasswordToDni`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ userId, userType })
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Fallo de API.');
-      }
-
+      await resetUserPasswordToDniApi({ userId, userType });
       alert('Contraseña restablecida con éxito al DNI. El usuario deberá cambiarla la próxima vez que ingrese.');
       fetchDashboardData();
     } catch (err) {
@@ -312,30 +265,13 @@ const AdminPanel = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editingUser) return;
+
     try {
-      const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
-      let token = 'mock-admin-token';
-      if (auth.currentUser) {
-        token = await auth.currentUser.getIdToken();
-      }
-
-      const response = await fetch(`${FUNCTIONS_BASE_URL}/cf_updateUserProfile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          targetId: editingUser.id,
-          targetType: editingUser.type,
-          fields: editingUser.fields
-        })
+      await updateUserProfileApi({
+        targetId: editingUser.id,
+        targetType: editingUser.type,
+        fields: editingUser.fields
       });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Fallo de API.');
-      }
 
       alert('Perfil actualizado con éxito.');
       setEditingUser(null);
@@ -360,12 +296,12 @@ const AdminPanel = () => {
 
   // Filter logic on the dashboard list
   const filteredStudents = studentsList.filter(student => {
-    const matchesSearch = 
+    const matchesSearch =
       (student.nombre || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
       (student.studentID_login || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
       (student.dni || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
       (student.emailPadre || '').toLowerCase().includes(searchFilter.toLowerCase());
-    
+
     const matchesLevel = levelFilter === 'todos' || (student.nivel || 'inicial') === levelFilter;
 
     return matchesSearch && matchesLevel;
@@ -376,7 +312,7 @@ const AdminPanel = () => {
     const isStaff = user.role === 'user_admin' || user.role === 'Staff' || user.role === 'Administrativo';
     if (!isStaff) return false;
 
-    const matchesSearch = 
+    const matchesSearch =
       (user.nombre || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
       (user.email || '').toLowerCase().includes(searchFilter.toLowerCase()) ||
       (user.dni || '').toLowerCase().includes(searchFilter.toLowerCase());
@@ -400,11 +336,10 @@ const AdminPanel = () => {
           <div className="flex bg-slate-200/60 p-1.5 rounded-full border border-slate-200">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-6 py-2.5 rounded-full font-label font-bold text-sm transition-all cursor-pointer ${
-                activeTab === 'dashboard'
+              className={`px-6 py-2.5 rounded-full font-label font-bold text-sm transition-all cursor-pointer ${activeTab === 'dashboard'
                   ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Icon name="dashboard" className="text-lg" />
@@ -414,11 +349,10 @@ const AdminPanel = () => {
             {user?.role === 'user_admin' && (
               <button
                 onClick={() => setActiveTab('create')}
-                className={`px-6 py-2.5 rounded-full font-label font-bold text-sm transition-all cursor-pointer ${
-                  activeTab === 'create'
+                className={`px-6 py-2.5 rounded-full font-label font-bold text-sm transition-all cursor-pointer ${activeTab === 'create'
                     ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <Icon name="person_add" className="text-lg" />
@@ -432,7 +366,7 @@ const AdminPanel = () => {
         {/* Dashboard Tab Content */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            
+
             {/* Filters Bar */}
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
               <div className="relative w-full md:w-96">
@@ -475,21 +409,19 @@ const AdminPanel = () => {
             <div className="flex bg-slate-200/40 p-1 rounded-xl border border-slate-200/50 max-w-md">
               <button
                 onClick={() => setDashboardSubTab('students')}
-                className={`flex-1 py-2 rounded-lg font-label font-bold text-xs transition-all cursor-pointer border-none ${
-                  dashboardSubTab === 'students'
+                className={`flex-1 py-2 rounded-lg font-label font-bold text-xs transition-all cursor-pointer border-none ${dashboardSubTab === 'students'
                     ? 'bg-orange-500 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
+                  }`}
               >
                 Estudiantes y Tutores
               </button>
               <button
                 onClick={() => setDashboardSubTab('staff')}
-                className={`flex-1 py-2 rounded-lg font-label font-bold text-xs transition-all cursor-pointer border-none ${
-                  dashboardSubTab === 'staff'
+                className={`flex-1 py-2 rounded-lg font-label font-bold text-xs transition-all cursor-pointer border-none ${dashboardSubTab === 'staff'
                     ? 'bg-orange-500 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
+                  }`}
               >
                 Personal Institucional
               </button>
@@ -537,11 +469,10 @@ const AdminPanel = () => {
                                   </div>
                                 </td>
                                 <td className="py-5 px-6">
-                                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                    (student.nivel || 'inicial') === 'inicial' ? 'bg-secondary-container/20 text-secondary' :
-                                    (student.nivel || 'inicial') === 'primaria' ? 'bg-primary-container/20 text-primary' :
-                                    'bg-tertiary-container/20 text-tertiary-dim'
-                                  }`}>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${(student.nivel || 'inicial') === 'inicial' ? 'bg-secondary-container/20 text-secondary' :
+                                      (student.nivel || 'inicial') === 'primaria' ? 'bg-primary-container/20 text-primary' :
+                                        'bg-tertiary-container/20 text-tertiary-dim'
+                                    }`}>
                                     {(student.nivel || 'inicial').toUpperCase()}
                                   </span>
                                 </td>
@@ -562,19 +493,17 @@ const AdminPanel = () => {
                                 </td>
                                 <td className="py-5 px-6">
                                   <div className="flex flex-col gap-1.5">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold w-max ${
-                                      student.mustChangePassword
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold w-max ${student.mustChangePassword
                                         ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                         : 'bg-green-50 text-green-700 border border-green-200'
-                                    }`}>
+                                      }`}>
                                       <span className={`h-1.5 w-1.5 rounded-full ${student.mustChangePassword ? 'bg-amber-500' : 'bg-green-600'}`} />
                                       Alumno: {student.mustChangePassword ? 'Temporal (DNI)' : 'Cambiada'}
                                     </span>
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold w-max ${
-                                      parent.mustChangePassword
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold w-max ${parent.mustChangePassword
                                         ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                         : 'bg-green-50 text-green-700 border border-green-200'
-                                    }`}>
+                                      }`}>
                                       <span className={`h-1.5 w-1.5 rounded-full ${parent.mustChangePassword ? 'bg-amber-500' : 'bg-green-600'}`} />
                                       Tutor: {parent.mustChangePassword ? 'Temporal (DNI)' : 'Cambiada'}
                                     </span>
@@ -660,11 +589,10 @@ const AdminPanel = () => {
                                 <span className="font-bold text-base text-slate-800 leading-tight">{student.nombre}</span>
                                 <span className="text-xs text-slate-400 font-mono">{student.studentID_login}</span>
                               </div>
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase whitespace-nowrap ${
-                                (student.nivel || 'inicial') === 'inicial' ? 'bg-secondary-container/20 text-secondary' :
-                                (student.nivel || 'inicial') === 'primaria' ? 'bg-primary-container/20 text-primary' :
-                                'bg-tertiary-container/20 text-tertiary-dim'
-                              }`}>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase whitespace-nowrap ${(student.nivel || 'inicial') === 'inicial' ? 'bg-secondary-container/20 text-secondary' :
+                                  (student.nivel || 'inicial') === 'primaria' ? 'bg-primary-container/20 text-primary' :
+                                    'bg-tertiary-container/20 text-tertiary-dim'
+                                }`}>
                                 {(student.nivel || 'inicial').toUpperCase()}
                               </span>
                             </div>
@@ -695,16 +623,14 @@ const AdminPanel = () => {
                             </div>
 
                             <div className="flex flex-wrap gap-2 pt-1">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                student.mustChangePassword ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-green-50 text-green-700 border border-green-100'
-                              }`}>
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${student.mustChangePassword ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-green-50 text-green-700 border border-green-100'
+                                }`}>
                                 <span className={`h-1.5 w-1.5 rounded-full ${student.mustChangePassword ? 'bg-amber-500' : 'bg-green-600'}`} />
                                 Alumno: {student.mustChangePassword ? 'Temporal' : 'Activa'}
                               </span>
                               {student.parentId && (
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                                  parent.mustChangePassword ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-green-50 text-green-700 border border-green-100'
-                                }`}>
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${parent.mustChangePassword ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-green-50 text-green-700 border border-green-100'
+                                  }`}>
                                   <span className={`h-1.5 w-1.5 rounded-full ${parent.mustChangePassword ? 'bg-amber-500' : 'bg-green-600'}`} />
                                   Tutor: {parent.mustChangePassword ? 'Temporal' : 'Activa'}
                                 </span>
@@ -809,25 +735,23 @@ const AdminPanel = () => {
                                 </div>
                               </td>
                               <td className="py-5 px-6">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                  staff.role === 'user_admin' ? 'bg-red-50 text-red-700 border border-red-200' :
-                                  staff.role === 'Administrativo' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                                  'bg-green-50 text-green-700 border border-green-200'
-                                }`}>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${staff.role === 'user_admin' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                    staff.role === 'Administrativo' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                                      'bg-green-50 text-green-700 border border-green-200'
+                                  }`}>
                                   {staff.role === 'user_admin' ? 'Administrador General' :
-                                   staff.role === 'Administrativo' ? 'Administrativo' :
-                                   'Docente / Staff'}
+                                    staff.role === 'Administrativo' ? 'Administrativo' :
+                                      'Docente / Staff'}
                                 </span>
                               </td>
                               <td className="py-5 px-6">
                                 <span className="text-slate-600">{staff.email}</span>
                               </td>
                               <td className="py-5 px-6">
-                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                                  staff.mustChangePassword 
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${staff.mustChangePassword
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                     : 'bg-green-50 text-green-700 border border-green-200'
-                                }`}>
+                                  }`}>
                                   <span className={`h-2 w-2 rounded-full ${staff.mustChangePassword ? 'bg-amber-500 animate-pulse' : 'bg-green-600'}`} />
                                   {staff.mustChangePassword ? 'Temporal (DNI)' : 'Clave Segura'}
                                 </span>
@@ -876,14 +800,13 @@ const AdminPanel = () => {
                               <span className="font-bold text-base text-slate-800 leading-tight">{staff.nombre}</span>
                               <span className="text-xs text-slate-400 font-mono">DNI: {staff.dni || 'No registrado'}</span>
                             </div>
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase whitespace-nowrap ${
-                              staff.role === 'user_admin' ? 'bg-red-50 text-red-700 border border-red-200' :
-                              staff.role === 'Administrativo' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
-                              'bg-green-50 text-green-700 border border-green-200'
-                            }`}>
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase whitespace-nowrap ${staff.role === 'user_admin' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                staff.role === 'Administrativo' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                                  'bg-green-50 text-green-700 border border-green-200'
+                              }`}>
                               {staff.role === 'user_admin' ? 'Admin' :
-                               staff.role === 'Administrativo' ? 'Admin. Interno' :
-                               'Docente'}
+                                staff.role === 'Administrativo' ? 'Admin. Interno' :
+                                  'Docente'}
                             </span>
                           </div>
 
@@ -894,9 +817,8 @@ const AdminPanel = () => {
 
                           <div>
                             <span className="text-slate-400 block font-semibold uppercase tracking-wider text-[9px]">Estado de Credenciales</span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold mt-1 ${
-                              staff.mustChangePassword ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-green-50 text-green-700 border border-green-100'
-                            }`}>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold mt-1 ${staff.mustChangePassword ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-green-50 text-green-700 border border-green-100'
+                              }`}>
                               <span className={`h-1.5 w-1.5 rounded-full ${staff.mustChangePassword ? 'bg-amber-500 animate-pulse' : 'bg-green-600'}`} />
                               Clave: {staff.mustChangePassword ? 'Temporal (DNI)' : 'Cambiada / Segura'}
                             </span>
@@ -959,11 +881,10 @@ const AdminPanel = () => {
                   setCreationType('parent_student');
                   setFormError('');
                 }}
-                className={`flex-1 py-2 rounded-full font-label font-bold text-xs transition-all cursor-pointer border-none ${
-                  creationType === 'parent_student'
+                className={`flex-1 py-2 rounded-full font-label font-bold text-xs transition-all cursor-pointer border-none ${creationType === 'parent_student'
                     ? 'bg-orange-500 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
+                  }`}
               >
                 Tutor y Estudiantes
               </button>
@@ -973,11 +894,10 @@ const AdminPanel = () => {
                   setCreationType('administrative');
                   setFormError('');
                 }}
-                className={`flex-1 py-2 rounded-full font-label font-bold text-xs transition-all cursor-pointer border-none ${
-                  creationType === 'administrative'
+                className={`flex-1 py-2 rounded-full font-label font-bold text-xs transition-all cursor-pointer border-none ${creationType === 'administrative'
                     ? 'bg-orange-500 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
+                  }`}
               >
                 Personal / Administrativo
               </button>
@@ -1051,9 +971,9 @@ const AdminPanel = () => {
                             <Icon name="delete" />
                           </button>
                         )}
-                        
+
                         <h4 className="font-label font-bold text-xs text-orange-600">Estudiante #{idx + 1}</h4>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                           <div className="flex flex-col gap-2">
                             <label className="text-xs font-semibold text-slate-600">Nombre Completo</label>
@@ -1253,11 +1173,11 @@ const AdminPanel = () => {
               <h3 className="font-headline text-2xl font-bold text-slate-800 flex items-center gap-2">
                 <Icon name="edit" className="text-orange-500" />
                 <span>
-                  Editar {editingUser.type === 'student' ? 'Estudiante' : 
-                          editingUser.type === 'parent' ? 'Tutor' : 'Personal'}
+                  Editar {editingUser.type === 'student' ? 'Estudiante' :
+                    editingUser.type === 'parent' ? 'Tutor' : 'Personal'}
                 </span>
               </h3>
-              <button 
+              <button
                 onClick={() => setEditingUser(null)}
                 className="text-slate-400 hover:text-slate-600 transition-colors border-none bg-transparent cursor-pointer"
               >
