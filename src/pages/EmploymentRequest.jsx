@@ -5,6 +5,7 @@ import FileUploadZone from '../components/molecules/FileUploadZone';
 import SuccessModal from '../components/molecules/SuccessModal';
 import EmploymentHero from '../components/organisms/EmploymentHero';
 import EmploymentBento from '../components/organisms/EmploymentBento';
+import { isValidEmail } from '../utils/validators';
 
 const EmploymentRequest = () => {
     // Form and UI refs for smooth scroll
@@ -66,10 +67,9 @@ const EmploymentRequest = () => {
             validationErrors.name = 'El nombre debe tener al menos 3 caracteres.';
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!formData.email) {
             validationErrors.email = 'El correo electrónico es requerido.';
-        } else if (!emailRegex.test(formData.email)) {
+        } else if (!isValidEmail(formData.email)) {
             validationErrors.email = 'Por favor, introduce un correo electrónico válido.';
         }
 

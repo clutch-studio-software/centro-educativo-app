@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Icon from '../atoms/Icon';
 import '../../styles/Contact.css';
+import { isValidEmail, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
 
 const ContactForm = () => {
   const GOOGLE_SHEETS_URL = import.meta.env.VITE_CONTACT_FORM_SHEETS_URL || '';
@@ -20,7 +21,7 @@ const ContactForm = () => {
     let nuevoValor = value;
 
     if (id === 'telefono') {
-      nuevoValor = value.replace(/[^0-9+\-\s]/g, '');
+      nuevoValor = sanitizePhoneNumber(value);
     }
 
     setFormData((prev) => ({
@@ -43,7 +44,12 @@ const ContactForm = () => {
       return;
     }
 
-    if (formData.telefono.trim() && formData.telefono.replace(/\D/g, '').length < 8) {
+    if (!isValidEmail(formData.email)) {
+      alert('Por favor, ingresa un correo electrónico válido.');
+      return;
+    }
+
+    if (formData.telefono.trim() && !isValidPhone(formData.telefono)) {
       alert('Por favor, ingresa un número de teléfono válido (mínimo 8 dígitos).');
       return;
     }

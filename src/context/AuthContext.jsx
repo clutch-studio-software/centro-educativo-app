@@ -21,7 +21,12 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Obtener los claims personalizados para el rol
+          /**
+           * IMPORTANTE: Se utiliza getIdTokenResult(true) con 'forceRefresh = true' para 
+           * evitar que el cliente use un token JWT en caché. Esto garantiza que las 
+           * Custom Claims de roles ('user_admin', 'Padre') asignadas recientemente en el backend
+           * se propaguen de inmediato en la sesión activa sin requerir re-login manual.
+           */
           const idTokenResult = await firebaseUser.getIdTokenResult(true);
           const role = idTokenResult.claims.role || 'Estudiante'; // Por defecto alumno si no posee claims
           const studentId = idTokenResult.claims.studentId || null;
@@ -70,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   /**
    * Método de Login integrado con Firebase
    */
-  const loginReal = async (identifier, password, role) => {
+  const login = async (identifier, password, role) => {
     if (role === 'Estudiante') {
       // Iniciar sesión de alumno usando la Cloud Function cf_loginStudent (devuelve customToken)
       const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
@@ -98,14 +103,14 @@ export const AuthProvider = ({ children }) => {
   /**
    * Método de Logout
    */
-  const logoutReal = async () => {
+  const logout = async () => {
     await signOut(auth);
   };
 
   /**
    * Método para cambiar contraseña y limpiar la bandera mustChangePassword
    */
-  const changePasswordReal = async (newPassword) => {
+  const changePassword = async (newPassword) => {
     if (!user) throw new Error("No hay un usuario autenticado.");
 
     const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
@@ -161,7 +166,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login: loginReal, logout: logoutReal, changePassword: changePasswordReal, isLoggedIn: !!user, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, changePassword, isLoggedIn: !!user, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
