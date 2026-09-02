@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import SuccessModal from '../components/molecules/SuccessModal';
 import '../styles/Registration.css';
+import {
+  isValidEmail,
+  isValidPhone,
+  isValidDni,
+  sanitizeDigitsOnly,
+  sanitizePhoneNumber
+} from '../utils/validators';
 
 const NIVELES = [
   {
@@ -67,10 +74,10 @@ const Registration = () => {
     let nuevoValor = valor;
     
     if (campo === 'dniTutor' || campo === 'dniAlumno') {
-      nuevoValor = valor.replace(/\D/g, ''); // Solo números
+      nuevoValor = sanitizeDigitsOnly(valor);
     }
     if (campo === 'telefono') {
-      nuevoValor = valor.replace(/[^0-9+\-\s]/g, ''); // Números, +, guiones y espacios
+      nuevoValor = sanitizePhoneNumber(valor);
     }
 
     setDatosFormulario({ ...datosFormulario, [campo]: nuevoValor });
@@ -78,51 +85,55 @@ const Registration = () => {
   };
 
   const validarPaso = () => {
-    const e = {};
-    if (pasoActual === 1 && !datosFormulario.nivel)
-      e.nivel = 'Selecciona un nivel para continuar.';
+    const erroresValidacion = {};
+    if (pasoActual === 1 && !datosFormulario.nivel) {
+      erroresValidacion.nivel = 'Selecciona un nivel para continuar.';
+    }
     if (pasoActual === 2) {
       if (!datosFormulario.nombreTutor.trim()) {
-        e.nombreTutor = 'El campo es obligatorio';
+        erroresValidacion.nombreTutor = 'El campo es obligatorio';
       }
       
       if (!datosFormulario.dniTutor.trim()) {
-        e.dniTutor = 'El campo es obligatorio';
-      } else if (datosFormulario.dniTutor.length < 7 || datosFormulario.dniTutor.length > 9) {
-        e.dniTutor = 'El DNI debe tener entre 7 y 9 números';
+        erroresValidacion.dniTutor = 'El campo es obligatorio';
+      } else if (!isValidDni(datosFormulario.dniTutor)) {
+        erroresValidacion.dniTutor = 'El DNI debe tener entre 7 y 9 números';
       }
 
       if (!datosFormulario.correo.trim()) {
-        e.correo = 'El campo es obligatorio';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datosFormulario.correo)) {
-        e.correo = 'Ingresa un correo electrónico válido';
+        erroresValidacion.correo = 'El campo es obligatorio';
+      } else if (!isValidEmail(datosFormulario.correo)) {
+        erroresValidacion.correo = 'Ingresa un correo electrónico válido';
       }
 
       if (!datosFormulario.telefono.trim()) {
-        e.telefono = 'El campo es obligatorio';
-      } else if (datosFormulario.telefono.replace(/\D/g, '').length < 8) {
-        e.telefono = 'Ingresa un número de teléfono válido';
+        erroresValidacion.telefono = 'El campo es obligatorio';
+      } else if (!isValidPhone(datosFormulario.telefono)) {
+        erroresValidacion.telefono = 'Ingresa un número de teléfono válido';
       }
     }
     if (pasoActual === 3) {
-      if (!datosFormulario.nombreAlumno.trim()) e.nombreAlumno = 'El campo es obligatorio';
+      if (!datosFormulario.nombreAlumno.trim()) {
+        erroresValidacion.nombreAlumno = 'El campo es obligatorio';
+      }
       if (!datosFormulario.fechaNacimiento) {
-        e.fechaNacimiento = 'El campo es obligatorio';
+        erroresValidacion.fechaNacimiento = 'El campo es obligatorio';
       } else {
         const { min, max } = obtenerLimitesFecha();
         const fecha = datosFormulario.fechaNacimiento;
-        if (fecha < min || fecha > max)
-          e.fechaNacimiento = 'La fecha no corresponde al nivel seleccionado.';
+        if (fecha < min || fecha > max) {
+          erroresValidacion.fechaNacimiento = 'La fecha no corresponde al nivel seleccionado.';
+        }
       }
       if (!datosFormulario.dniAlumno.trim()) {
-        e.dniAlumno = 'El campo es obligatorio';
-      } else if (datosFormulario.dniAlumno.length < 7 || datosFormulario.dniAlumno.length > 9) {
-        e.dniAlumno = 'El DNI debe tener entre 7 y 9 números';
+        erroresValidacion.dniAlumno = 'El campo es obligatorio';
+      } else if (!isValidDni(datosFormulario.dniAlumno)) {
+        erroresValidacion.dniAlumno = 'El DNI debe tener entre 7 y 9 números';
       }
     }
-    setErrores(e);
-    return Object.keys(e).length === 0;
-  }
+    setErrores(erroresValidacion);
+    return Object.keys(erroresValidacion).length === 0;
+  };
 
   const obtenerLimitesFecha = () => {
     const hoy = new Date();
@@ -133,13 +144,19 @@ const Registration = () => {
       d.setMonth(d.getMonth() - meses);
       return d;
     };
-    const MARGEN = 6;
+    /**
+     * MARGEN_MESES_TOLERANCIA_EDAD:
+     * Se define un margen de 6 meses sobre el cálculo del año de nacimiento para
+     * contemplar a aquellos alumnos que cumplen años hacia el final del ciclo lectivo (corte a junio/diciembre),
+     * permitiendo su inscripción administrativa según la normativa ministerial vigente.
+     */
+    const MARGEN_MESES_TOLERANCIA_EDAD = 6;
     if (datosFormulario.nivel === 'inicial')
-      return { min: formato(restar(5, MARGEN)), max: formato(restar(3, -MARGEN)) };
+      return { min: formato(restar(5, MARGEN_MESES_TOLERANCIA_EDAD)), max: formato(restar(3, -MARGEN_MESES_TOLERANCIA_EDAD)) };
     if (datosFormulario.nivel === 'primaria')
-      return { min: formato(restar(12, MARGEN)), max: formato(restar(6, -MARGEN)) };
+      return { min: formato(restar(12, MARGEN_MESES_TOLERANCIA_EDAD)), max: formato(restar(6, -MARGEN_MESES_TOLERANCIA_EDAD)) };
     if (datosFormulario.nivel === 'secundaria')
-      return { min: formato(restar(18, MARGEN)), max: formato(restar(13, -MARGEN)) };
+      return { min: formato(restar(18, MARGEN_MESES_TOLERANCIA_EDAD)), max: formato(restar(13, -MARGEN_MESES_TOLERANCIA_EDAD)) };
     return { min: '', max: '' };
   };
 
