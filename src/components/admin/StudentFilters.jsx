@@ -53,7 +53,7 @@ const StudentFilters = ({
               placeholder="Buscar por DNI, Legajo, Apellido..."
               className="w-full h-9 pl-10 pr-16 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-full text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white shadow-xs transition-all"
             />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-400 uppercase tracking-wider shadow-xs select-none pointer-events-none">
+            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-400 uppercase tracking-wider shadow-xs select-none pointer-events-none text-xs">
               Ctrl+K
             </kbd>
           </div>

@@ -284,7 +284,7 @@ const StudentsManagement = () => {
                 className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 cursor-pointer border-none"
               >
                 <span className="material-symbols-outlined text-[18px]">person_add</span>
-                <span>+ Nuevo Alumno</span>
+                <span>Nuevo Alumno</span>
               </button>
             </div>
           </div>

@@ -7,7 +7,9 @@ import {
   isValidEmail,
   isValidPhone,
   isValidDni,
-  sanitizeDigitsOnly,
+  formatDni,
+  validarEdadPorNivel,
+  obtenerLimitesFechaPorNivel,
   sanitizePhoneNumber
 } from '../utils/validators';
 
@@ -16,7 +18,7 @@ const NIVELES = [
     id: 'inicial',
     icon: '😊',
     nombre: 'Nivel Inicial',
-    descripcion: 'Para niños de 3 a 5 años. Un entorno lúdico y seguro.',
+    descripcion: 'Para niños de 2 a 5 años. Un entorno lúdico y seguro.',
   },
   {
     id: 'primaria',
@@ -74,7 +76,7 @@ const Registration = () => {
     let nuevoValor = valor;
     
     if (campo === 'dniTutor' || campo === 'dniAlumno') {
-      nuevoValor = sanitizeDigitsOnly(valor);
+      nuevoValor = formatDni(valor);
     }
     if (campo === 'telefono') {
       nuevoValor = sanitizePhoneNumber(valor);
@@ -119,10 +121,12 @@ const Registration = () => {
       if (!datosFormulario.fechaNacimiento) {
         erroresValidacion.fechaNacimiento = 'El campo es obligatorio';
       } else {
-        const { min, max } = obtenerLimitesFecha();
-        const fecha = datosFormulario.fechaNacimiento;
-        if (fecha < min || fecha > max) {
-          erroresValidacion.fechaNacimiento = 'La fecha no corresponde al nivel seleccionado.';
+        const checkEdad = validarEdadPorNivel(
+          datosFormulario.fechaNacimiento,
+          datosFormulario.nivel
+        );
+        if (!checkEdad.esValido) {
+          erroresValidacion.fechaNacimiento = checkEdad.error;
         }
       }
       if (!datosFormulario.dniAlumno.trim()) {
@@ -133,31 +137,6 @@ const Registration = () => {
     }
     setErrores(erroresValidacion);
     return Object.keys(erroresValidacion).length === 0;
-  };
-
-  const obtenerLimitesFecha = () => {
-    const hoy = new Date();
-    const formato = (d) => d.toISOString().split('T')[0];
-    const restar = (anios, meses = 0) => {
-      const d = new Date(hoy);
-      d.setFullYear(d.getFullYear() - anios);
-      d.setMonth(d.getMonth() - meses);
-      return d;
-    };
-    /**
-     * MARGEN_MESES_TOLERANCIA_EDAD:
-     * Se define un margen de 6 meses sobre el cálculo del año de nacimiento para
-     * contemplar a aquellos alumnos que cumplen años hacia el final del ciclo lectivo (corte a junio/diciembre),
-     * permitiendo su inscripción administrativa según la normativa ministerial vigente.
-     */
-    const MARGEN_MESES_TOLERANCIA_EDAD = 6;
-    if (datosFormulario.nivel === 'inicial')
-      return { min: formato(restar(5, MARGEN_MESES_TOLERANCIA_EDAD)), max: formato(restar(3, -MARGEN_MESES_TOLERANCIA_EDAD)) };
-    if (datosFormulario.nivel === 'primaria')
-      return { min: formato(restar(12, MARGEN_MESES_TOLERANCIA_EDAD)), max: formato(restar(6, -MARGEN_MESES_TOLERANCIA_EDAD)) };
-    if (datosFormulario.nivel === 'secundaria')
-      return { min: formato(restar(18, MARGEN_MESES_TOLERANCIA_EDAD)), max: formato(restar(13, -MARGEN_MESES_TOLERANCIA_EDAD)) };
-    return { min: '', max: '' };
   };
 
   return (
@@ -201,12 +180,13 @@ const Registration = () => {
 
 
           {pasoActual === 1 && (
-            <section className="paso">
+            <section className="paso" data-testid="reg-step-1">
               <h2 className="paso-titulo">Paso 1: Selección de Nivel</h2>
               <div className="niveles-grid">
                 {NIVELES.map((nivel) => (
                   <button
                     key={nivel.id}
+                    data-testid={`reg-level-${nivel.id}`}
                     type="button"
                     className={`nivel-card ${datosFormulario.nivel === nivel.id ? 'seleccionado' : ''}`}
                     onClick={() => handleChange('nivel', nivel.id)}
@@ -217,58 +197,62 @@ const Registration = () => {
                   </button>
                 ))}
               </div>
-              {errores.nivel && <p className="form-error">{errores.nivel}</p>}
+              {errores.nivel && <p className="form-error" data-testid="reg-error-nivel">{errores.nivel}</p>}
             </section>
           )}
 
 
           {pasoActual === 2 && (
-            <section className="paso">
+            <section className="paso" data-testid="reg-step-2">
               <h2 className="paso-titulo">Paso 2: Datos del Tutor</h2>
               <div className="form-grid">
                 <div className="form-grupo">
                   <label className="form-label">NOMBRE COMPLETO</label>
                   <input
+                    data-testid="reg-tutor-name"
                     className={`form-input ${errores.nombreTutor ? 'form-input--error' : ''}`}
                     type="text"
                     placeholder="Ej. Juan Pérez"
                     value={datosFormulario.nombreTutor}
                     onChange={(e) => handleChange('nombreTutor', e.target.value)}
                   />
-                  {errores.nombreTutor && <p className="form-error">{errores.nombreTutor}</p>}
+                  {errores.nombreTutor && <p className="form-error" data-testid="reg-error-tutor-name">{errores.nombreTutor}</p>}
                 </div>
                 <div className="form-grupo">
                   <label className="form-label">DNI</label>
                   <input
+                    data-testid="reg-tutor-dni"
                     className={`form-input ${errores.dniTutor ? 'form-input--error' : ''}`}
                     type="text"
                     placeholder="Número de documento"
                     value={datosFormulario.dniTutor}
                     onChange={(e) => handleChange('dniTutor', e.target.value)}
                   />
-                  {errores.dniTutor && <p className="form-error">{errores.dniTutor}</p>}
+                  {errores.dniTutor && <p className="form-error" data-testid="reg-error-tutor-dni">{errores.dniTutor}</p>}
                 </div>
                 <div className="form-grupo">
                   <label className="form-label">CORREO ELECTRÓNICO</label>
                   <input
+                    data-testid="reg-tutor-email"
                     className={`form-input ${errores.correo ? 'form-input--error' : ''}`}
                     type="email"
                     placeholder="correo@ejemplo.com"
                     value={datosFormulario.correo}
                     onChange={(e) => handleChange('correo', e.target.value)}
                   />
-                  {errores.correo && <p className="form-error">{errores.correo}</p>}
+                  {errores.correo && <p className="form-error" data-testid="reg-error-tutor-email">{errores.correo}</p>}
                 </div>
                 <div className="form-grupo">
                   <label className="form-label">TELÉFONO DE CONTACTO</label>
                   <input
+                    data-testid="reg-tutor-phone"
                     className={`form-input ${errores.telefono ? 'form-input--error' : ''}`}
                     type="tel"
                     placeholder="+549 11 2345-6789"
                     value={datosFormulario.telefono}
                     onChange={(e) => handleChange('telefono', e.target.value)}
                   />
-                  {errores.telefono && <p className="form-error">{errores.telefono}</p>}
+                  {errores.telefono && <p className="form-error" data-testid="reg-error-tutor-phone">{errores.telefono}</p>}
                 </div>
               </div>
             </section>
@@ -276,46 +260,50 @@ const Registration = () => {
 
 
           {pasoActual === 3 && (
-            <section className="paso">
+            <section className="paso" data-testid="reg-step-3">
               <h2 className="paso-titulo">Paso 3: Datos del Alumno</h2>
               <div className="form-grid">
                 <div className="form-grupo">
                   <label className="form-label">NOMBRE COMPLETO DEL ALUMNO</label>
                   <input
+                    data-testid="reg-student-name"
                     className={`form-input ${errores.nombreAlumno ? 'form-input--error' : ''}`}
                     type="text"
                     placeholder="Nombre y apellido"
                     value={datosFormulario.nombreAlumno}
                     onChange={(e) => handleChange('nombreAlumno', e.target.value)}
                   />
-                  {errores.nombreAlumno && <p className="form-error">{errores.nombreAlumno}</p>}
+                  {errores.nombreAlumno && <p className="form-error" data-testid="reg-error-student-name">{errores.nombreAlumno}</p>}
                 </div>
                 <div className="form-grupo">
                   <label className="form-label">DNI DEL ALUMNO</label>
                   <input
+                    data-testid="reg-student-dni"
                     className={`form-input ${errores.dniAlumno ? 'form-input--error' : ''}`}
                     type="text"
                     placeholder="Número de documento"
                     value={datosFormulario.dniAlumno}
                     onChange={(e) => handleChange('dniAlumno', e.target.value)}
                   />
-                  {errores.dniAlumno && <p className="form-error">{errores.dniAlumno}</p>}
+                  {errores.dniAlumno && <p className="form-error" data-testid="reg-error-student-dni">{errores.dniAlumno}</p>}
                 </div>
                 <div className="form-grupo form-grupo--full">
                   <label className="form-label">FECHA DE NACIMIENTO</label>
                   <input
+                    data-testid="reg-student-birthdate"
                     className={`form-input ${errores.fechaNacimiento ? 'form-input--error' : ''}`}
                     type="date"
-                    min={obtenerLimitesFecha().min}
-                    max={obtenerLimitesFecha().max}
+                    min={obtenerLimitesFechaPorNivel(datosFormulario.nivel).min}
+                    max={obtenerLimitesFechaPorNivel(datosFormulario.nivel).max}
                     value={datosFormulario.fechaNacimiento}
                     onChange={(e) => handleChange('fechaNacimiento', e.target.value)}
                   />
-                  {errores.fechaNacimiento && <p className="form-error">{errores.fechaNacimiento}</p>}
+                  {errores.fechaNacimiento && <p className="form-error" data-testid="reg-error-student-birthdate">{errores.fechaNacimiento}</p>}
                 </div>
                 <div className="form-grupo form-grupo--full">
                   <label className="form-label">OBSERVACIONES / NECESIDADES ESPECIALES</label>
                   <textarea
+                    data-testid="reg-student-observations"
                     className="form-input form-textarea"
                     placeholder="Indicá cualquier información relevante..."
                     value={datosFormulario.observaciones}
@@ -329,17 +317,18 @@ const Registration = () => {
 
           <div className="botones-navegacion">
             {pasoActual > 1 && (
-              <button type="button" className="btn-anterior" onClick={pasoAnterior}>
+              <button type="button" data-testid="reg-btn-prev" className="btn-anterior" onClick={pasoAnterior}>
                 ← Paso Anterior
               </button>
             )}
             {pasoActual < 3 ? (
-              <button type="button" className="btn-siguiente" onClick={siguientePaso}>
+              <button type="button" data-testid="reg-btn-next" className="btn-siguiente" onClick={siguientePaso}>
                 Siguiente Paso →
               </button>
             ) : (
               <button
                 type="button"
+                data-testid="reg-btn-submit"
                 className="btn-finalizar"
                 onClick={handleSubmit}
                 disabled={isSubmitting}
