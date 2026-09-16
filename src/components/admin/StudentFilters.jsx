@@ -93,11 +93,30 @@ const StudentFilters = ({
               className="h-9 px-3 bg-slate-50 hover:bg-slate-100/80 text-slate-800 font-semibold text-xs rounded-full border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white shadow-xs transition-all cursor-pointer"
             >
               <option value="todos">Todos los cursos</option>
-              <option value="4to Año B">4to Año B - Secundario</option>
-              <option value="5to Grado A">5to Grado A - Primario</option>
-              <option value="Sala Verde (5 Años)">Sala Verde (5 Años) - Inicial</option>
-              <option value="3er Año A">3er Año A - Secundario</option>
-              <option value="6to Grado B">6to Grado B - Primario</option>
+              <option value="sin asignar">Sin asignar</option>
+              <optgroup label="Nivel Inicial">
+                <option value="Sala de 2 Años">Sala de 2 Años</option>
+                <option value="Sala de 3 Años">Sala de 3 Años</option>
+                <option value="Sala de 4 Años">Sala de 4 Años</option>
+                <option value="Sala de 5 Años">Sala de 5 Años</option>
+              </optgroup>
+              <optgroup label="Nivel Primario">
+                <option value="1er Grado">1er Grado</option>
+                <option value="2do Grado">2do Grado</option>
+                <option value="3er Grado">3er Grado</option>
+                <option value="4to Grado">4to Grado</option>
+                <option value="5to Grado">5to Grado</option>
+                <option value="6to Grado">6to Grado</option>
+                <option value="7mo Grado">7mo Grado</option>
+              </optgroup>
+              <optgroup label="Nivel Secundario">
+                <option value="1er Año">1er Año</option>
+                <option value="2do Año">2do Año</option>
+                <option value="3er Año">3er Año</option>
+                <option value="4to Año">4to Año</option>
+                <option value="5to Año">5to Año</option>
+                <option value="6to Año">6to Año</option>
+              </optgroup>
             </select>
           </div>
 

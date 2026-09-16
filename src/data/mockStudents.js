@@ -204,5 +204,35 @@ export const MOCK_STUDENTS = [
     initials: 'FS',
     avatarGradient: 'from-lime-500 to-emerald-600',
     badgeVariant: 'lime',
+    division: 'sin asignar',
   }
 ];
+
+export const CURSOS_POR_NIVEL = {
+  Inicial: [
+    'Sala de 2 Años',
+    'Sala de 3 Años',
+    'Sala de 4 Años',
+    'Sala de 5 Años',
+  ],
+  Primario: [
+    '1er Grado',
+    '2do Grado',
+    '3er Grado',
+    '4to Grado',
+    '5to Grado',
+    '6to Grado',
+    '7mo Grado',
+  ],
+  Secundario: [
+    '1er Año',
+    '2do Año',
+    '3er Año',
+    '4to Año',
+    '5to Año',
+    '6to Año',
+  ],
+};
+
+export const DIVISIONES_LIST = ['A', 'B', 'C', 'D', 'Única'];
+

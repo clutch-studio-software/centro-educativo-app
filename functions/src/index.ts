@@ -69,15 +69,23 @@ export const cf_createParentAndStudents = onRequest({ cors: true, invoker: 'publ
        return;
     }
 
-    // Crear usuario del Padre en Auth usando su DNI como contraseña inicial
-    const parentUser = await admin.auth().createUser({
-      email: parentEmail,
-      emailVerified: true,
-      password: parentDni.trim()
-    });
-
-    // Establecer Custom Claim para el Padre
-    await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
+    // Crear o recuperar usuario del Padre en Auth usando su DNI como contraseña inicial
+    let parentUser;
+    try {
+      parentUser = await admin.auth().createUser({
+        email: parentEmail,
+        emailVerified: true,
+        password: parentDni.trim()
+      });
+      // Establecer Custom Claim para el Padre
+      await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
+    } catch (authErr: any) {
+      if (authErr.code === 'auth/email-already-exists') {
+        parentUser = await admin.auth().getUserByEmail(parentEmail);
+      } else {
+        throw authErr;
+      }
+    }
 
     const studentDocIds: string[] = [];
     const createdStudentsInfo = [];
@@ -105,6 +113,8 @@ export const cf_createParentAndStudents = onRequest({ cors: true, invoker: 'publ
         genero: student.genero || '',
         fechaNacimiento: student.fechaNacimiento || '',
         nivel: student.nivel || 'inicial',
+        curso: student.curso || 'sin asignar',
+        division: student.division || 'sin asignar',
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
@@ -116,7 +126,7 @@ export const cf_createParentAndStudents = onRequest({ cors: true, invoker: 'publ
       });
     }
 
-    // Guardar los datos del Padre en Firestore
+    // Guardar o actualizar los datos del Padre en Firestore
     await db.collection('users').doc(parentUser.uid).set({
       role: 'Padre',
       email: parentEmail,
@@ -124,9 +134,9 @@ export const cf_createParentAndStudents = onRequest({ cors: true, invoker: 'publ
       dni: parentDni.trim(),
       mustChangePassword: true,
       emailInvalid: false,
-      studentIds: studentDocIds,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+      studentIds: admin.firestore.FieldValue.arrayUnion(...studentDocIds),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
 
     res.status(201).send({
       parentUid: parentUser.uid,
@@ -740,3 +750,44 @@ export const cf_completePasswordChange = onRequest({ cors: true, invoker: 'publi
     res.status(500).send({ error: error.message || 'Error interno.' });
   }
 });
+
+/**
+ * 12. cf_deleteStudent
+ * Invocada por un user_admin para eliminar definitivamente un estudiante de Firestore y desvincularlo de su tutor.
+ */
+export const cf_deleteStudent = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
+  try {
+    const callerClaims = await verifyAuth(req);
+    if (callerClaims.role !== 'user_admin') {
+      res.status(403).send({ error: 'Permisos insuficientes.' });
+      return;
+    }
+
+    const { studentId } = req.body;
+    if (!studentId) {
+      res.status(400).send({ error: 'Falta studentId requerido.' });
+      return;
+    }
+
+    const studentRef = db.collection('students').doc(studentId);
+    const studentDoc = await studentRef.get();
+    if (!studentDoc.exists) {
+      res.status(404).send({ error: 'Estudiante no encontrado.' });
+      return;
+    }
+
+    const studentData = studentDoc.data();
+    if (studentData?.parentId) {
+      await db.collection('users').doc(studentData.parentId).update({
+        studentIds: admin.firestore.FieldValue.arrayRemove(studentId)
+      }).catch(() => {});
+    }
+
+    await studentRef.delete();
+    res.status(200).send({ message: 'Estudiante eliminado definitivamente.' });
+  } catch (error: any) {
+    console.error('Error en cf_deleteStudent:', error);
+    res.status(500).send({ error: error.message || 'Error interno del servidor.' });
+  }
+});
+

@@ -1,60 +1,51 @@
 import React, { useState } from 'react';
 import { formatDni, validarEdadPorNivel } from '../../utils/validators';
-
-
-const COURSES_BY_LEVEL = {
-  Inicial: [
-    { value: 'Sala Verde (5 Años)', label: 'Sala Verde (5 Años)' },
-    { value: 'Sala Amarilla (4 Años)', label: 'Sala Amarilla (4 Años)' },
-    { value: 'Sala Roja (3 Años)', label: 'Sala Roja (3 Años)' },
-  ],
-  Primario: [
-    { value: '5to Grado A - Turno Mañana', label: '5to Grado A - Turno Mañana' },
-    { value: '5to Grado B - Turno Tarde', label: '5to Grado B - Turno Tarde' },
-    { value: '1er Grado A', label: '1er Grado A' },
-    { value: '3er Grado B', label: '3er Grado B' },
-    { value: '6to Grado B', label: '6to Grado B' },
-  ],
-  Secundario: [
-    { value: '4to Año B - Secundario', label: '4to Año B - Secundario' },
-    { value: '3er Año A - Secundario', label: '3er Año A - Secundario' },
-    { value: '6to Año A - Secundario', label: '6to Año A - Secundario' },
-    { value: '1er Año A - Secundario', label: '1er Año A - Secundario' },
-  ],
-};
+import { CURSOS_POR_NIVEL, DIVISIONES_LIST } from '../../data/mockStudents';
 
 const EXISTING_TUTORS = [
   {
-    nombre: 'Marcelo Gómez',
-    dni: '28.451.902',
+    id: 'tut-1',
+    nombre: 'Martin Goya',
+    dni: '919239123',
     telefono: '11-4920-1928',
-    email: 'marcelo.gomez@gmail.com',
-    domicilio: 'Av. Rivadavia 4520, 4º B, CABA',
+    email: 'tutor@hotmail.com',
+    domicilio: 'Av. Rivadavia 4520, CABA',
   },
   {
-    nombre: 'Andrea Sosa',
-    dni: '29.338.104',
+    id: 'tut-2',
+    nombre: 'Miguel Rodriguez',
+    dni: '12470994',
     telefono: '11-5821-9944',
-    email: 'andrea.sosa@hotmail.com',
+    email: 'miguel.rodriguez@gmail.com',
     domicilio: 'Calle Mitre 840, Resistencia',
   },
   {
-    nombre: 'Carlos Morales',
-    dni: '26.890.512',
+    id: 'tut-3',
+    nombre: 'Carlos Martinez',
+    dni: '40034102',
     telefono: '11-3019-4822',
-    email: 'carlos.morales@yahoo.com',
-    domicilio: 'Av. Sarmiento 1240, Resistencia',
+    email: 'carlos@martinez.com',
+    domicilio: 'Av. Alvear 120, Resistencia',
   },
   {
-    nombre: 'Horacio Romero',
-    dni: '25.771.300',
+    id: 'tut-4',
+    nombre: 'Fabricio Alegre',
+    dni: '41517446',
     telefono: '11-6632-1082',
-    email: 'hromero@gmail.com',
+    email: 'fabricioalegre@gmail.com',
     domicilio: 'Pellegrini 320, Resistencia',
+  },
+  {
+    id: 'tut-5',
+    nombre: 'Graciela Gomez',
+    dni: '12555888',
+    telefono: '11-7712-4401',
+    email: 'SantiNick29@gmail.com',
+    domicilio: 'Güemes 550, Resistencia',
   },
 ];
 
-const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
+const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   // Tutor Mode ('new' | 'existing')
   const [tutorMode, setTutorMode] = useState('new');
 
@@ -71,9 +62,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
   const [studentNombre, setStudentNombre] = useState('');
   const [studentApellido, setStudentApellido] = useState('');
   const [sameAddressAsTutor, setSameAddressAsTutor] = useState(true);
-  const [studentDomicilio, setStudentDomicilio] = useState('Av. Rivadavia 4520, 4º B, CABA');
+  const [studentDomicilio, setStudentDomicilio] = useState('');
   const [studentNivel, setStudentNivel] = useState('Primario');
-  const [studentCurso, setStudentCurso] = useState('5to Grado A - Turno Mañana');
+  const [studentCurso, setStudentCurso] = useState('sin asignar');
+  const [studentDivision, setStudentDivision] = useState('sin asignar');
   const [studentEstado, setStudentEstado] = useState('Activo - Regular');
 
   // Validation / Message State
@@ -82,17 +74,22 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
 
   if (!isOpen) return null;
 
+  const availableTutors = (tutors && tutors.length > 0 ? tutors : EXISTING_TUTORS).filter(
+    (t) => !t.role || String(t.role).trim().toLowerCase() === 'padre'
+  );
+
   // Handle select existing tutor
-  const handleSelectExistingTutor = (selectedTutorName) => {
-    const found = EXISTING_TUTORS.find((t) => t.nombre === selectedTutorName);
+  const handleSelectExistingTutor = (selectedVal) => {
+    if (!selectedVal) return;
+    const found = availableTutors.find((t) => (t.id && t.id === selectedVal) || t.nombre === selectedVal);
     if (found) {
-      setTutorNombre(found.nombre);
-      setTutorDni(formatDni(found.dni));
-      setTutorTelefono(found.telefono);
-      setTutorEmail(found.email);
-      setTutorDomicilio(found.domicilio);
+      setTutorNombre(found.nombre || '');
+      setTutorDni(formatDni(found.dni || ''));
+      setTutorTelefono(found.telefono || '');
+      setTutorEmail(found.email || '');
+      setTutorDomicilio(found.domicilio || '');
       if (sameAddressAsTutor) {
-        setStudentDomicilio(found.domicilio);
+        setStudentDomicilio(found.domicilio || '');
       }
     }
   };
@@ -114,12 +111,8 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
 
   const handleNivelChange = (newNivel) => {
     setStudentNivel(newNivel);
-    const availableCourses = COURSES_BY_LEVEL[newNivel] || [];
-    if (availableCourses.length > 0) {
-      setStudentCurso(availableCourses[0].value);
-    } else {
-      setStudentCurso('');
-    }
+    setStudentCurso('sin asignar');
+    setStudentDivision('sin asignar');
   };
 
   const validateAndBuildStudent = () => {
@@ -162,6 +155,15 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
         ? 'from-blue-500 to-indigo-500'
         : 'from-emerald-400 to-lime-500';
 
+    const cursoDisplay =
+      studentCurso === 'sin asignar' && studentDivision === 'sin asignar'
+        ? 'Sin asignar'
+        : studentCurso !== 'sin asignar' && studentDivision !== 'sin asignar'
+        ? `${studentCurso} "${studentDivision}"`
+        : studentCurso !== 'sin asignar'
+        ? studentCurso
+        : `División ${studentDivision}`;
+
     return {
       id: `s-${Date.now()}`,
       legajo,
@@ -170,11 +172,13 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
       tutorNombre: `${tutorNombre.trim()} (Tutor)`,
       tutorTelefono: tutorTelefono.trim(),
       tutorEmail: tutorEmail.trim(),
+      tutorDni: tutorDni.trim(),
       domicilio: sameAddressAsTutor ? tutorDomicilio : studentDomicilio,
       fechaNacimiento: studentFechaNacimiento,
       nivel: studentNivel,
-      curso: studentCurso || 'A asignar',
-      cursoDisplay: `${studentNivel} - ${studentCurso || 'A designar'}`,
+      curso: studentCurso || 'sin asignar',
+      division: studentDivision || 'sin asignar',
+      cursoDisplay,
       estado: studentEstado,
       servicios: ['Comedor Escolar'],
       initials: initials || 'AL',
@@ -205,6 +209,8 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
     setStudentFechaNacimiento('');
     setStudentNombre('');
     setStudentApellido('');
+    setStudentCurso('sin asignar');
+    setStudentDivision('sin asignar');
     setSuccessNotice(`¡Alumno ${newStudent.nombre} matriculado! Puedes ingresar los datos del hermano a continuación.`);
     setTimeout(() => setSuccessNotice(''), 5000);
   };
@@ -338,9 +344,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
                   onChange={(e) => handleSelectExistingTutor(e.target.value)}
                   className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-lime-400 cursor-pointer"
                 >
-                  {EXISTING_TUTORS.map((tutor) => (
-                    <option key={tutor.dni} value={tutor.nombre}>
-                      {tutor.nombre} (DNI: {tutor.dni})
+                  <option value="">-- Selecciona un tutor registrado --</option>
+                  {availableTutors.map((tutor) => (
+                    <option key={tutor.id || tutor.dni} value={tutor.id || tutor.nombre}>
+                      {tutor.nombre} (DNI: {formatDni(tutor.dni || '')}{tutor.email ? ` · ${tutor.email}` : ''})
                     </option>
                   ))}
                 </select>
@@ -589,8 +596,8 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
                 </label>
               </div>
 
-              {/* Nivel Educativo y Curso */}
-              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+              {/* Nivel Educativo, Curso y División */}
+              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Nivel Educativo *
@@ -609,7 +616,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
 
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                    Curso / División (Opcional - puede asignarse luego)
+                    Curso
                   </label>
                   <select
                     data-testid="student-course-select"
@@ -617,10 +624,29 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent }) => {
                     onChange={(e) => setStudentCurso(e.target.value)}
                     className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
                   >
-                    <option value="">-- Asignar más adelante --</option>
-                    {(COURSES_BY_LEVEL[studentNivel] || []).map((course) => (
-                      <option key={course.value} value={course.value}>
-                        {course.label}
+                    <option value="sin asignar">Sin asignar</option>
+                    {(CURSOS_POR_NIVEL[studentNivel] || []).map((cursoName) => (
+                      <option key={cursoName} value={cursoName}>
+                        {cursoName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    División
+                  </label>
+                  <select
+                    data-testid="student-division-select"
+                    value={studentDivision}
+                    onChange={(e) => setStudentDivision(e.target.value)}
+                    className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
+                  >
+                    <option value="sin asignar">Sin asignar</option>
+                    {DIVISIONES_LIST.map((div) => (
+                      <option key={div} value={div}>
+                        División {div}
                       </option>
                     ))}
                   </select>
