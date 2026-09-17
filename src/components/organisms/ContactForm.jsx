@@ -50,7 +50,7 @@ const ContactForm = () => {
     }
 
     if (formData.telefono.trim() && !isValidPhone(formData.telefono)) {
-      alert('Por favor, ingresa un número de teléfono válido (mínimo 8 dígitos).');
+      alert('Por favor, ingresa un número de teléfono válido (debe contener 10 u 11 dígitos numéricos).');
       return;
     }
 
@@ -141,8 +141,9 @@ const ContactForm = () => {
             <input
               type="tel"
               id="telefono"
+              maxLength={11}
               className="contact-form-input"
-              placeholder="+54 362..."
+              placeholder="Ej: 1123456789"
               value={formData.telefono}
               onChange={handleChange}
             />

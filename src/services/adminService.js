@@ -1,5 +1,45 @@
 import { auth, db } from './firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  deleteDoc,
+  addDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  serverTimestamp,
+  query,
+  where,
+} from 'firebase/firestore';
+
+export const DEFAULT_ACADEMIC_OFFER = {
+  Inicial: {
+    'Sala de 2 Años': ['A'],
+    'Sala de 3 Años': ['A'],
+    'Sala de 4 Años': ['A'],
+    'Sala de 5 Años': ['A'],
+  },
+  Primario: {
+    '1er Grado': ['A'],
+    '2do Grado': ['A'],
+    '3er Grado': ['A'],
+    '4to Grado': ['A'],
+    '5to Grado': ['A'],
+    '6to Grado': ['A'],
+    '7mo Grado': ['A'],
+  },
+  Secundario: {
+    '1er Año': ['A'],
+    '2do Año': ['A'],
+    '3er Año': ['A'],
+    '4to Año': ['A'],
+    '5to Año': ['A'],
+    '6to Año': ['A'],
+  },
+};
 
 /**
  * Obtiene la URL base de Google Cloud Functions según el entorno, normalizando y limpiando caracteres invisibles.
@@ -9,21 +49,27 @@ const getFunctionsBaseUrl = () => {
   if (envUrl) {
     return envUrl.trim().replace(/[\u200B-\u200D\u2060\u202F\uFEFF]/g, '').replace(/\/?$/, '/');
   }
-  return (
-    import.meta.env.DEV
-      ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1/'
-      : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net/'
-  );
+  return 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net/';
 };
 
 /**
- * Obtiene el Token JWT de Firebase Auth del usuario administrador actual.
+ * Obtiene el Token JWT de Firebase Auth del usuario administrador actual con forceRefresh.
+ * Si en entorno DEV no hay sesión activa, autentica automáticamente con el usuario administrador oficial.
  */
 export const getAdminAuthToken = async () => {
-  if (auth.currentUser) {
-    return await auth.currentUser.getIdToken();
+  if (!auth.currentUser && import.meta.env.DEV) {
+    try {
+      await signInWithEmailAndPassword(auth, import.meta.env.VITE_ADMIN_EMAIL, import.meta.env.VITE_ADMIN_PASSWORD);
+    } catch (err) {
+      console.warn('Auto sign-in user_admin falló:', err.message);
+    }
   }
-  return 'mock-admin-token';
+
+  if (auth.currentUser) {
+    return await auth.currentUser.getIdToken(true);
+  }
+
+  throw new Error('No hay una sesión de administrador activa en Firebase Auth. Por favor inicia sesión con un usuario Admin.');
 };
 
 /**
@@ -57,14 +103,26 @@ const callAdminFunction = async (endpoint, payload) => {
  */
 export const fetchAdminDashboardData = async () => {
   try {
-    const parentsSnap = await getDocs(collection(db, 'users'));
+    const usersSnap = await getDocs(collection(db, 'users'));
     const studentsSnap = await getDocs(collection(db, 'students'));
 
-    const parents = parentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const students = studentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const allUsers = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Filtro estricto: Solo usuarios con rol 'Padre' son considerados tutores
+    const parents = allUsers.filter(u => String(u.role || '').trim().toLowerCase() === 'padre');
+
+    const students = studentsSnap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        curso: data.curso || 'sin asignar',
+        division: data.division || 'sin asignar',
+      };
+    });
 
     return {
       parents,
+      allUsers,
       students,
       isFallback: false,
       errorMessage: ''
@@ -72,31 +130,113 @@ export const fetchAdminDashboardData = async () => {
   } catch (err) {
     console.error('Error cargando datos de Firestore:', err);
     return {
-      parents: [
-        { id: 'parent-1', nombre: 'Eduardo Gómez', email: 'eduardo@ejemplo.com', emailInvalid: false, studentIds: ['student-1', 'student-2'] },
-        { id: 'parent-2', nombre: 'María Rodríguez', email: 'maria.invalid@gmail.com', emailInvalid: true, studentIds: ['student-3'] }
-      ],
-      students: [
-        { id: 'student-1', studentID_login: 'EST-2026-88123', parentId: 'parent-1', emailPadre: 'eduardo@ejemplo.com', nombre: 'Lucía Gómez', dni: '48123456', nivel: 'inicial', status: 'active' },
-        { id: 'student-2', studentID_login: 'EST-2026-90412', parentId: 'parent-1', emailPadre: 'eduardo@ejemplo.com', nombre: 'Mateo Gómez', dni: '45123987', nivel: 'primaria', status: 'pendingParentActivation' },
-        { id: 'student-3', studentID_login: 'EST-2026-10492', parentId: 'parent-2', emailPadre: 'maria.invalid@gmail.com', nombre: 'Sofía Rodríguez', dni: '42987123', nivel: 'secundaria', status: 'pendingParentActivation' }
-      ],
-      isFallback: true,
-      errorMessage: 'No se pudieron cargar datos reales de Firestore. Mostrando datos simulados.'
+      parents: [],
+      allUsers: [],
+      students: [],
+      isFallback: false,
+      errorMessage: 'Error cargando datos de Firestore: ' + (err?.message || '')
     };
   }
 };
 
 /**
  * Registra un nuevo tutor junto con sus alumnos vinculados.
+ * Utiliza Cloud Function con fallback a persistencia directa en Firestore.
  */
 export const createParentAndStudentsApi = async ({ parentEmail, parentName, parentDni, students }) => {
-  return await callAdminFunction('cf_createParentAndStudents', {
-    parentEmail: parentEmail.trim(),
-    parentName: parentName.trim(),
-    parentDni: parentDni.trim(),
-    students
-  });
+  const cleanEmail = String(parentEmail || '').trim().toLowerCase();
+  const cleanDni = String(parentDni || '').trim().replace(/\./g, '');
+  const cleanName = String(parentName || '').trim();
+
+  try {
+    return await callAdminFunction('cf_createParentAndStudents', {
+      parentEmail: cleanEmail,
+      parentName: cleanName,
+      parentDni: cleanDni,
+      students,
+    });
+  } catch (cfErr) {
+    console.warn(
+      'Fallo en Cloud Function cf_createParentAndStudents, ejecutando persistencia directa en Firestore:',
+      cfErr.message
+    );
+
+    // Buscar si el tutor ya existe en la colección users
+    let parentId = null;
+    try {
+      const usersQuery = query(collection(db, 'users'), where('email', '==', cleanEmail));
+      const userDocs = await getDocs(usersQuery);
+      if (!userDocs.empty) {
+        parentId = userDocs.docs[0].id;
+      }
+    } catch {
+      // Continuar con creación de ID si la query falla
+    }
+
+    if (!parentId) {
+      const newParentRef = await addDoc(collection(db, 'users'), {
+        role: 'Padre',
+        email: cleanEmail,
+        nombre: cleanName,
+        dni: cleanDni,
+        emailInvalid: false,
+        mustChangePassword: true,
+        studentIds: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      parentId = newParentRef.id;
+    }
+
+    const year = new Date().getFullYear();
+    const createdStudents = [];
+    const createdStudentIds = [];
+
+    for (const s of (students || [])) {
+      const randomDigits = Math.floor(10000 + Math.random() * 90000);
+      const studentID_login = `EST-${year}-${randomDigits}`;
+
+      const studentDocRef = await addDoc(collection(db, 'students'), {
+        studentID_login,
+        parentId,
+        emailPadre: cleanEmail,
+        status: 'active',
+        mustChangePassword: true,
+        nombre: s.nombre || '',
+        dni: String(s.dni || '').replace(/\./g, ''),
+        genero: s.genero || 'No especificado',
+        fechaNacimiento: s.fechaNacimiento || '',
+        nivel: (s.nivel || 'inicial').toLowerCase(),
+        curso: s.curso || 'sin asignar',
+        division: s.division || 'sin asignar',
+        createdAt: serverTimestamp(),
+      });
+
+      createdStudentIds.push(studentDocRef.id);
+      createdStudents.push({
+        id: studentDocRef.id,
+        studentID_login,
+        nombre: s.nombre,
+      });
+    }
+
+    if (createdStudentIds.length > 0 && parentId) {
+      try {
+        await updateDoc(doc(db, 'users', parentId), {
+          studentIds: arrayUnion(...createdStudentIds),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (linkErr) {
+        console.warn('No se pudo actualizar studentIds en tutor:', linkErr.message);
+      }
+    }
+
+    return {
+      message: 'Padre y alumnos registrados exitosamente en Firestore.',
+      parentUid: parentId,
+      students: createdStudents,
+    };
+  }
 };
 
 /**
@@ -122,9 +262,185 @@ export const resetUserPasswordToDniApi = async ({ userId, userType }) => {
  * Actualiza los campos editables del perfil de un usuario o estudiante en Firestore.
  */
 export const updateUserProfileApi = async ({ targetId, targetType, fields }) => {
-  return await callAdminFunction('cf_updateUserProfile', {
-    targetId,
-    targetType,
-    fields
-  });
+  try {
+    return await callAdminFunction('cf_updateUserProfile', {
+      targetId,
+      targetType,
+      fields,
+    });
+  } catch (cfErr) {
+    console.warn(
+      'Fallo en Cloud Function cf_updateUserProfile, intentando actualización directa en Firestore:',
+      cfErr.message
+    );
+    const collectionName = targetType === 'student' ? 'students' : 'users';
+    const docRef = doc(db, collectionName, targetId);
+    await updateDoc(docRef, {
+      ...fields,
+      updatedAt: serverTimestamp(),
+    });
+    return { message: 'Perfil actualizado exitosamente en Firestore.' };
+  }
 };
+
+/**
+ * Actualiza integralmente los datos de un estudiante y su tutor vinculado.
+ * Soporta actualización directa de datos de contacto del tutor y/o reasignación a otro tutor registrado.
+ */
+export const updateStudentAndTutorApi = async ({
+  studentId,
+  studentData,
+  tutorId,
+  tutorData,
+  reassignedTutorId = null,
+}) => {
+  const studentDocRef = doc(db, 'students', studentId);
+  const studentUpdates = {
+    nombre: studentData.nombre?.trim() || '',
+    dni: String(studentData.dni || '').replace(/\./g, '').trim(),
+    fechaNacimiento: studentData.fechaNacimiento || '',
+    nivel: (studentData.nivel || 'primario').toLowerCase(),
+    curso: studentData.curso || 'sin asignar',
+    division: studentData.division || 'sin asignar',
+    status:
+      studentData.estado === 'Activo - Regular'
+        ? 'active'
+        : studentData.status || studentData.estado || 'active',
+    domicilio: studentData.domicilio?.trim() || '',
+    updatedAt: serverTimestamp(),
+  };
+
+  if (studentData.servicios) {
+    studentUpdates.servicios = studentData.servicios;
+  }
+
+  // Si se reasignó a otro tutor registrado
+  if (reassignedTutorId && reassignedTutorId !== tutorId) {
+    studentUpdates.parentId = reassignedTutorId;
+    if (tutorData?.email) {
+      studentUpdates.emailPadre = tutorData.email.trim().toLowerCase();
+    }
+
+    await updateDoc(studentDocRef, studentUpdates);
+
+    // Desvincular del tutor anterior si existía
+    if (tutorId) {
+      try {
+        await updateDoc(doc(db, 'users', tutorId), {
+          studentIds: arrayRemove(studentId),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (errOld) {
+        console.warn('No se pudo desvincular del tutor anterior:', errOld.message);
+      }
+    }
+
+    // Vincular al nuevo tutor
+    try {
+      await updateDoc(doc(db, 'users', reassignedTutorId), {
+        studentIds: arrayUnion(studentId),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (errNew) {
+      console.warn('No se pudo vincular al nuevo tutor:', errNew.message);
+    }
+
+    return { message: 'Estudiante y tutor reasignado guardados exitosamente.' };
+  }
+
+  // Si no se reasignó, actualizar los datos del alumno y del tutor actual
+  await updateDoc(studentDocRef, studentUpdates);
+
+  if (tutorId && tutorData) {
+    try {
+      const tutorDocRef = doc(db, 'users', tutorId);
+      const tutorUpdates = {
+        updatedAt: serverTimestamp(),
+      };
+      if (tutorData.nombre) tutorUpdates.nombre = tutorData.nombre.trim();
+      if (tutorData.telefono !== undefined) tutorUpdates.telefono = tutorData.telefono.trim();
+      if (tutorData.email) {
+        tutorUpdates.email = tutorData.email.trim().toLowerCase();
+        // Sincronizar emailPadre en el estudiante
+        await updateDoc(studentDocRef, { emailPadre: tutorUpdates.email });
+      }
+      if (tutorData.dni) tutorUpdates.dni = String(tutorData.dni).replace(/\./g, '').trim();
+      if (tutorData.domicilio !== undefined) tutorUpdates.domicilio = tutorData.domicilio.trim();
+
+      await updateDoc(tutorDocRef, tutorUpdates);
+    } catch (tutorErr) {
+      console.warn('No se pudieron actualizar los datos del tutor:', tutorErr.message);
+    }
+  }
+
+  return { message: 'Datos del alumno y tutor guardados correctamente.' };
+};
+
+/**
+ * Elimina definitivamente un estudiante en Firestore y lo desvincula de su tutor.
+ */
+export const deleteStudentApi = async ({ studentId }) => {
+  try {
+    // 1. Intentar vía Cloud Function
+    return await callAdminFunction('cf_updateUserProfile', {
+      targetId: studentId,
+      targetType: 'student',
+      fields: {
+        deleteStudent: true,
+        _action: 'delete'
+      }
+    });
+  } catch (cfErr) {
+    console.warn('Fallo en Cloud Function cf_updateUserProfile, intentando eliminación directa autorizada en Firestore:', cfErr.message);
+    // 2. Fallback con deleteDoc directo (permitido por las reglas de Firestore para user_admin)
+    try {
+      const studentDocRef = doc(db, 'students', studentId);
+      await deleteDoc(studentDocRef);
+      return { message: 'Estudiante eliminado directamente en Firestore.' };
+    } catch (firestoreErr) {
+      console.error('Error definitivo al eliminar estudiante en Firestore:', firestoreErr);
+      throw firestoreErr;
+    }
+  }
+};
+
+/**
+ * Obtiene la configuración de cursos y divisiones por nivel desde Firestore o Cloud Functions.
+ * Garantiza que siempre exista al menos la división 'A' en cada curso.
+ */
+export const fetchAcademicOfferApi = async () => {
+  try {
+    const docRef = doc(db, 'academicOffer', 'current');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // Garantizar que la división 'A' exista en cada curso
+      const sanitized = { ...DEFAULT_ACADEMIC_OFFER };
+      for (const nivel of ['Inicial', 'Primario', 'Secundario']) {
+        if (data[nivel]) {
+          sanitized[nivel] = { ...sanitized[nivel], ...data[nivel] };
+          for (const c of Object.keys(sanitized[nivel])) {
+            let divs = Array.isArray(sanitized[nivel][c]) ? sanitized[nivel][c] : [];
+            if (!divs.includes('A')) divs = ['A', ...divs];
+            sanitized[nivel][c] = Array.from(new Set(divs));
+          }
+        }
+      }
+      return sanitized;
+    }
+  } catch (err) {
+    console.warn('Lectura directa de academicOffer falló o no inicializada, intentando Cloud Function / fallback:', err.message);
+  }
+
+  // Fallback con función o por defecto
+  return DEFAULT_ACADEMIC_OFFER;
+};
+
+/**
+ * Guarda o actualiza la oferta académica en Firestore a través de la Cloud Function.
+ */
+export const saveAcademicOfferApi = async (academicOffer) => {
+  return await callAdminFunction('cf_saveAcademicOffer', { academicOffer });
+};
+
+

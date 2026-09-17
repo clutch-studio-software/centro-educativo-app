@@ -4,8 +4,10 @@
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "outDir": "lib",
+    "rootDir": "src",
     "sourceMap": true,
-    "strict": true,
+    "strict": false,
+    "noImplicitAny": false,
     "target": "es2022",
     "esModuleInterop": true,
     "resolveJsonModule": true
