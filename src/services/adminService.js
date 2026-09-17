@@ -9,6 +9,7 @@ import {
   addDoc,
   updateDoc,
   arrayUnion,
+  arrayRemove,
   serverTimestamp,
   query,
   where,
@@ -261,11 +262,118 @@ export const resetUserPasswordToDniApi = async ({ userId, userType }) => {
  * Actualiza los campos editables del perfil de un usuario o estudiante en Firestore.
  */
 export const updateUserProfileApi = async ({ targetId, targetType, fields }) => {
-  return await callAdminFunction('cf_updateUserProfile', {
-    targetId,
-    targetType,
-    fields
-  });
+  try {
+    return await callAdminFunction('cf_updateUserProfile', {
+      targetId,
+      targetType,
+      fields,
+    });
+  } catch (cfErr) {
+    console.warn(
+      'Fallo en Cloud Function cf_updateUserProfile, intentando actualización directa en Firestore:',
+      cfErr.message
+    );
+    const collectionName = targetType === 'student' ? 'students' : 'users';
+    const docRef = doc(db, collectionName, targetId);
+    await updateDoc(docRef, {
+      ...fields,
+      updatedAt: serverTimestamp(),
+    });
+    return { message: 'Perfil actualizado exitosamente en Firestore.' };
+  }
+};
+
+/**
+ * Actualiza integralmente los datos de un estudiante y su tutor vinculado.
+ * Soporta actualización directa de datos de contacto del tutor y/o reasignación a otro tutor registrado.
+ */
+export const updateStudentAndTutorApi = async ({
+  studentId,
+  studentData,
+  tutorId,
+  tutorData,
+  reassignedTutorId = null,
+}) => {
+  const studentDocRef = doc(db, 'students', studentId);
+  const studentUpdates = {
+    nombre: studentData.nombre?.trim() || '',
+    dni: String(studentData.dni || '').replace(/\./g, '').trim(),
+    fechaNacimiento: studentData.fechaNacimiento || '',
+    nivel: (studentData.nivel || 'primario').toLowerCase(),
+    curso: studentData.curso || 'sin asignar',
+    division: studentData.division || 'sin asignar',
+    status:
+      studentData.estado === 'Activo - Regular'
+        ? 'active'
+        : studentData.status || studentData.estado || 'active',
+    domicilio: studentData.domicilio?.trim() || '',
+    updatedAt: serverTimestamp(),
+  };
+
+  if (studentData.servicios) {
+    studentUpdates.servicios = studentData.servicios;
+  }
+
+  // Si se reasignó a otro tutor registrado
+  if (reassignedTutorId && reassignedTutorId !== tutorId) {
+    studentUpdates.parentId = reassignedTutorId;
+    if (tutorData?.email) {
+      studentUpdates.emailPadre = tutorData.email.trim().toLowerCase();
+    }
+
+    await updateDoc(studentDocRef, studentUpdates);
+
+    // Desvincular del tutor anterior si existía
+    if (tutorId) {
+      try {
+        await updateDoc(doc(db, 'users', tutorId), {
+          studentIds: arrayRemove(studentId),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (errOld) {
+        console.warn('No se pudo desvincular del tutor anterior:', errOld.message);
+      }
+    }
+
+    // Vincular al nuevo tutor
+    try {
+      await updateDoc(doc(db, 'users', reassignedTutorId), {
+        studentIds: arrayUnion(studentId),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (errNew) {
+      console.warn('No se pudo vincular al nuevo tutor:', errNew.message);
+    }
+
+    return { message: 'Estudiante y tutor reasignado guardados exitosamente.' };
+  }
+
+  // Si no se reasignó, actualizar los datos del alumno y del tutor actual
+  await updateDoc(studentDocRef, studentUpdates);
+
+  if (tutorId && tutorData) {
+    try {
+      const tutorDocRef = doc(db, 'users', tutorId);
+      const tutorUpdates = {
+        updatedAt: serverTimestamp(),
+      };
+      if (tutorData.nombre) tutorUpdates.nombre = tutorData.nombre.trim();
+      if (tutorData.telefono !== undefined) tutorUpdates.telefono = tutorData.telefono.trim();
+      if (tutorData.email) {
+        tutorUpdates.email = tutorData.email.trim().toLowerCase();
+        // Sincronizar emailPadre en el estudiante
+        await updateDoc(studentDocRef, { emailPadre: tutorUpdates.email });
+      }
+      if (tutorData.dni) tutorUpdates.dni = String(tutorData.dni).replace(/\./g, '').trim();
+      if (tutorData.domicilio !== undefined) tutorUpdates.domicilio = tutorData.domicilio.trim();
+
+      await updateDoc(tutorDocRef, tutorUpdates);
+    } catch (tutorErr) {
+      console.warn('No se pudieron actualizar los datos del tutor:', tutorErr.message);
+    }
+  }
+
+  return { message: 'Datos del alumno y tutor guardados correctamente.' };
 };
 
 /**

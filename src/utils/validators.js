@@ -13,14 +13,15 @@ export const isValidEmail = (email) => {
 };
 
 /**
- * Valida si un número telefónico contiene la cantidad mínima requerida de dígitos.
+ * Valida si un número telefónico contiene exactamente 10 u 11 dígitos numéricos.
  * @param {string} phone
- * @param {number} minDigits - Cantidad mínima de dígitos esperados (por defecto 8).
+ * @param {number} minDigits - Cantidad mínima de dígitos (por defecto 10).
+ * @param {number} maxDigits - Cantidad máxima de dígitos (por defecto 11).
  * @returns {boolean}
  */
-export const isValidPhone = (phone, minDigits = 8) => {
+export const isValidPhone = (phone, minDigits = 10, maxDigits = 11) => {
   const digitsOnly = sanitizeDigitsOnly(phone);
-  return digitsOnly.length >= minDigits;
+  return digitsOnly.length >= minDigits && digitsOnly.length <= maxDigits;
 };
 
 /**
@@ -57,13 +58,15 @@ export const formatDni = (value) => {
 };
 
 /**
- * Sanitiza una cadena de teléfono permitiendo únicamente dígitos, +, guiones y espacios.
+ * Sanitiza una cadena de teléfono permitiendo únicamente dígitos numéricos hasta un máximo de 11 dígitos.
  * @param {string} value
+ * @param {number} maxDigits - Máximo de dígitos permitidos (por defecto 11).
  * @returns {string}
  */
-export const sanitizePhoneNumber = (value) => {
-  return String(value || '').replace(/[^0-9+\-\s]/g, '');
+export const sanitizePhoneNumber = (value, maxDigits = 11) => {
+  return sanitizeDigitsOnly(value).slice(0, maxDigits);
 };
+
 
 /**
  * Límites de edad por nivel educativo.

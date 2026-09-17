@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDni, validarEdadPorNivel } from '../../utils/validators';
+import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
 import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
 import { fetchAcademicOfferApi, DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
 
@@ -137,6 +137,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     setFormError('');
     if (!tutorNombre.trim() || !tutorDni.trim() || !tutorTelefono.trim()) {
       setFormError('Por favor completa todos los campos obligatorios del Tutor.');
+      return null;
+    }
+    if (!isValidPhone(tutorTelefono)) {
+      setFormError('El teléfono del tutor debe contener únicamente números y tener 10 u 11 dígitos (ej: 1123456789).');
       return null;
     }
     if (!studentDni.trim() || !studentNombre.trim() || !studentApellido.trim()) {
@@ -462,10 +466,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                   <input
                     data-testid="tutor-phone-input"
                     className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 font-mono"
-                    placeholder="Ej: 11-4920-1928"
+                    placeholder="Ej: 1123456789 (10 u 11 dígitos)"
                     type="tel"
+                    maxLength={11}
                     value={tutorTelefono}
-                    onChange={(e) => setTutorTelefono(e.target.value)}
+                    onChange={(e) => setTutorTelefono(sanitizePhoneNumber(e.target.value))}
                   />
                 </div>
               </div>

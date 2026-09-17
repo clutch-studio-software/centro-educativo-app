@@ -4,6 +4,7 @@ const StudentTable = ({
   students = [],
   isLoading = false,
   onEditStudent,
+  onViewStudent,
   onGenerateCertificate,
   onDeleteStudent,
   onToggleStatusStudent,
@@ -355,25 +356,25 @@ const StudentTable = ({
               </div>
             </button>
 
-            {/* Opción 2: Editar Legajo */}
+            {/* Opción 2: Ver detalles del alumno */}
             <button
-              data-testid={`student-menu-edit-${activeStudent.id}`}
+              data-testid={`student-menu-view-details-${activeStudent.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 const target = activeStudent;
                 setActiveMenuStudentId(null);
-                onEditStudent && onEditStudent(target);
+                onViewStudent && onViewStudent(target);
               }}
               className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
               type="button"
             >
               <span className="material-symbols-outlined text-slate-400 text-[18px]">
-                edit_note
+                visibility
               </span>
               <div className="flex flex-col items-start leading-tight">
-                <span>Editar Legajo</span>
+                <span>Ver detalles del alumno</span>
                 <span className="text-[10px] font-normal text-slate-400">
-                  Modificar datos del alumno
+                  Ficha completa y registros
                 </span>
               </div>
             </button>

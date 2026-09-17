@@ -111,7 +111,7 @@ const Registration = () => {
       if (!datosFormulario.telefono.trim()) {
         erroresValidacion.telefono = 'El campo es obligatorio';
       } else if (!isValidPhone(datosFormulario.telefono)) {
-        erroresValidacion.telefono = 'Ingresa un número de teléfono válido';
+        erroresValidacion.telefono = 'El teléfono debe tener 10 u 11 dígitos numéricos';
       }
     }
     if (pasoActual === 3) {
@@ -248,7 +248,8 @@ const Registration = () => {
                     data-testid="reg-tutor-phone"
                     className={`form-input ${errores.telefono ? 'form-input--error' : ''}`}
                     type="tel"
-                    placeholder="+549 11 2345-6789"
+                    maxLength={11}
+                    placeholder="Ej: 1123456789 (10 u 11 dígitos)"
                     value={datosFormulario.telefono}
                     onChange={(e) => handleChange('telefono', e.target.value)}
                   />

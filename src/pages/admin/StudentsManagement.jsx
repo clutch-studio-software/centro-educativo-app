@@ -6,12 +6,15 @@ import StudentFilters from '../../components/admin/StudentFilters';
 import StudentTable from '../../components/admin/StudentTable';
 import StudentPagination from '../../components/admin/StudentPagination';
 import NewStudentModal from '../../components/admin/NewStudentModal';
+import EditStudentModal from '../../components/admin/EditStudentModal';
+import StudentDetailsModal from '../../components/admin/StudentDetailsModal';
 import { auth } from '../../services/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import {
   fetchAdminDashboardData,
   createParentAndStudentsApi,
   updateUserProfileApi,
+  updateStudentAndTutorApi,
   deleteStudentApi,
   fetchAcademicOfferApi,
   DEFAULT_ACADEMIC_OFFER,
@@ -88,7 +91,7 @@ const StudentsManagement = () => {
       .then((data) => {
         if (data) setAcademicOffer(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Fetch from Firebase Firestore on Mount
@@ -153,6 +156,7 @@ const StudentsManagement = () => {
 
           return {
             id: s.id,
+            parentId: s.parentId || null,
             legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
             dni: formatDni(s.dni || ''),
             nombre: s.nombre || 'Sin Nombre',
@@ -226,6 +230,8 @@ const StudentsManagement = () => {
 
   // Modal State
   const [isNewStudentModalOpen, setIsNewStudentModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [viewingStudent, setViewingStudent] = useState(null);
   const [notification, setNotification] = useState(null);
 
   // Toast auto-clear
@@ -409,10 +415,32 @@ const StudentsManagement = () => {
   };
 
   const handleEditStudent = (student) => {
-    setNotification({
-      type: 'info',
-      message: `Abriendo legajo digital de ${student.nombre} (#${student.legajo})...`,
-    });
+    setEditingStudent(student);
+  };
+
+  const handleViewStudent = (student) => {
+    setViewingStudent(student);
+  };
+
+  const handleSaveEditStudent = async (payload) => {
+    setIsLoading(true);
+    try {
+      await updateStudentAndTutorApi(payload);
+      await loadStudentsData();
+      setNotification({
+        type: 'success',
+        message: `¡Legajo de ${payload.studentData.nombre} actualizado correctamente!`,
+      });
+    } catch (err) {
+      console.error('Error al editar alumno en backend:', err);
+      setNotification({
+        type: 'error',
+        message: `No se pudieron guardar los cambios: ${err.message || 'Error en el servidor.'}`,
+      });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleToggleStatusStudent = async (student) => {
@@ -669,6 +697,7 @@ const StudentsManagement = () => {
             students={paginatedStudents}
             isLoading={isLoading}
             onEditStudent={handleEditStudent}
+            onViewStudent={handleViewStudent}
             onGenerateCertificate={handleGenerateCertificate}
             onDeleteStudent={handleDeleteStudent}
             onToggleStatusStudent={handleToggleStatusStudent}
@@ -696,6 +725,27 @@ const StudentsManagement = () => {
         onClose={() => setIsNewStudentModalOpen(false)}
         onAddStudent={handleAddStudent}
         tutors={parentsList}
+      />
+
+      {/* Modal de Edición de Alumno y Tutor */}
+      <EditStudentModal
+        isOpen={!!editingStudent}
+        student={editingStudent}
+        tutors={parentsList}
+        academicOffer={academicOffer}
+        onClose={() => setEditingStudent(null)}
+        onSaveStudent={handleSaveEditStudent}
+      />
+
+      {/* Modal de Ver Detalles del Alumno */}
+      <StudentDetailsModal
+        isOpen={!!viewingStudent}
+        student={viewingStudent}
+        onClose={() => setViewingStudent(null)}
+        onEditStudent={(student) => {
+          setViewingStudent(null);
+          setEditingStudent(student);
+        }}
       />
     </AdminLayout>
   );
