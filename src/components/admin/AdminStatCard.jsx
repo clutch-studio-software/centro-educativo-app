@@ -25,13 +25,13 @@ const AdminStatCard = ({
       <div className="flex flex-col min-w-0">
         <span
           data-testid={`${cardTestId}-title`}
-          className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate"
+          className="text-[10px] text-left font-bold text-slate-400 uppercase tracking-wider truncate"
         >
           {title}
         </span>
         <span
           data-testid={`${cardTestId}-value`}
-          className={`text-2xl font-extrabold ${valueColor} mt-0.5`}
+          className={`text-2xl text-left font-extrabold ${valueColor} mt-0.5`}
         >
           {value}
         </span>
