@@ -664,7 +664,7 @@ const StudentsManagement = () => {
         )}
 
         {/* Tabla Principal de Alumnos con Estilo Prisma */}
-        <section data-testid="students-table-section" className="flex flex-col gap-4">
+        <section data-testid="students-table-section" className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col">
           <StudentTable
             students={paginatedStudents}
             isLoading={isLoading}

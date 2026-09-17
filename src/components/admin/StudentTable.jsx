@@ -59,19 +59,19 @@ const StudentTable = ({
     <div data-testid="student-table-wrapper" className="overflow-x-auto">
       <table data-testid="student-table" className="w-full text-left border-collapse">
         <thead data-testid="student-table-head">
-          <tr className="bg-slate-50/80 text-slate-500 font-bold text-[11px] uppercase tracking-wider border-b border-slate-100">
-            <th className="py-4 px-6 font-bold text-slate-500 whitespace-nowrap min-w-[130px]">
+          <tr className="bg-slate-100/80 text-slate-700 font-extrabold text-[11px] uppercase tracking-wider border-b-2 border-slate-200">
+            <th className="py-3.5 px-6 font-bold text-slate-600 whitespace-nowrap min-w-[130px]">
               Legajo
             </th>
-            <th className="py-4 px-6 font-bold text-slate-500 w-36">DNI</th>
-            <th className="py-4 px-6 font-bold text-slate-500">Alumno &amp; Tutor</th>
-            <th className="py-4 px-6 font-bold text-slate-500 w-64">Nivel / Curso</th>
-            <th className="py-4 px-6 font-bold text-slate-500 text-right w-48">
+            <th className="py-3.5 px-6 font-bold text-slate-600 w-36">DNI</th>
+            <th className="py-3.5 px-6 font-bold text-slate-600">Alumno &amp; Tutor</th>
+            <th className="py-3.5 px-6 font-bold text-slate-600 w-64">Nivel / Curso &amp; División</th>
+            <th className="py-3.5 px-6 font-bold text-slate-600 text-right w-48">
               Acciones Directas
             </th>
           </tr>
         </thead>
-        <tbody data-testid="student-table-body" className="divide-y divide-slate-100 text-xs text-slate-700">
+        <tbody data-testid="student-table-body" className="divide-y divide-slate-200/90 text-xs text-slate-700">
           {isLoading ? (
             <tr data-testid="student-loading-row">
               <td colSpan={5} className="py-12 text-center text-slate-400">
@@ -122,19 +122,17 @@ const StudentTable = ({
                 <tr
                   key={student.id || student.legajo}
                   data-testid={`student-row-${student.id}`}
-                  className={`hover:bg-lime-50/20 transition-colors group ${
-                    index % 2 === 1 ? 'bg-slate-50/40' : ''
-                  } ${isInactive ? 'opacity-75' : ''}`}
+                  className={`transition-colors duration-150 group border-b border-slate-200/80 last:border-b-0 ${index % 2 === 1 ? 'bg-slate-50/75' : 'bg-white'
+                    } hover:bg-lime-100 ${isInactive ? 'opacity-75 bg-slate-50/40' : ''}`}
                 >
                   {/* Legajo */}
                   <td className="py-4 px-6 whitespace-nowrap min-w-[130px]">
                     <span
                       data-testid={`student-legajo-${student.id}`}
-                      className={`whitespace-nowrap font-mono text-xs font-bold rounded-lg px-2.5 py-1 inline-block border ${
-                        isInactive
-                          ? 'text-slate-500 bg-slate-100 border-slate-200/70'
-                          : 'text-blue-700 bg-blue-50/70 border-blue-100'
-                      }`}
+                      className={`whitespace-nowrap font-mono text-xs font-bold rounded-lg px-2.5 py-1 inline-block border ${isInactive
+                        ? 'text-slate-500 bg-slate-100 border-slate-200/70'
+                        : 'text-blue-700 bg-blue-50/70 border-blue-100'
+                        }`}
                     >
                       {student.legajo}
                     </span>
@@ -143,9 +141,8 @@ const StudentTable = ({
                   {/* DNI */}
                   <td
                     data-testid={`student-dni-${student.id}`}
-                    className={`py-4 px-6 font-mono font-medium ${
-                      isInactive ? 'text-slate-400' : 'text-slate-500'
-                    }`}
+                    className={`py-4 px-6 font-mono font-semibold ${isInactive ? 'text-slate-400' : 'text-slate-600'
+                      }`}
                   >
                     {student.dni}
                   </td>
@@ -171,11 +168,10 @@ const StudentTable = ({
                       <div className="flex flex-col min-w-0">
                         <span
                           data-testid={`student-name-${student.id}`}
-                          className={`font-bold truncate transition-colors ${
-                            isInactive
-                              ? 'text-slate-400 line-through'
-                              : 'text-slate-800 group-hover:text-blue-600'
-                          }`}
+                          className={`font-bold truncate transition-colors ${isInactive
+                            ? 'text-slate-400 line-through'
+                            : 'text-slate-800 group-hover:text-blue-600'
+                            }`}
                         >
                           {student.nombre}
                         </span>
@@ -193,7 +189,7 @@ const StudentTable = ({
 
                   {/* Nivel / Curso & División */}
                   <td className="py-4 px-6">
-                    <div className="flex flex-col items-start gap-1">
+                    <div className="flex flex-col items-start gap-1.5">
                       <span
                         data-testid={`student-level-${student.id}`}
                         className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] whitespace-nowrap inline-block border ${getBadgeClass(
@@ -203,24 +199,39 @@ const StudentTable = ({
                       >
                         {student.nivel}
                       </span>
-                      <span
-                        data-testid={`student-course-${student.id}`}
-                        className={`text-xs ${
-                          student.curso === 'sin asignar' && (!student.division || student.division === 'sin asignar')
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          data-testid={`student-course-${student.id}`}
+                          className={`text-xs ${student.curso === 'sin asignar' && (!student.division || student.division === 'sin asignar')
                             ? 'text-slate-400 italic'
                             : isInactive
-                            ? 'text-slate-400'
-                            : 'text-slate-700 font-semibold'
-                        }`}
-                      >
-                        {student.curso === 'sin asignar' && (!student.division || student.division === 'sin asignar')
-                          ? 'Sin asignar'
-                          : `${student.curso !== 'sin asignar' ? student.curso : ''} ${
-                              student.division && student.division !== 'sin asignar'
-                                ? `"${student.division}"`
-                                : ''
-                            }`.trim()}
-                      </span>
+                              ? 'text-slate-400'
+                              : 'text-slate-800 font-semibold'
+                            }`}
+                        >
+                          {student.curso === 'sin asignar' && (!student.division || student.division === 'sin asignar')
+                            ? 'Sin asignar'
+                            : student.curso}
+                        </span>
+
+                        {student.division && student.division !== 'sin asignar' && (
+                          <>
+                            <span className="text-slate-300 font-normal select-none">|</span>
+                            <span
+                              data-testid={`student-division-${student.id}`}
+                              className={`text-xs ${isInactive
+                                ? 'text-slate-400'
+                                : 'text-slate-600 font-medium'
+                                }`}
+                            >
+                              {student.division.toLowerCase().includes('sala') ||
+                              student.division.toLowerCase().includes('div')
+                                ? student.division
+                                : `División ${student.division}`}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </td>
 
@@ -277,11 +288,10 @@ const StudentTable = ({
                               setActiveMenuStudentId(student.id);
                             }
                           }}
-                          className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${
-                            activeMenuStudentId === student.id
-                              ? 'bg-slate-200 text-slate-800 shadow-xs'
-                              : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100 bg-transparent'
-                          }`}
+                          className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${activeMenuStudentId === student.id
+                            ? 'bg-slate-200 text-slate-800 shadow-xs'
+                            : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100 bg-transparent'
+                            }`}
                           title="Opciones avanzadas"
                           type="button"
                         >
@@ -322,11 +332,10 @@ const StudentTable = ({
                 setActiveMenuStudentId(null);
                 onToggleStatusStudent && onToggleStatusStudent(target);
               }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
-                activeStudent.estado === 'Baja Administrativa'
-                  ? 'text-emerald-700 hover:bg-emerald-50'
-                  : 'text-amber-700 hover:bg-amber-50'
-              }`}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${activeStudent.estado === 'Baja Administrativa'
+                ? 'text-emerald-700 hover:bg-emerald-50'
+                : 'text-amber-700 hover:bg-amber-50'
+                }`}
               type="button"
             >
               <span className="material-symbols-outlined text-[18px]">

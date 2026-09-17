@@ -38,7 +38,7 @@ const StudentPagination = ({
   return (
     <div
       data-testid="student-pagination"
-      className="px-6 py-3.5 bg-slate-50/70 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4"
+      className="px-6 py-3.5 bg-slate-50/80 border-t-2 border-slate-200 flex flex-wrap items-center justify-between gap-4"
     >
       {/* Resumen y Filas por página */}
       <div className="flex items-center gap-3 flex-wrap">
