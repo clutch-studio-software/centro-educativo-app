@@ -522,15 +522,15 @@ export const cf_createAdministrativeUser = onRequest({ cors: true, invoker: 'pub
       return;
     }
 
-    const { email, name, role, dni } = req.body;
+    const { email, name, role, dni, ...extraFields } = req.body;
     if (!email || !name || !role || !dni) {
       res.status(400).send({ error: 'Faltan parámetros requeridos (email, name, role, dni).' });
       return;
     }
 
-    const allowedRoles = ['user_admin', 'Staff', 'Administrativo'];
+    const allowedRoles = ['user_admin', 'Staff', 'Administrativo', 'teacher'];
     if (!allowedRoles.includes(role)) {
-      res.status(400).send({ error: 'Rol inválido. Debe ser user_admin, Staff o Administrativo.' });
+      res.status(400).send({ error: 'Rol inválido. Debe ser user_admin, Staff, Administrativo o teacher.' });
       return;
     }
 
@@ -539,7 +539,7 @@ export const cf_createAdministrativeUser = onRequest({ cors: true, invoker: 'pub
       email,
       password: dni.trim(),
       emailVerified: true,
-      displayName: name
+      displayName: extraFields.nombreCompleto || name
     });
 
     // Asignar Custom Claim
@@ -553,6 +553,7 @@ export const cf_createAdministrativeUser = onRequest({ cors: true, invoker: 'pub
       dni: dni.trim(),
       mustChangePassword: true,
       emailInvalid: false,
+      ...extraFields,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
@@ -584,7 +585,7 @@ export const cf_resetUserPasswordToDni = onRequest({ cors: true, invoker: 'publi
       return;
     }
 
-    if (userType === 'parent' || userType === 'administrative') {
+    if (userType === 'parent' || userType === 'administrative' || userType === 'staff' || userType === 'teacher') {
       const userRef = db.collection('users').doc(userId);
       const userDoc = await userRef.get();
       if (!userDoc.exists) {
@@ -630,7 +631,7 @@ export const cf_resetUserPasswordToDni = onRequest({ cors: true, invoker: 'publi
 
       // Actualizar en Firestore
       await studentRef.update({
-        hashedPassword,
+        passwordHash: hashedPassword,
         mustChangePassword: true
       });
 
@@ -640,12 +641,82 @@ export const cf_resetUserPasswordToDni = onRequest({ cors: true, invoker: 'publi
     }
   } catch (error: any) {
     console.error('Error en cf_resetUserPasswordToDni:', error);
-    res.status(500).send({ error: error.message || 'Error interno del servidor.' });
+    res.status(500).send({ error: error.message || 'Error interno.' });
   }
 });
 
 /**
- * 9. cf_changeStudentPassword
+ * 9. cf_verifyCredentials
+ * Valida usuario y contraseña contra la base de datos Firestore y Firebase Auth.
+ */
+export const cf_verifyCredentials = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
+  try {
+    const { identifier, password, role } = req.body;
+    if (!identifier || !password) {
+      res.status(400).send({ error: 'Faltan credenciales.' });
+      return;
+    }
+
+    // A. Búsqueda si es estudiante
+    if (role === 'Estudiante' || identifier.toUpperCase().startsWith('EST-')) {
+      const studentSnap = await db.collection('students')
+        .where('studentID_login', '==', identifier.trim())
+        .limit(1)
+        .get();
+
+      if (studentSnap.empty) {
+        res.status(401).send({ error: 'Credenciales inválidas de estudiante.' });
+        return;
+      }
+
+      const studentDoc = studentSnap.docs[0];
+      const studentData = studentDoc.data();
+
+      // Comparación con bcrypt
+      const passwordMatch = await bcrypt.compare(password.trim(), studentData.passwordHash || studentData.hashedPassword || '');
+      if (!passwordMatch) {
+        res.status(401).send({ error: 'Contraseña incorrecta.' });
+        return;
+      }
+
+      res.status(200).send({
+        uid: studentDoc.id,
+        role: 'Estudiante',
+        name: studentData.nombre,
+        mustChangePassword: studentData.mustChangePassword ?? false
+      });
+      return;
+    }
+
+    // B. Búsqueda para otros roles (users collection)
+    const userSnap = await db.collection('users')
+      .where('email', '==', identifier.trim().toLowerCase())
+      .limit(1)
+      .get();
+
+    if (userSnap.empty) {
+      res.status(401).send({ error: 'Usuario no encontrado.' });
+      return;
+    }
+
+    const userDoc = userSnap.docs[0];
+    const userData = userDoc.data();
+
+    res.status(200).send({
+      uid: userDoc.id,
+      role: userData.role,
+      name: userData.nombre,
+      mustChangePassword: userData.mustChangePassword ?? false
+    });
+
+  } catch (error: any) {
+    console.error('Error en cf_verifyCredentials:', error);
+    res.status(500).send({ error: error.message || 'Error interno.' });
+  }
+});
+
+/**
+ * 10. cf_changeStudentPassword
  * Invocada por el propio estudiante o administrador para actualizar la contraseña del estudiante.
  */
 export const cf_changeStudentPassword = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
@@ -680,8 +751,8 @@ export const cf_changeStudentPassword = onRequest({ cors: true, invoker: 'public
 });
 
 /**
- * 10. cf_updateUserProfile
- * Invocada por un user_admin para modificar datos de perfiles (padre, alumno o administrativo).
+ * 11. cf_updateUserProfile
+ * Invocada por un user_admin para modificar datos de perfiles (padre, alumno o administrativo/staff).
  */
 export const cf_updateUserProfile = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
   try {
@@ -697,7 +768,7 @@ export const cf_updateUserProfile = onRequest({ cors: true, invoker: 'public' },
       return;
     }
 
-    if (targetType === 'parent' || targetType === 'administrative') {
+    if (targetType === 'parent' || targetType === 'administrative' || targetType === 'staff' || targetType === 'teacher') {
       const userRef = db.collection('users').doc(targetId);
       const userDoc = await userRef.get();
       if (!userDoc.exists) {
@@ -705,15 +776,23 @@ export const cf_updateUserProfile = onRequest({ cors: true, invoker: 'public' },
         return;
       }
 
+      // Si se solicita eliminación definitiva del usuario
+      if (fields.deleteUser === true || fields._action === 'delete') {
+        await admin.auth().deleteUser(targetId).catch(() => {});
+        await userRef.delete();
+        res.status(200).send({ message: 'Usuario eliminado definitivamente de Auth y Firestore.' });
+        return;
+      }
+
       // Si se modifica el email, actualizar también en Firebase Auth
       if (fields.email) {
         await admin.auth().updateUser(targetId, {
           email: fields.email,
-          displayName: fields.nombre || undefined
+          displayName: fields.nombreCompleto || fields.nombre || undefined
         });
-      } else if (fields.nombre) {
+      } else if (fields.nombreCompleto || fields.nombre) {
         await admin.auth().updateUser(targetId, {
-          displayName: fields.nombre
+          displayName: fields.nombreCompleto || fields.nombre
         });
       }
 

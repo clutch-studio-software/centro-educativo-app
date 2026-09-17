@@ -75,7 +75,7 @@ export const getAdminAuthToken = async () => {
 /**
  * Helper centralizado para ejecutar peticiones HTTP autenticadas a Cloud Functions.
  */
-const callAdminFunction = async (endpoint, payload) => {
+export const callAdminFunction = async (endpoint, payload) => {
   const baseUrl = getFunctionsBaseUrl();
   const token = await getAdminAuthToken();
   const cleanEndpoint = String(endpoint).replace(/^\//, '');
