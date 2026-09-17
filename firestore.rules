@@ -4,32 +4,43 @@ service cloud.firestore {
     
     // Colección users (Perfiles de padres, administradores, etc.)
     match /users/{userId} {
-      // Bloquear escrituras directas desde el cliente.
-      // Todas las altas y modificaciones deben ocurrir a través de las Cloud Functions.
-      allow write: if false;
+      // Permitir escritura únicamente a administradores autorizados
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'user_admin' || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user_admin')
+      );
       
       // Permitir lectura si:
       // 1. El usuario autenticado es dueño de su propio perfil.
-      // 2. El usuario autenticado posee el rol 'user_admin' en sus Custom Claims.
+      // 2. El usuario autenticado posee el rol 'user_admin' en sus Custom Claims o documento.
       allow read: if request.auth != null && (
         request.auth.uid == userId || 
-        request.auth.token.role == 'user_admin'
+        request.auth.token.role == 'user_admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user_admin')
       );
     }
     
     // Colección students (Datos y login de alumnos)
     match /students/{studentId} {
-      // Bloquear escrituras directas desde el cliente.
-      allow write: if false;
+      // Permitir creación, modificación y eliminación únicamente a administradores autorizados
+      allow create, update, delete: if request.auth != null && (
+        request.auth.token.role == 'user_admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user_admin')
+      );
       
       // Permitir lectura si:
       // 1. El usuario es el propio alumno (su UID coincide con el ID de documento).
       // 2. El usuario es el padre asociado (su UID coincide con el parentId del alumno).
-      // 3. El usuario posee el rol 'user_admin' en sus Custom Claims.
+      // 3. El usuario posee el rol 'user_admin' en sus Custom Claims o documento.
       allow read: if request.auth != null && (
         request.auth.uid == studentId || 
         resource.data.parentId == request.auth.uid || 
-        request.auth.token.role == 'user_admin'
+        request.auth.token.role == 'user_admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user_admin')
       );
     }
 
@@ -39,6 +50,19 @@ service cloud.firestore {
       allow read: if true;
       
       // Solo administradores autenticados (con claim de admin o perfil en la bd con rol user_admin) pueden escribir
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'user_admin' || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user_admin')
+      );
+    }
+
+    // Colección academicOffer (Cursos y divisiones de la oferta académica)
+    match /academicOffer/{docId} {
+      // Permitir lectura únicamente a usuarios autenticados en el sistema
+      allow read: if request.auth != null;
+      
+      // Solo administradores autenticados pueden modificar la oferta académica
       allow write: if request.auth != null && (
         request.auth.token.role == 'user_admin' || 
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 

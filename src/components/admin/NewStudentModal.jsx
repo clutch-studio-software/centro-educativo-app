@@ -1,49 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDni, validarEdadPorNivel } from '../../utils/validators';
-import { CURSOS_POR_NIVEL, DIVISIONES_LIST } from '../../data/mockStudents';
-
-const EXISTING_TUTORS = [
-  {
-    id: 'tut-1',
-    nombre: 'Martin Goya',
-    dni: '919239123',
-    telefono: '11-4920-1928',
-    email: 'tutor@hotmail.com',
-    domicilio: 'Av. Rivadavia 4520, CABA',
-  },
-  {
-    id: 'tut-2',
-    nombre: 'Miguel Rodriguez',
-    dni: '12470994',
-    telefono: '11-5821-9944',
-    email: 'miguel.rodriguez@gmail.com',
-    domicilio: 'Calle Mitre 840, Resistencia',
-  },
-  {
-    id: 'tut-3',
-    nombre: 'Carlos Martinez',
-    dni: '40034102',
-    telefono: '11-3019-4822',
-    email: 'carlos@martinez.com',
-    domicilio: 'Av. Alvear 120, Resistencia',
-  },
-  {
-    id: 'tut-4',
-    nombre: 'Fabricio Alegre',
-    dni: '41517446',
-    telefono: '11-6632-1082',
-    email: 'fabricioalegre@gmail.com',
-    domicilio: 'Pellegrini 320, Resistencia',
-  },
-  {
-    id: 'tut-5',
-    nombre: 'Graciela Gomez',
-    dni: '12555888',
-    telefono: '11-7712-4401',
-    email: 'SantiNick29@gmail.com',
-    domicilio: 'Güemes 550, Resistencia',
-  },
-];
+import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
+import { fetchAcademicOfferApi, DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
 
 const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   // Tutor Mode ('new' | 'existing')
@@ -55,6 +13,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   const [tutorTelefono, setTutorTelefono] = useState('');
   const [tutorEmail, setTutorEmail] = useState('');
   const [tutorDomicilio, setTutorDomicilio] = useState('');
+  const [tutorFilter, setTutorFilter] = useState('');
 
   // Student State
   const [studentDni, setStudentDni] = useState('');
@@ -68,15 +27,58 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   const [studentDivision, setStudentDivision] = useState('sin asignar');
   const [studentEstado, setStudentEstado] = useState('Activo - Regular');
 
+  // Academic Offer State (Cursos fijos, divisiones dinámicas desde Firebase)
+  const [academicOffer, setAcademicOffer] = useState(DEFAULT_ACADEMIC_OFFER);
+
+  // Fetch academic offer from Firebase whenever modal opens
+  useEffect(() => {
+    if (!isOpen) {
+      setTutorFilter('');
+      return;
+    }
+    let isMounted = true;
+    fetchAcademicOfferApi().then((data) => {
+      if (isMounted && data) {
+        setAcademicOffer(data);
+      }
+    }).catch(() => { });
+    return () => { isMounted = false; };
+  }, [isOpen]);
+
   // Validation / Message State
   const [formError, setFormError] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const availableTutors = (tutors && tutors.length > 0 ? tutors : EXISTING_TUTORS).filter(
-    (t) => !t.role || String(t.role).trim().toLowerCase() === 'padre'
-  );
+  const availableTutors = (tutors || [])
+    .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+
+  const filteredTutors = availableTutors.filter((t) => {
+    if (!tutorFilter.trim()) return true;
+    const term = tutorFilter.toLowerCase().trim();
+    return (
+      (t.nombre && t.nombre.toLowerCase().includes(term)) ||
+      (t.dni && String(t.dni).includes(term)) ||
+      (t.email && t.email.toLowerCase().includes(term))
+    );
+  });
+
+  // Available courses for the selected level (fixed levels & courses)
+  const availableCursos = CURSOS_POR_NIVEL[studentNivel] || [];
+
+  // Available divisions: query dynamically for the selected course
+  // Always guarantees 'A' as the minimal non-deletable division
+  const availableDivisiones = (() => {
+    if (studentCurso === 'sin asignar') return ['A'];
+    const courseDivs = academicOffer?.[studentNivel]?.[studentCurso];
+    if (Array.isArray(courseDivs) && courseDivs.length > 0) {
+      return courseDivs.includes('A') ? courseDivs : ['A', ...courseDivs];
+    }
+    return ['A'];
+  })();
 
   // Handle select existing tutor
   const handleSelectExistingTutor = (selectedVal) => {
@@ -115,6 +117,22 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     setStudentDivision('sin asignar');
   };
 
+  const handleCursoChange = (newCurso) => {
+    setStudentCurso(newCurso);
+    // If selecting a course, verify if the current division is valid in the newly selected course
+    if (newCurso === 'sin asignar') {
+      setStudentDivision('sin asignar');
+    } else {
+      const courseDivs = academicOffer?.[studentNivel]?.[newCurso];
+      const validDivs = Array.isArray(courseDivs) && courseDivs.length > 0
+        ? (courseDivs.includes('A') ? courseDivs : ['A', ...courseDivs])
+        : ['A'];
+      if (!validDivs.includes(studentDivision)) {
+        setStudentDivision('A');
+      }
+    }
+  };
+
   const validateAndBuildStudent = () => {
     setFormError('');
     if (!tutorNombre.trim() || !tutorDni.trim() || !tutorTelefono.trim()) {
@@ -145,24 +163,24 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
       studentNivel === 'Inicial'
         ? 'lime'
         : studentNivel === 'Primario'
-        ? 'sky'
-        : 'indigo';
+          ? 'sky'
+          : 'indigo';
 
     const avatarGradient =
       studentNivel === 'Inicial'
         ? 'from-orange-400 to-amber-500'
         : studentNivel === 'Primario'
-        ? 'from-blue-500 to-indigo-500'
-        : 'from-emerald-400 to-lime-500';
+          ? 'from-blue-500 to-indigo-500'
+          : 'from-emerald-400 to-lime-500';
 
     const cursoDisplay =
       studentCurso === 'sin asignar' && studentDivision === 'sin asignar'
         ? 'Sin asignar'
         : studentCurso !== 'sin asignar' && studentDivision !== 'sin asignar'
-        ? `${studentCurso} "${studentDivision}"`
-        : studentCurso !== 'sin asignar'
-        ? studentCurso
-        : `División ${studentDivision}`;
+          ? `${studentCurso} "${studentDivision}"`
+          : studentCurso !== 'sin asignar'
+            ? studentCurso
+            : `División ${studentDivision}`;
 
     return {
       id: `s-${Date.now()}`,
@@ -188,31 +206,44 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   };
 
   // Submit and Close
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newStudent = validateAndBuildStudent();
     if (!newStudent) return;
 
-    onAddStudent(newStudent);
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await onAddStudent(newStudent);
+      onClose();
+    } catch (err) {
+      setFormError(err.message || 'Error al registrar alumno en Firebase.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Save current student and keep tutor for sibling
-  const handleAddSibling = () => {
+  const handleAddSibling = async () => {
     const newStudent = validateAndBuildStudent();
     if (!newStudent) return;
 
-    onAddStudent(newStudent);
-
-    // Reset student fields only, preserve tutor fields
-    setStudentDni('');
-    setStudentFechaNacimiento('');
-    setStudentNombre('');
-    setStudentApellido('');
-    setStudentCurso('sin asignar');
-    setStudentDivision('sin asignar');
-    setSuccessNotice(`¡Alumno ${newStudent.nombre} matriculado! Puedes ingresar los datos del hermano a continuación.`);
-    setTimeout(() => setSuccessNotice(''), 5000);
+    setIsSubmitting(true);
+    try {
+      await onAddStudent(newStudent);
+      // Reset student fields only, preserve tutor fields
+      setStudentDni('');
+      setStudentFechaNacimiento('');
+      setStudentNombre('');
+      setStudentApellido('');
+      setStudentCurso('sin asignar');
+      setStudentDivision('sin asignar');
+      setSuccessNotice(`¡Alumno ${newStudent.nombre} guardado en Firebase! Puedes ingresar los datos del hermano.`);
+      setTimeout(() => setSuccessNotice(''), 5000);
+    } catch (err) {
+      setFormError(err.message || 'Error al registrar alumno en Firebase.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -310,11 +341,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               <button
                 data-testid="tutor-mode-existing-button"
                 onClick={() => setTutorMode('existing')}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer border-none ${
-                  tutorMode === 'existing'
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer border-none ${tutorMode === 'existing'
                     ? 'bg-white text-blue-700 shadow-sm font-extrabold'
                     : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
+                  }`}
                 type="button"
               >
                 Buscar Existente
@@ -322,11 +352,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               <button
                 data-testid="tutor-mode-new-button"
                 onClick={() => setTutorMode('new')}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer border-none ${
-                  tutorMode === 'new'
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all text-center cursor-pointer border-none ${tutorMode === 'new'
                     ? 'bg-white text-blue-700 shadow-sm font-extrabold'
                     : 'text-slate-600 hover:text-slate-900 bg-transparent'
-                }`}
+                  }`}
                 type="button"
               >
                 + Nuevo Tutor
@@ -335,17 +364,48 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
 
             {/* Si es Tutor Existente, dropdown de selección rápida */}
             {tutorMode === 'existing' && (
-              <div data-testid="existing-tutor-selector" className="pt-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                  Seleccionar Tutor Registrado
-                </label>
+              <div data-testid="existing-tutor-selector" className="pt-1 flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Seleccionar Tutor Registrado (Orden Alfabético A-Z)
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {filteredTutors.length} {filteredTutors.length === 1 ? 'tutor' : 'tutores'} {tutorFilter ? 'coincidentes' : 'registrados'}
+                  </span>
+                </div>
+
+                {/* Buscador interactivo para filtrar la lista */}
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    data-testid="existing-tutor-search-input"
+                    value={tutorFilter}
+                    onChange={(e) => setTutorFilter(e.target.value)}
+                    placeholder="Filtrar por nombre, apellido, DNI o email..."
+                    className="w-full h-8 pl-8 pr-7 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  {tutorFilter && (
+                    <button
+                      type="button"
+                      onClick={() => setTutorFilter('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 border-none bg-transparent cursor-pointer flex items-center justify-center"
+                      title="Limpiar búsqueda"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                  )}
+                </div>
+
                 <select
                   data-testid="existing-tutor-select"
                   onChange={(e) => handleSelectExistingTutor(e.target.value)}
                   className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-lime-400 cursor-pointer"
                 >
-                  <option value="">-- Selecciona un tutor registrado --</option>
-                  {availableTutors.map((tutor) => (
+                  <option value="">-- Selecciona un tutor registrado (A-Z) --</option>
+                  {filteredTutors.map((tutor) => (
                     <option key={tutor.id || tutor.dni} value={tutor.id || tutor.nombre}>
                       {tutor.nombre} (DNI: {formatDni(tutor.dni || '')}{tutor.email ? ` · ${tutor.email}` : ''})
                     </option>
@@ -512,9 +572,8 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     return (
                       <p
                         data-testid="student-birthdate-feedback"
-                        className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
-                          check.esValido ? 'text-emerald-600' : 'text-red-600'
-                        }`}
+                        className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${check.esValido ? 'text-emerald-600' : 'text-red-600'
+                          }`}
                       >
                         <span className="material-symbols-outlined text-[13px]">
                           {check.esValido ? 'check_circle' : 'warning'}
@@ -569,11 +628,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     <input
                       data-testid="student-address-input"
                       disabled={sameAddressAsTutor}
-                      className={`w-full h-9 pl-9 pr-3 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 ${
-                        sameAddressAsTutor
+                      className={`w-full h-9 pl-9 pr-3 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 ${sameAddressAsTutor
                           ? 'bg-slate-100/70 text-slate-500 cursor-not-allowed'
                           : 'bg-slate-50 focus:bg-white'
-                      }`}
+                        }`}
                       placeholder="Calle y número"
                       type="text"
                       value={sameAddressAsTutor ? tutorDomicilio : studentDomicilio}
@@ -621,11 +679,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                   <select
                     data-testid="student-course-select"
                     value={studentCurso}
-                    onChange={(e) => setStudentCurso(e.target.value)}
+                    onChange={(e) => handleCursoChange(e.target.value)}
                     className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
                   >
                     <option value="sin asignar">Sin asignar</option>
-                    {(CURSOS_POR_NIVEL[studentNivel] || []).map((cursoName) => (
+                    {availableCursos.map((cursoName) => (
                       <option key={cursoName} value={cursoName}>
                         {cursoName}
                       </option>
@@ -641,10 +699,14 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     data-testid="student-division-select"
                     value={studentDivision}
                     onChange={(e) => setStudentDivision(e.target.value)}
-                    className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
+                    disabled={studentCurso === 'sin asignar'}
+                    className={`w-full h-9 px-3 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 ${studentCurso === 'sin asignar'
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : 'bg-slate-50 focus:bg-white cursor-pointer'
+                      }`}
                   >
                     <option value="sin asignar">Sin asignar</option>
-                    {DIVISIONES_LIST.map((div) => (
+                    {availableDivisiones.map((div) => (
                       <option key={div} value={div}>
                         División {div}
                       </option>
@@ -661,11 +723,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                 <div className="flex flex-wrap items-center gap-3">
                   <label
                     data-testid="student-status-label-regular"
-                    className={`flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
-                      studentEstado === 'Activo - Regular'
+                    className={`flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${studentEstado === 'Activo - Regular'
                         ? 'text-emerald-700 bg-emerald-50 border-emerald-200 shadow-xs'
                         : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <input
                       data-testid="student-status-radio-regular"
@@ -681,11 +742,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
 
                   <label
                     data-testid="student-status-label-condicional"
-                    className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
-                      studentEstado === 'Documentación Pendiente'
+                    className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${studentEstado === 'Documentación Pendiente'
                         ? 'text-blue-700 bg-blue-50 border-blue-200 font-semibold shadow-xs'
                         : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <input
                       data-testid="student-status-radio-condicional"
@@ -700,11 +760,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
 
                   <label
                     data-testid="student-status-label-pase"
-                    className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
-                      studentEstado === 'Baja Administrativa'
+                    className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${studentEstado === 'Baja Administrativa'
                         ? 'text-purple-700 bg-purple-50 border-purple-200 font-semibold shadow-xs'
                         : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
-                    }`}
+                      }`}
                   >
                     <input
                       data-testid="student-status-radio-pase"
@@ -770,11 +829,15 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
             <button
               data-testid="modal-submit-button"
               onClick={handleSubmit}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 cursor-pointer border-none"
+              disabled={isSubmitting}
+              className={`flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 border-none ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+                }`}
               type="button"
             >
-              <span className="material-symbols-outlined text-[18px]">check</span>
-              <span>Guardar y Matricular Alumno</span>
+              <span className={`material-symbols-outlined text-[18px] ${isSubmitting ? 'animate-spin' : ''}`}>
+                {isSubmitting ? 'sync' : 'check'}
+              </span>
+              <span>{isSubmitting ? 'Creando alumno...' : 'Guardar y Matricular Alumno'}</span>
             </button>
           </div>
         </div>

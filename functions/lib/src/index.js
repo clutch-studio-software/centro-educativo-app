@@ -53,12 +53,6 @@ async function verifyAuth(req) {
     const token = authHeader.split('Bearer ')[1];
     try {
         const decodedToken = await admin.auth().verifyIdToken(token);
-        if (!decodedToken.role) {
-            const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-            if (userDoc.exists) {
-                decodedToken.role = userDoc.data()?.role;
-            }
-        }
         return decodedToken;
     }
     catch (err) {
@@ -105,25 +99,20 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
         // Crear o recuperar usuario del Padre en Auth usando su DNI como contraseña inicial
         let parentUser;
         try {
-            parentUser = await admin.auth().getUserByEmail(parentEmail);
+            parentUser = await admin.auth().createUser({
+                email: parentEmail,
+                emailVerified: true,
+                password: parentDni.trim()
+            });
+            // Establecer Custom Claim para el Padre
+            await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
         }
-        catch (notFoundErr) {
-            try {
-                parentUser = await admin.auth().createUser({
-                    email: parentEmail,
-                    emailVerified: true,
-                    password: parentDni.trim()
-                });
-                // Establecer Custom Claim para el Padre
-                await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
+        catch (authErr) {
+            if (authErr.code === 'auth/email-already-exists') {
+                parentUser = await admin.auth().getUserByEmail(parentEmail);
             }
-            catch (createErr) {
-                if (createErr.code === 'auth/email-already-exists' || createErr.message?.includes('already in use')) {
-                    parentUser = await admin.auth().getUserByEmail(parentEmail);
-                }
-                else {
-                    throw createErr;
-                }
+            else {
+                throw authErr;
             }
         }
         const studentDocIds = [];
@@ -670,18 +659,6 @@ exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'pu
             const studentDoc = await studentRef.get();
             if (!studentDoc.exists) {
                 res.status(404).send({ error: 'Estudiante no encontrado.' });
-                return;
-            }
-            // Si se solicita eliminación definitiva del alumno
-            if (fields.deleteStudent === true || fields._action === 'delete') {
-                const studentData = studentDoc.data();
-                if (studentData?.parentId) {
-                    await db.collection('users').doc(studentData.parentId).update({
-                        studentIds: admin.firestore.FieldValue.arrayRemove(targetId)
-                    }).catch(() => { });
-                }
-                await studentRef.delete();
-                res.status(200).send({ message: 'Estudiante eliminado definitivamente de Firestore.' });
                 return;
             }
             await studentRef.update(fields);

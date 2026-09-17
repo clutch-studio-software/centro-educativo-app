@@ -19,6 +19,12 @@ async function verifyAuth(req: any) {
   const token = authHeader.split('Bearer ')[1];
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
+    if (!decodedToken.role) {
+      const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+      if (userDoc.exists) {
+        decodedToken.role = userDoc.data()?.role;
+      }
+    }
     return decodedToken;
   } catch (err) {
     throw new Error('No autorizado: Token de ID inválido.');
@@ -72,18 +78,22 @@ export const cf_createParentAndStudents = onRequest({ cors: true, invoker: 'publ
     // Crear o recuperar usuario del Padre en Auth usando su DNI como contraseña inicial
     let parentUser;
     try {
-      parentUser = await admin.auth().createUser({
-        email: parentEmail,
-        emailVerified: true,
-        password: parentDni.trim()
-      });
-      // Establecer Custom Claim para el Padre
-      await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
-    } catch (authErr: any) {
-      if (authErr.code === 'auth/email-already-exists') {
-        parentUser = await admin.auth().getUserByEmail(parentEmail);
-      } else {
-        throw authErr;
+      parentUser = await admin.auth().getUserByEmail(parentEmail);
+    } catch (notFoundErr: any) {
+      try {
+        parentUser = await admin.auth().createUser({
+          email: parentEmail,
+          emailVerified: true,
+          password: parentDni.trim()
+        });
+        // Establecer Custom Claim para el Padre
+        await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
+      } catch (createErr: any) {
+        if (createErr.code === 'auth/email-already-exists' || createErr.message?.includes('already in use')) {
+          parentUser = await admin.auth().getUserByEmail(parentEmail);
+        } else {
+          throw createErr;
+        }
       }
     }
 
@@ -718,6 +728,19 @@ export const cf_updateUserProfile = onRequest({ cors: true, invoker: 'public' },
         return;
       }
 
+      // Si se solicita eliminación definitiva del alumno
+      if (fields.deleteStudent === true || fields._action === 'delete') {
+        const studentData = studentDoc.data();
+        if (studentData?.parentId) {
+          await db.collection('users').doc(studentData.parentId).update({
+            studentIds: admin.firestore.FieldValue.arrayRemove(targetId)
+          }).catch(() => {});
+        }
+        await studentRef.delete();
+        res.status(200).send({ message: 'Estudiante eliminado definitivamente de Firestore.' });
+        return;
+      }
+
       await studentRef.update(fields);
       res.status(200).send({ message: 'Perfil de estudiante actualizado exitosamente.' });
     } else {
@@ -790,4 +813,95 @@ export const cf_deleteStudent = onRequest({ cors: true, invoker: 'public' }, asy
     res.status(500).send({ error: error.message || 'Error interno del servidor.' });
   }
 });
+
+/**
+ * 13. cf_getAcademicOffer
+ * Retorna la configuración de cursos y divisiones por nivel. Si no existe, devuelve la base estándar garantizando división 'A'.
+ */
+export const cf_getAcademicOffer = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
+  try {
+    const docSnap = await db.collection('academicOffer').doc('current').get();
+    if (docSnap.exists) {
+      res.status(200).send({ academicOffer: docSnap.data() });
+      return;
+    }
+
+    // Default structure with 'A' guaranteed in all courses
+    const defaultOffer = {
+      Inicial: {
+        'Sala de 2 Años': ['A'],
+        'Sala de 3 Años': ['A'],
+        'Sala de 4 Años': ['A'],
+        'Sala de 5 Años': ['A'],
+      },
+      Primario: {
+        '1er Grado': ['A', 'B'],
+        '2do Grado': ['A', 'B'],
+        '3er Grado': ['A', 'B'],
+        '4to Grado': ['A', 'B'],
+        '5to Grado': ['A', 'B'],
+        '6to Grado': ['A', 'B'],
+        '7mo Grado': ['A', 'B'],
+      },
+      Secundario: {
+        '1er Año': ['A', 'B'],
+        '2do Año': ['A', 'B'],
+        '3er Año': ['A', 'B'],
+        '4to Año': ['A', 'B'],
+        '5to Año': ['A'],
+        '6to Año': ['A'],
+      },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await db.collection('academicOffer').doc('current').set(defaultOffer);
+    res.status(200).send({ academicOffer: defaultOffer });
+  } catch (error: any) {
+    console.error('Error en cf_getAcademicOffer:', error);
+    res.status(500).send({ error: error.message || 'Error al obtener oferta académica.' });
+  }
+});
+
+/**
+ * 14. cf_saveAcademicOffer
+ * Permite a un user_admin actualizar las divisiones de cada curso, garantizando siempre la división 'A'.
+ */
+export const cf_saveAcademicOffer = onRequest({ cors: true, invoker: 'public' }, async (req, res) => {
+  try {
+    const callerClaims = await verifyAuth(req);
+    if (callerClaims.role !== 'user_admin') {
+      res.status(403).send({ error: 'Permisos insuficientes: Requiere rol user_admin.' });
+      return;
+    }
+
+    const { academicOffer } = req.body;
+    if (!academicOffer || typeof academicOffer !== 'object') {
+      res.status(400).send({ error: 'Falta academicOffer válido.' });
+      return;
+    }
+
+    // Validar y asegurar que la división 'A' exista siempre en cada curso
+    for (const nivel of ['Inicial', 'Primario', 'Secundario']) {
+      if (academicOffer[nivel] && typeof academicOffer[nivel] === 'object') {
+        for (const curso of Object.keys(academicOffer[nivel])) {
+          let divs = Array.isArray(academicOffer[nivel][curso]) ? academicOffer[nivel][curso] : [];
+          if (!divs.includes('A')) {
+            divs = ['A', ...divs];
+          }
+          // Normalizar mayúsculas y quitar duplicados
+          academicOffer[nivel][curso] = Array.from(new Set(divs.map((d: string) => String(d).trim().toUpperCase())));
+        }
+      }
+    }
+
+    academicOffer.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    await db.collection('academicOffer').doc('current').set(academicOffer, { merge: true });
+
+    res.status(200).send({ message: 'Oferta académica actualizada con éxito.', academicOffer });
+  } catch (error: any) {
+    console.error('Error en cf_saveAcademicOffer:', error);
+    res.status(500).send({ error: error.message || 'Error al guardar oferta académica.' });
+  }
+});
+
 

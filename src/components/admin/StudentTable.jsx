@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const StudentTable = ({
   students = [],
+  isLoading = false,
   onEditStudent,
   onGenerateCertificate,
   onDeleteStudent,
@@ -9,16 +10,34 @@ const StudentTable = ({
   onResetFilters,
 }) => {
   const [activeMenuStudentId, setActiveMenuStudentId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0, openUpwards: false });
+  const activeStudent = students.find((s) => s.id === activeMenuStudentId) || null;
+  const menuRef = useRef(null);
 
-  // Cerrar menú al hacer clic fuera
+  // Cerrar menú al hacer clic fuera o al scrollear la ventana
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('[data-testid^="student-options-container-"]')) {
+      if (
+        !e.target.closest('[data-testid^="student-options-container-"]') &&
+        !e.target.closest('[data-testid^="student-options-menu-"]')
+      ) {
         setActiveMenuStudentId(null);
       }
     };
+
+    const handleScrollOrResize = () => {
+      setActiveMenuStudentId(null);
+    };
+
     document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
   }, []);
   const getBadgeClass = (variant, isInactive) => {
     if (isInactive) {
@@ -53,7 +72,23 @@ const StudentTable = ({
           </tr>
         </thead>
         <tbody data-testid="student-table-body" className="divide-y divide-slate-100 text-xs text-slate-700">
-          {students.length === 0 ? (
+          {isLoading ? (
+            <tr data-testid="student-loading-row">
+              <td colSpan={5} className="py-12 text-center text-slate-400">
+                <div data-testid="student-loading-state" className="flex flex-col items-center justify-center gap-3">
+                  <span className="material-symbols-outlined text-4xl text-lime-500 animate-spin">
+                    sync
+                  </span>
+                  <p className="font-semibold text-slate-600 text-sm">
+                    Cargando alumnos...
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Sincronizando información académica y tutores
+                  </p>
+                </div>
+              </td>
+            </tr>
+          ) : students.length === 0 ? (
             <tr data-testid="student-empty-row">
               <td colSpan={5} className="py-12 text-center text-slate-400">
                 <div data-testid="student-empty-state" className="flex flex-col items-center justify-center gap-2">
@@ -227,9 +262,20 @@ const StudentTable = ({
                           data-testid={`student-action-options-${student.id}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setActiveMenuStudentId(
-                              activeMenuStudentId === student.id ? null : student.id
-                            );
+                            if (activeMenuStudentId === student.id) {
+                              setActiveMenuStudentId(null);
+                            } else {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const menuHeight = 175;
+                              const spaceBelow = window.innerHeight - rect.bottom;
+                              const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
+                              setMenuPosition({
+                                top: openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6,
+                                right: window.innerWidth - rect.right,
+                                openUpwards,
+                              });
+                              setActiveMenuStudentId(student.id);
+                            }
                           }}
                           className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${
                             activeMenuStudentId === student.id
@@ -243,89 +289,6 @@ const StudentTable = ({
                             more_vert
                           </span>
                         </button>
-
-                        {activeMenuStudentId === student.id && (
-                          <div
-                            data-testid={`student-options-menu-${student.id}`}
-                            className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
-                          >
-                            <div className="py-1">
-                              {/* Opción 1: Deshabilitar o Reactivar */}
-                              <button
-                                data-testid={`student-action-toggle-status-${student.id}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuStudentId(null);
-                                  onToggleStatusStudent && onToggleStatusStudent(student);
-                                }}
-                                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
-                                  isInactive
-                                    ? 'text-emerald-700 hover:bg-emerald-50'
-                                    : 'text-amber-700 hover:bg-amber-50'
-                                }`}
-                                type="button"
-                              >
-                                <span className="material-symbols-outlined text-[18px]">
-                                  {isInactive ? 'check_circle' : 'person_off'}
-                                </span>
-                                <div className="flex flex-col items-start leading-tight">
-                                  <span>{isInactive ? 'Reactivar Alumno' : 'Deshabilitar Alumno'}</span>
-                                  <span className="text-[10px] font-normal text-slate-400">
-                                    {isInactive
-                                      ? 'Restaurar regularidad activa'
-                                      : 'Pasa a baja administrativa'}
-                                  </span>
-                                </div>
-                              </button>
-
-                              {/* Opción 2: Editar Legajo */}
-                              <button
-                                data-testid={`student-menu-edit-${student.id}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuStudentId(null);
-                                  onEditStudent && onEditStudent(student);
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
-                                type="button"
-                              >
-                                <span className="material-symbols-outlined text-slate-400 text-[18px]">
-                                  edit_note
-                                </span>
-                                <div className="flex flex-col items-start leading-tight">
-                                  <span>Editar Legajo</span>
-                                  <span className="text-[10px] font-normal text-slate-400">
-                                    Modificar datos del alumno
-                                  </span>
-                                </div>
-                              </button>
-                            </div>
-
-                            {/* Opción 3: Borrar alumno / Eliminar legajo definitivamente */}
-                            <div className="py-1">
-                              <button
-                                data-testid={`student-action-delete-${student.id}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveMenuStudentId(null);
-                                  onDeleteStudent && onDeleteStudent(student);
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
-                                type="button"
-                              >
-                                <span className="material-symbols-outlined text-[18px] text-red-500">
-                                  delete_forever
-                                </span>
-                                <div className="flex flex-col items-start leading-tight">
-                                  <span>Borrar Alumno</span>
-                                  <span className="text-[10px] font-normal text-red-400">
-                                    Eliminar legajo definitivamente
-                                  </span>
-                                </div>
-                              </button>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </td>
@@ -335,6 +298,104 @@ const StudentTable = ({
           )}
         </tbody>
       </table>
+
+      {/* Menú Flotante con Posicionamiento Fijo (Sin quedar atrapado por overflow de la tabla) */}
+      {activeStudent && (
+        <div
+          ref={menuRef}
+          data-testid={`student-options-menu-${activeStudent.id}`}
+          style={{
+            position: 'fixed',
+            top: `${menuPosition.top}px`,
+            right: `${menuPosition.right}px`,
+            zIndex: 9999,
+          }}
+          className="w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
+        >
+          <div className="py-1">
+            {/* Opción 1: Deshabilitar o Reactivar */}
+            <button
+              data-testid={`student-action-toggle-status-${activeStudent.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeStudent;
+                setActiveMenuStudentId(null);
+                onToggleStatusStudent && onToggleStatusStudent(target);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
+                activeStudent.estado === 'Baja Administrativa'
+                  ? 'text-emerald-700 hover:bg-emerald-50'
+                  : 'text-amber-700 hover:bg-amber-50'
+              }`}
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {activeStudent.estado === 'Baja Administrativa' ? 'check_circle' : 'person_off'}
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>
+                  {activeStudent.estado === 'Baja Administrativa'
+                    ? 'Reactivar Alumno'
+                    : 'Deshabilitar Alumno'}
+                </span>
+                <span className="text-[10px] font-normal text-slate-400">
+                  {activeStudent.estado === 'Baja Administrativa'
+                    ? 'Restaurar regularidad activa'
+                    : 'Pasa a baja administrativa'}
+                </span>
+              </div>
+            </button>
+
+            {/* Opción 2: Editar Legajo */}
+            <button
+              data-testid={`student-menu-edit-${activeStudent.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeStudent;
+                setActiveMenuStudentId(null);
+                onEditStudent && onEditStudent(target);
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-slate-400 text-[18px]">
+                edit_note
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>Editar Legajo</span>
+                <span className="text-[10px] font-normal text-slate-400">
+                  Modificar datos del alumno
+                </span>
+              </div>
+            </button>
+          </div>
+
+          {/* Opción 3: Borrar alumno / Eliminar legajo definitivamente */}
+          <div className="py-1">
+            <button
+              data-testid={`student-action-delete-${activeStudent.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeStudent;
+                setActiveMenuStudentId(null);
+                onDeleteStudent && onDeleteStudent(target);
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-[18px] text-red-500">
+                delete_forever
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>Borrar Alumno</span>
+                <span className="text-[10px] font-normal text-red-400">
+                  Eliminar legajo definitivamente
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

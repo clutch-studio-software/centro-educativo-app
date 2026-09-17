@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminStatCard from '../../components/admin/AdminStatCard';
@@ -6,8 +6,8 @@ import StudentFilters from '../../components/admin/StudentFilters';
 import StudentTable from '../../components/admin/StudentTable';
 import StudentPagination from '../../components/admin/StudentPagination';
 import NewStudentModal from '../../components/admin/NewStudentModal';
-import { MOCK_STUDENTS } from '../../data/mockStudents';
 import { auth } from '../../services/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import {
   fetchAdminDashboardData,
   createParentAndStudentsApi,
@@ -49,125 +49,133 @@ const StudentsManagement = () => {
         }
       }
 
-      // In development mode, auto-provision fallback mock admin so preview is seamless
-      if (import.meta.env.DEV) {
-        const mockAdmin = {
-          uid: 'admin-preview',
-          email: 'direccion@educar.edu.ar',
-          nombre: 'Lic. Martín Valdez',
-          role: 'user_admin',
-        };
-        localStorage.setItem('school_user', JSON.stringify(mockAdmin));
-        return;
+      // In development mode, auto-authenticate with user_admin credentials in Firebase Auth
+      // so that real Firestore reads, writes and token validations work with 100% authorization
+      if (import.meta.env.DEV && !auth.currentUser) {
+        try {
+          await signInWithEmailAndPassword(
+            auth,
+            import.meta.env.VITE_ADMIN_EMAIL,
+            import.meta.env.VITE_ADMIN_PASSWORD
+          );
+          return;
+        } catch (devErr) {
+          console.warn('Auto-login dev admin:', devErr.message);
+        }
       }
 
       // In production without admin credentials, redirect to login
-      console.warn('Acceso denegado: Se requiere rol user_admin.');
-      navigate('/login');
+      if (!auth.currentUser && (!currentUser || currentUser.role !== 'user_admin')) {
+        console.warn('Acceso denegado: Se requiere rol user_admin.');
+        navigate('/login');
+      }
     };
 
     checkAdminAuth();
   }, [navigate]);
 
-  // Students Data State
-  const [students, setStudents] = useState(MOCK_STUDENTS);
+  // Students Data State (solo alumnos reales provenientes de Firebase Firestore)
+  const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [parentsList, setParentsList] = useState([]);
 
   // Fetch from Firebase Firestore on Mount
-  useEffect(() => {
-    const loadStudentsData = async () => {
-      setIsLoading(true);
-      try {
-        const { parents, students: rawStudents } = await fetchAdminDashboardData();
-        const parentsOnly = (parents || []).filter(
-          (u) => String(u.role || '').trim().toLowerCase() === 'padre'
-        );
-        setParentsList(parentsOnly);
+  const loadStudentsData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { parents, students: rawStudents } = await fetchAdminDashboardData();
+      const parentsOnly = (parents || [])
+        .filter((u) => String(u.role || '').trim().toLowerCase() === 'padre')
+        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+      setParentsList(parentsOnly);
 
-        if (rawStudents && rawStudents.length > 0) {
-          const normalized = rawStudents.map((s) => {
-            const rawNivel = String(s.nivel || '').toLowerCase();
-            const nivel =
-              rawNivel === 'inicial'
-                ? 'Inicial'
-                : rawNivel === 'primaria' || rawNivel === 'primario'
+      if (rawStudents && rawStudents.length > 0) {
+        const normalized = rawStudents.map((s) => {
+          const rawNivel = String(s.nivel || '').toLowerCase();
+          const nivel =
+            rawNivel === 'inicial'
+              ? 'Inicial'
+              : rawNivel === 'primaria' || rawNivel === 'primario'
                 ? 'Primario'
                 : rawNivel === 'secundaria' || rawNivel === 'secundario'
-                ? 'Secundario'
-                : 'Primario';
+                  ? 'Secundario'
+                  : 'Primario';
 
-            const badgeVariant =
-              nivel === 'Inicial' ? 'lime' : nivel === 'Primario' ? 'sky' : 'indigo';
-            const avatarGradient =
-              nivel === 'Inicial'
-                ? 'from-orange-400 to-amber-500'
-                : nivel === 'Primario'
+          const badgeVariant =
+            nivel === 'Inicial' ? 'lime' : nivel === 'Primario' ? 'sky' : 'indigo';
+          const avatarGradient =
+            nivel === 'Inicial'
+              ? 'from-orange-400 to-amber-500'
+              : nivel === 'Primario'
                 ? 'from-blue-500 to-indigo-500'
                 : 'from-emerald-400 to-lime-500';
 
-            const parent = (parents || []).find((p) => p.id === s.parentId);
-            const tutorNombre = parent
-              ? `${parent.nombre} (Tutor)`
-              : s.emailPadre
+          const parent = (parents || []).find((p) => p.id === s.parentId);
+          const tutorNombre = parent
+            ? `${parent.nombre} (Tutor)`
+            : s.emailPadre
               ? `Tutor (${s.emailPadre})`
               : 'Tutor';
-            const tutorTelefono = parent?.telefono || '';
-            const tutorEmail = parent?.email || s.emailPadre || '';
+          const tutorTelefono = parent?.telefono || '';
+          const tutorEmail = parent?.email || s.emailPadre || '';
 
-            const initials =
-              (s.nombre || '')
-                .split(' ')
-                .map((n) => n[0])
-                .slice(0, 2)
-                .join('')
-                .toUpperCase() || 'AL';
+          const initials =
+            (s.nombre || '')
+              .split(' ')
+              .map((n) => n[0])
+              .slice(0, 2)
+              .join('')
+              .toUpperCase() || 'AL';
 
-            const curso = s.curso || 'sin asignar';
-            const division = s.division || 'sin asignar';
+          const curso = s.curso || 'sin asignar';
+          const division = s.division || 'sin asignar';
 
-            const cursoDisplay =
-              curso === 'sin asignar' && division === 'sin asignar'
-                ? 'Sin asignar'
-                : curso !== 'sin asignar' && division !== 'sin asignar'
+          const cursoDisplay =
+            curso === 'sin asignar' && division === 'sin asignar'
+              ? 'Sin asignar'
+              : curso !== 'sin asignar' && division !== 'sin asignar'
                 ? `${curso} "${division}"`
                 : curso !== 'sin asignar'
-                ? curso
-                : `División ${division}`;
+                  ? curso
+                  : `División ${division}`;
 
-            return {
-              id: s.id,
-              legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
-              dni: formatDni(s.dni || ''),
-              nombre: s.nombre || 'Sin Nombre',
-              tutorNombre,
-              tutorTelefono,
-              tutorEmail,
-              domicilio: s.domicilio || parent?.domicilio || 'Sin domicilio registrado',
-              nivel,
-              curso,
-              division,
-              cursoDisplay,
-              estado: s.status === 'active' ? 'Activo - Regular' : s.status || 'Activo - Regular',
-              servicios: s.servicios || ['Comedor Escolar'],
-              initials,
-              avatarGradient,
-              badgeVariant,
-              fechaNacimiento: s.fechaNacimiento || '',
-            };
-          });
+          return {
+            id: s.id,
+            legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
+            dni: formatDni(s.dni || ''),
+            nombre: s.nombre || 'Sin Nombre',
+            tutorNombre,
+            tutorTelefono,
+            tutorEmail,
+            domicilio: s.domicilio || parent?.domicilio || 'Sin domicilio registrado',
+            nivel,
+            curso,
+            division,
+            cursoDisplay,
+            estado: s.status === 'active' ? 'Activo - Regular' : s.status || 'Activo - Regular',
+            servicios: s.servicios || ['Comedor Escolar'],
+            initials,
+            avatarGradient,
+            badgeVariant,
+            fechaNacimiento: s.fechaNacimiento || '',
+          };
+        });
 
-          setStudents(normalized);
-        }
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-      } finally {
-        setIsLoading(false);
+        setStudents(normalized);
+      } else {
+        setStudents([]);
       }
-    };
-
-    loadStudentsData();
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setStudents([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadStudentsData();
+  }, [loadStudentsData]);
 
   // Compute Dynamic Institutional Metrics from live students
   const institutionMetrics = useMemo(() => {
@@ -176,7 +184,7 @@ const StudentsManagement = () => {
     const primario = students.filter((s) => s.nivel === 'Primario').length;
     const secundario = students.filter((s) => s.nivel === 'Secundario').length;
     const regulares = students.filter((s) => s.estado === 'Activo - Regular').length;
-    const regularPct = total > 0 ? `${((regulares / total) * 100).toFixed(1)}%` : '100%';
+    const regularPct = total > 0 ? `${((regulares / total) * 100).toFixed(1)}%` : '0%';
 
     return {
       totalStudents: total,
@@ -217,16 +225,31 @@ const StudentsManagement = () => {
 
   // Filtered Students
   const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
-      // Search filter (nombre, legajo, dni, tutor)
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const matchesName = student.nombre.toLowerCase().includes(query);
-        const matchesLegajo = student.legajo.toLowerCase().includes(query);
-        const matchesDni = student.dni.replace(/\./g, '').includes(query.replace(/\./g, ''));
-        const matchesTutor = student.tutorNombre?.toLowerCase().includes(query);
+    const normalize = (str) =>
+      String(str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
 
-        if (!matchesName && !matchesLegajo && !matchesDni && !matchesTutor) {
+    return students.filter((student) => {
+      // Search filter (nombre, legajo, dni, tutor, tutorEmail, etc.)
+      if (searchQuery.trim()) {
+        const query = normalize(searchQuery);
+        const cleanDigitsQuery = searchQuery.replace(/\D/g, '');
+
+        const matchesName = normalize(student.nombre).includes(query);
+        const matchesLegajo = normalize(student.legajo).includes(query);
+        const matchesDni =
+          cleanDigitsQuery.length >= 3 &&
+          String(student.dni || '').replace(/\D/g, '').includes(cleanDigitsQuery);
+        const matchesTutor = normalize(student.tutorNombre).includes(query);
+        const matchesTutorEmail = normalize(student.tutorEmail).includes(query);
+        const matchesTutorPhone =
+          cleanDigitsQuery.length >= 3 &&
+          String(student.tutorTelefono || '').replace(/\D/g, '').includes(cleanDigitsQuery);
+
+        if (!matchesName && !matchesLegajo && !matchesDni && !matchesTutor && !matchesTutorEmail && !matchesTutorPhone) {
           return false;
         }
       }
@@ -306,13 +329,7 @@ const StudentsManagement = () => {
 
   // Add new student handler
   const handleAddStudent = async (newStudent) => {
-    setStudents((prev) => [newStudent, ...prev]);
-    setCurrentPage(1);
-    setNotification({
-      type: 'success',
-      message: `¡Alumno ${newStudent.nombre} registrado con éxito con legajo ${newStudent.legajo}!`,
-    });
-
+    setIsLoading(true);
     try {
       await createParentAndStudentsApi({
         parentEmail: newStudent.tutorEmail || 'tutor@ejemplo.com',
@@ -330,8 +347,22 @@ const StudentsManagement = () => {
           },
         ],
       });
+
+      // Recargar padrón directamente desde Firestore para garantizar que los datos provienen de la BD real
+      await loadStudentsData();
+      setCurrentPage(1);
+      setNotification({
+        type: 'success',
+        message: `¡Alumno ${newStudent.nombre} matriculado y persistido en Firebase correctamente!`,
+      });
     } catch (err) {
-      console.warn('Persistencia en backend completada localmente:', err.message);
+      console.error('Error persistiendo alumno en Firebase:', err);
+      setNotification({
+        type: 'error',
+        message: `No se pudo registrar el alumno en Firebase: ${err.message || 'Error en el servidor.'}`,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -366,17 +397,15 @@ const StudentsManagement = () => {
     const newStatus = isCurrentlyInactive ? 'Activo - Regular' : 'Baja Administrativa';
     const actionLabel = isCurrentlyInactive ? 'reactivado con regularidad activa' : 'deshabilitado (baja administrativa)';
 
-    // 1. Optimistic UI update
+    // 1. Snapshot previous state for rollback
+    const previousStudents = [...students];
+
+    // 2. Optimistic UI update
     setStudents((prev) =>
       prev.map((s) => (s.id === student.id ? { ...s, estado: newStatus, status: newStatus } : s))
     );
 
-    setNotification({
-      type: 'info',
-      message: `El alumno ${student.nombre} fue ${actionLabel}.`,
-    });
-
-    // 2. Persist to Firestore via updateUserProfileApi
+    // 3. Persist to Firestore via updateUserProfileApi
     try {
       await updateUserProfileApi({
         targetId: student.id,
@@ -385,8 +414,19 @@ const StudentsManagement = () => {
           status: newStatus,
         },
       });
+
+      setNotification({
+        type: 'info',
+        message: `El alumno ${student.nombre} fue ${actionLabel}.`,
+      });
     } catch (err) {
-      console.warn('Actualización de estado en backend completada localmente:', err.message);
+      console.error('Error al actualizar estado del alumno en backend:', err);
+      // Rollback to previous state
+      setStudents(previousStudents);
+      setNotification({
+        type: 'error',
+        message: `No se pudo actualizar el estado: ${err.message || 'Error en la conexión con el servidor.'}`,
+      });
     }
   };
 
@@ -396,19 +436,28 @@ const StudentsManagement = () => {
     );
     if (!confirmed) return;
 
-    // 1. Optimistic delete from UI
+    // 1. Snapshot previous state for rollback
+    const previousStudents = [...students];
+
+    // 2. Optimistic delete from UI
     setStudents((prev) => prev.filter((s) => s.id !== student.id));
 
-    setNotification({
-      type: 'success',
-      message: `Legajo de ${student.nombre} eliminado definitivamente.`,
-    });
-
-    // 2. Persist delete via deleteStudentApi
+    // 3. Persist delete via deleteStudentApi
     try {
       await deleteStudentApi({ studentId: student.id });
+
+      setNotification({
+        type: 'success',
+        message: `Legajo de ${student.nombre} eliminado definitivamente.`,
+      });
     } catch (err) {
-      console.warn('Eliminación en backend completada localmente:', err.message);
+      console.error('Error al eliminar alumno en backend:', err);
+      // Rollback to previous state
+      setStudents(previousStudents);
+      setNotification({
+        type: 'error',
+        message: `No se pudo eliminar el alumno: ${err.message || 'Error en la conexión con el servidor.'}`,
+      });
     }
   };
 
@@ -422,14 +471,19 @@ const StudentsManagement = () => {
             className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 duration-300"
           >
             <div
-              className={`flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs font-bold ${
-                notification.type === 'success'
-                  ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+              className={`flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs font-bold ${notification.type === 'success'
+                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                : notification.type === 'error'
+                  ? 'bg-red-600 text-white shadow-red-600/30'
                   : 'bg-slate-900 text-white shadow-slate-900/30'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[18px]">
-                {notification.type === 'success' ? 'check_circle' : 'info'}
+                {notification.type === 'success'
+                  ? 'check_circle'
+                  : notification.type === 'error'
+                    ? 'error'
+                    : 'info'}
               </span>
               <span>{notification.message}</span>
               <button
@@ -575,7 +629,7 @@ const StudentsManagement = () => {
         {isLoading && (
           <div data-testid="students-loading-indicator" className="w-full py-2 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
             <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
-            <span>Sincronizando alumnos con Firebase Firestore...</span>
+            <span>Sincronizando alumnos con base de datos...</span>
           </div>
         )}
 
@@ -583,6 +637,7 @@ const StudentsManagement = () => {
         <section data-testid="students-table-section" className="flex flex-col gap-4">
           <StudentTable
             students={paginatedStudents}
+            isLoading={isLoading}
             onEditStudent={handleEditStudent}
             onGenerateCertificate={handleGenerateCertificate}
             onDeleteStudent={handleDeleteStudent}
