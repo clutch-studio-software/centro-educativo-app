@@ -15,6 +15,8 @@ import Registration from './pages/Registration';
 import Wellness from './pages/Wellness';
 import Privacy from './pages/Privacy';
 
+import AdminPlaceholder from './pages/admin/AdminPlaceholder';
+
 function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -35,6 +37,14 @@ function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/alumnos" element={<AdminPanel />} />
         <Route path="/admin/legacy" element={<AdminPanelLegacy />} />
+        <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
+        <Route path="/admin/docentes" element={<AdminPlaceholder />} />
+        <Route path="/admin/oferta-academica" element={<AdminPlaceholder />} />
+        <Route path="/admin/servicios" element={<AdminPlaceholder />} />
+        <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
+        <Route path="/admin/usuarios" element={<AdminPlaceholder />} />
+        <Route path="/admin/reportes" element={<AdminPlaceholder />} />
+        <Route path="/admin/*" element={<AdminPlaceholder />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

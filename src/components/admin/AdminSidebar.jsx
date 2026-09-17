@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { images } from '../../services/imagesConfig';
 import { useAuth } from '../../context/AuthContext';
 
@@ -57,6 +57,7 @@ const AdminSidebar = ({
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -186,8 +187,9 @@ const AdminSidebar = ({
           >
             {NAV_ITEMS.map((item) => {
               const isItemActive =
-                (item.path === '/admin' && activeItem === 'alumnos') ||
-                item.name.toLowerCase().includes(activeItem.toLowerCase());
+                (item.path === '/admin' && (location.pathname === '/admin' || location.pathname === '/admin/alumnos')) ||
+                (item.path !== '/admin' && location.pathname === item.path) ||
+                (activeItem && item.name.toLowerCase().includes(activeItem.toLowerCase()));
               const itemSlug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
               return (
