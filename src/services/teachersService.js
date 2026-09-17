@@ -7,11 +7,44 @@ import {
   deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { db, auth } from './firebase';
 import { callAdminFunction } from './adminService';
-import { MOCK_TEACHERS } from '../data/mockTeachers';
 
 const STORAGE_KEY = 'school_teachers_data';
+
+/**
+ * Garantiza que exista una sesión de administrador activa en Firebase Auth
+ * para no violar las reglas de seguridad de Firestore (Missing or insufficient permissions).
+ */
+export const ensureAdminAuth = async () => {
+  if (auth.currentUser) {
+    return auth.currentUser;
+  }
+
+  // En entorno de desarrollo, auto-autenticar con credenciales de admin configuradas
+  if (import.meta.env.DEV) {
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    if (adminEmail && adminPassword) {
+      try {
+        const cred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        return cred.user;
+      } catch (err) {
+        console.warn('Auto sign-in user_admin falló:', err.message);
+      }
+    }
+  }
+
+  // Esperar a que la sesión persistida se restaure si está disponible
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve(user);
+    });
+    setTimeout(() => resolve(auth.currentUser), 2500);
+  });
+};
 
 export const getStoredTeachers = () => {
   try {
@@ -19,13 +52,18 @@ export const getStoredTeachers = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Descartar datos viejos si tienen IDs simulados locales como 'doc-1', 'doc-2'
+        const hasFakes = parsed.some((p) => p.id && String(p.id).startsWith('doc-') && p.id.length <= 6);
+        if (!hasFakes) {
+          return parsed;
+        }
+        localStorage.removeItem(STORAGE_KEY);
       }
     }
   } catch (err) {
     console.warn('Error al leer docentes de localStorage:', err.message);
   }
-  return MOCK_TEACHERS;
+  return [];
 };
 
 export const saveStoredTeachers = (teachers) => {
@@ -52,11 +90,12 @@ const normalizeFirestoreTeacher = (docId, data = {}) => {
       : `${cleanNombre} ${cleanApellido}`.trim();
   }
 
-  // Resolver nombre y apellido si solo venía `name`
+  // Resolver nombre y apellido si solo venía `name` o `nombreCompleto`
   let nombreFinal = cleanNombre;
   let apellidoFinal = cleanApellido;
   if (!nombreFinal && !apellidoFinal && nombreCompleto) {
-    const partes = nombreCompleto.split(' ');
+    const sinTratamiento = nombreCompleto.replace(/^(Prof\.|Ing\.|Lic\.|Dra\.|Dr\.)\s*/i, '').trim();
+    const partes = sinTratamiento.split(' ');
     if (partes.length === 1) {
       nombreFinal = partes[0];
     } else {
@@ -101,11 +140,15 @@ const normalizeFirestoreTeacher = (docId, data = {}) => {
 };
 
 /**
- * Obtiene el listado de docentes desde Firestore con rol 'Staff' o 'Docente'.
- * Si Firestore está vacío, inicializa automáticamente los docentes mockeados.
+ * Obtiene el listado de docentes directamente desde la colección users de Firestore.
+ * Filtra por rol 'Staff' o 'Docente'.
  */
 export const fetchTeachersApi = async () => {
   try {
+    // 1. Asegurar sesión de administrador activa para no violar reglas de lectura
+    await ensureAdminAuth();
+
+    // 2. Consultar directamente Firestore
     const usersSnap = await getDocs(collection(db, 'users'));
     const staffDocs = [];
 
@@ -117,60 +160,33 @@ export const fetchTeachersApi = async () => {
       }
     });
 
-    if (staffDocs.length > 0) {
-      saveStoredTeachers(staffDocs);
-      return staffDocs;
-    }
+    // Ordenar alfabéticamente por apellido / nombre
+    staffDocs.sort((a, b) => {
+      const strA = (a.apellido || a.nombre || '').toLowerCase();
+      const strB = (b.apellido || b.nombre || '').toLowerCase();
+      return strA.localeCompare(strB, 'es', { sensitivity: 'base' });
+    });
 
-    // Si Firestore no tiene docentes aún, sembrar datos de MOCK_TEACHERS para tener información real
-    console.info('No se encontraron docentes en Firestore. Inicializando colección de Staff...');
-    const createdList = [];
-    for (const mock of MOCK_TEACHERS) {
-      try {
-        const docRef = await addDoc(collection(db, 'users'), {
-          role: 'Staff',
-          legajo: mock.legajo,
-          tratamiento: mock.tratamiento || '',
-          nombre: mock.nombre,
-          apellido: mock.apellido,
-          nombreCompleto: mock.nombreCompleto,
-          dni: mock.dni,
-          titulacion: mock.titulacion,
-          especialidad: mock.especialidad,
-          email: mock.email,
-          telefono: mock.telefono,
-          estado: mock.estado,
-          disabled: mock.estado === 'Suspendido',
-          mustChangePassword: true,
-          cargaHoras: mock.cargaHoras || 0,
-          cargaMaxHoras: mock.cargaMaxHoras || 30,
-          catedras: mock.catedras || [],
-          grillaHoraria: mock.grillaHoraria || [],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        createdList.push({ ...mock, id: docRef.id });
-      } catch (seedErr) {
-        console.warn('Error al sembrar docente mock en Firestore:', seedErr.message);
-      }
-    }
-
-    const finalList = createdList.length > 0 ? createdList : getStoredTeachers();
-    saveStoredTeachers(finalList);
-    return finalList;
+    saveStoredTeachers(staffDocs);
+    return staffDocs;
   } catch (err) {
-    console.warn('Fallo al obtener docentes de Firestore. Usando almacenamiento local:', err.message);
-    return getStoredTeachers();
+    console.error('Error al obtener docentes desde Firestore:', err);
+    // Solo usar caché local si no tiene IDs simulados
+    const cached = getStoredTeachers();
+    if (cached.length > 0) {
+      return cached;
+    }
+    throw err;
   }
 };
 
 /**
- * Registra un nuevo docente y genera su legajo institucional automático.
- * La contraseña inicial por defecto es su DNI.
- * Invoca la Cloud Function cf_createAdministrativeUser con fallback a Firestore directo.
+ * Registra un nuevo docente en Firebase (Cloud Function / Firestore directo).
+ * La contraseña inicial por defecto es su número de DNI.
  */
 export const createTeacherApi = async (teacherData) => {
-  const currentList = getStoredTeachers();
+  await ensureAdminAuth();
+
   const year = new Date().getFullYear();
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const legajo = `#DOC-${year}-${randomNum}`;
@@ -238,13 +254,13 @@ export const createTeacherApi = async (teacherData) => {
       });
       createdId = newDocRef.id;
     } catch (firestoreErr) {
-      console.warn('Error en persistencia directa a Firestore, usando ID local:', firestoreErr.message);
-      createdId = `doc-${Date.now()}`;
+      console.error('Error en persistencia directa a Firestore:', firestoreErr.message);
+      throw firestoreErr;
     }
   }
 
   const newTeacher = {
-    id: createdId || `doc-${Date.now()}`,
+    id: createdId,
     legajo,
     tratamiento,
     nombre: cleanNombre,
@@ -268,6 +284,7 @@ export const createTeacherApi = async (teacherData) => {
     creadoEn: new Date().toISOString(),
   };
 
+  const currentList = getStoredTeachers();
   const updatedList = [newTeacher, ...currentList.filter((t) => t.id !== newTeacher.id)];
   saveStoredTeachers(updatedList);
 
@@ -279,6 +296,8 @@ export const createTeacherApi = async (teacherData) => {
  * Actualiza en Cloud Function o Firestore directo.
  */
 export const updateTeacherApi = async (teacherId, teacherData) => {
+  await ensureAdminAuth();
+
   const currentList = getStoredTeachers();
   const cleanNombre = (teacherData.nombre || '').trim();
   const cleanApellido = (teacherData.apellido || '').trim();
@@ -329,6 +348,7 @@ export const updateTeacherApi = async (teacherId, teacherData) => {
       });
     } catch (firestoreErr) {
       console.warn('Fallo actualización en Firestore directo:', firestoreErr.message);
+      throw firestoreErr;
     }
   }
 
@@ -360,9 +380,17 @@ export const updateTeacherApi = async (teacherId, teacherData) => {
  * Alterna el estado de habilitación del docente (Suspendido <-> Titular).
  */
 export const toggleTeacherStatusApi = async (teacherId) => {
+  await ensureAdminAuth();
+
   const currentList = getStoredTeachers();
   const teacher = currentList.find((t) => t.id === teacherId);
-  if (!teacher) throw new Error('Docente no encontrado');
+  if (!teacher) {
+    // Si no está en caché, recargar de Firestore
+    const refreshed = await fetchTeachersApi();
+    const found = refreshed.find((t) => t.id === teacherId);
+    if (!found) throw new Error('Docente no encontrado');
+    return toggleTeacherStatusApi(teacherId);
+  }
 
   const nuevoEstado = teacher.estado === 'Suspendido' ? 'Titular' : 'Suspendido';
 
@@ -382,8 +410,14 @@ export const toggleTeacherStatusApi = async (teacherId) => {
  * Restablece la contraseña institucional del docente a su número de DNI por defecto.
  */
 export const resetTeacherPasswordApi = async (teacherId) => {
+  await ensureAdminAuth();
+
   const currentList = getStoredTeachers();
-  const teacher = currentList.find((t) => t.id === teacherId);
+  let teacher = currentList.find((t) => t.id === teacherId);
+  if (!teacher) {
+    const list = await fetchTeachersApi();
+    teacher = list.find((t) => t.id === teacherId);
+  }
   if (!teacher) throw new Error('Docente no encontrado');
 
   // 1. Intentar vía Cloud Function
@@ -418,6 +452,8 @@ export const resetTeacherPasswordApi = async (teacherId) => {
  * Elimina definitivamente un docente en Auth y Firestore.
  */
 export const deleteTeacherApi = async (teacherId) => {
+  await ensureAdminAuth();
+
   // 1. Intentar vía Cloud Function
   try {
     await callAdminFunction('cf_updateUserProfile', {
@@ -438,7 +474,7 @@ export const deleteTeacherApi = async (teacherId) => {
       await deleteDoc(doc(db, 'users', teacherId));
     } catch (firestoreErr) {
       console.error('Error al eliminar docente en Firestore:', firestoreErr);
-      // Continuar para limpiar de la caché local
+      throw firestoreErr;
     }
   }
 
@@ -453,6 +489,8 @@ export const deleteTeacherApi = async (teacherId) => {
  * Actualiza las cátedras y carga horaria asignadas a un docente.
  */
 export const updateTeacherAssignmentsApi = async (teacherId, { catedras, grillaHoraria }) => {
+  await ensureAdminAuth();
+
   const currentList = getStoredTeachers();
   const totalHoras = (catedras || []).reduce((acc, cat) => acc + (Number(cat.horasSemanales) || 0), 0);
 

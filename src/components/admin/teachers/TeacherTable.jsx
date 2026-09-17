@@ -70,10 +70,12 @@ const getInitials = (nombre = '', apellido = '') => {
 
 const TeacherTable = ({
   teachers = [],
+  isLoading = false,
   onEditTeacher,
   onToggleStatus,
   onResetPassword,
   onDeleteTeacher,
+  onResetFilters,
 }) => {
   const [activeMenuTeacherId, setActiveMenuTeacherId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
@@ -99,20 +101,6 @@ const TeacherTable = ({
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [activeMenuTeacherId]);
-
-  if (teachers.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center flex flex-col items-center justify-center">
-        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
-          <span className="material-symbols-outlined text-[24px]">person_off</span>
-        </div>
-        <h3 className="font-bold text-sm text-slate-800">No se encontraron docentes</h3>
-        <p className="text-xs text-slate-500 mt-1 max-w-sm">
-          No hay registros que coincidan con los criterios de búsqueda o filtros seleccionados.
-        </p>
-      </div>
-    );
-  }
 
   const activeTeacher = teachers.find((t) => t.id === activeMenuTeacherId);
 
@@ -142,8 +130,50 @@ const TeacherTable = ({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {teachers.map((teacher) => {
+          <tbody data-testid="teacher-table-body" className="divide-y divide-slate-100">
+            {isLoading ? (
+              <tr data-testid="teacher-loading-row">
+                <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <div data-testid="teacher-loading-state" className="flex flex-col items-center justify-center gap-3">
+                    <span className="material-symbols-outlined text-4xl text-blue-600 animate-spin">
+                      sync
+                    </span>
+                    <p className="font-semibold text-slate-600 text-sm">
+                      Cargando nómina docente...
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Sincronizando información institucional y credenciales
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            ) : teachers.length === 0 ? (
+              <tr data-testid="teacher-empty-row">
+                <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <div data-testid="teacher-empty-state" className="flex flex-col items-center justify-center gap-2">
+                    <span className="material-symbols-outlined text-4xl text-slate-300">
+                      person_off
+                    </span>
+                    <p className="font-semibold text-slate-600 text-sm">
+                      No se encontraron docentes con los filtros seleccionados
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Prueba cambiando el término de búsqueda o el estado seleccionado.
+                    </p>
+                    {onResetFilters && (
+                      <button
+                        type="button"
+                        onClick={onResetFilters}
+                        className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 underline transition-colors cursor-pointer"
+                      >
+                        Restablecer filtros
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              teachers.map((teacher) => {
               const status = getStatusBadge(teacher.estado);
               const displayName =
                 teacher.nombreCompleto ||
@@ -205,7 +235,7 @@ const TeacherTable = ({
 
                   {/* Especialidad (texto libre con badge limpio) */}
                   <td className="py-4 px-6">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full font-bold text-[11px] border bg-slate-50 text-slate-700 border-slate-200">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md font-bold text-[11px] border bg-slate-50 text-slate-700 border-slate-200">
                       {teacher.especialidad}
                     </span>
                   </td>
@@ -213,7 +243,7 @@ const TeacherTable = ({
                   {/* Estado (Titular, Suplente, Interino, Suspendido) */}
                   <td className="py-4 px-6 whitespace-nowrap">
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[11px] border ${status.badgeClass}`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-[11px] border ${status.badgeClass}`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`}></span>
                       <span>{status.label}</span>
@@ -268,7 +298,7 @@ const TeacherTable = ({
                   </td>
                 </tr>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

@@ -22,6 +22,45 @@ const PAGE_SIZE = 5;
 const TeachersManagement = () => {
   const navigate = useNavigate();
 
+  // Teachers State
+  const [teachers, setTeachers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filters State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEstado, setSelectedEstado] = useState('');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Modals State
+  const [isNewTeacherModalOpen, setIsNewTeacherModalOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState(null);
+
+  // Notification State
+  const [notification, setNotification] = useState(null);
+
+  const showToast = useCallback((message, type = 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification(null);
+    }, 4000);
+  }, []);
+
+  // Load teachers from Firebase
+  const loadTeachers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchTeachersApi();
+      setTeachers(data);
+    } catch (err) {
+      console.error('Error al cargar docentes desde Firebase:', err);
+      showToast('Error al conectar con la base de datos.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
   // Authentication check for admin panel
   useEffect(() => {
     const checkAdminAuth = async () => {
@@ -57,6 +96,7 @@ const TeachersManagement = () => {
             import.meta.env.VITE_ADMIN_EMAIL,
             import.meta.env.VITE_ADMIN_PASSWORD
           );
+          loadTeachers();
           return;
         } catch (devErr) {
           console.warn('Auto-login dev admin:', devErr.message);
@@ -70,49 +110,23 @@ const TeachersManagement = () => {
     };
 
     checkAdminAuth();
-  }, [navigate]);
+  }, [navigate, loadTeachers]);
 
-  // Teachers State
-  const [teachers, setTeachers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Filters State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEstado, setSelectedEstado] = useState('');
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Modals State
-  const [isNewTeacherModalOpen, setIsNewTeacherModalOpen] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState(null);
-
-  // Notification State
-  const [notification, setNotification] = useState(null);
-
-  const showToast = useCallback((message, type = 'info') => {
-    setNotification({ message, type });
-    setTimeout(() => {
-      setNotification(null);
-    }, 4000);
-  }, []);
-
-  // Load teachers on mount
-  const loadTeachers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchTeachersApi();
-      setTeachers(data);
-    } catch (err) {
-      console.error('Error al cargar docentes:', err);
-      showToast('Error al cargar nómina docente.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showToast]);
-
+  // Real-time listener for Auth changes to reload from Firestore
   useEffect(() => {
+    let isMounted = true;
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user && isMounted) {
+        loadTeachers();
+      }
+    });
+
     loadTeachers();
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [loadTeachers]);
 
   // Filter Logic
@@ -341,25 +355,32 @@ const TeachersManagement = () => {
           onResetFilters={handleResetFilters}
         />
 
-        {/* Teachers Table & Pagination Section */}
-        {isLoading ? (
-          <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center flex flex-col items-center justify-center">
-            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-            <span className="text-xs font-semibold text-slate-500">Cargando nómina docente...</span>
+        {/* Indicador de sincronización activo */}
+        {isLoading && (
+          <div
+            data-testid="teachers-sync-indicator"
+            className="flex items-center gap-2 text-xs font-bold text-blue-800 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200/80 w-fit"
+          >
+            <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+            <span>Sincronizando nómina docente con base de datos...</span>
           </div>
-        ) : (
-          <div className="flex flex-col gap-0">
-            <TeacherTable
-              teachers={currentTeachers}
-              onEditTeacher={handleEditTeacher}
-              onToggleStatus={handleToggleStatus}
-              onResetPassword={handleResetPassword}
-              onDeleteTeacher={handleDeleteTeacher}
-            />
+        )}
 
-            {/* Pagination Controls */}
-            {totalItems > 0 && (
-              <div className="px-6 py-4 bg-white/70 border-t border-slate-100 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
+        {/* Teachers Table & Pagination Section */}
+        <div className="flex flex-col gap-0">
+          <TeacherTable
+            teachers={currentTeachers}
+            isLoading={isLoading}
+            onEditTeacher={handleEditTeacher}
+            onToggleStatus={handleToggleStatus}
+            onResetPassword={handleResetPassword}
+            onDeleteTeacher={handleDeleteTeacher}
+            onResetFilters={handleResetFilters}
+          />
+
+          {/* Pagination Controls */}
+          {!isLoading && totalItems > 0 && (
+            <div className="px-6 py-4 bg-white/70 border-t border-slate-100 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
                 <div className="text-xs font-semibold text-slate-500">
                   Mostrando{' '}
                   <span className="font-bold text-slate-900">
@@ -413,7 +434,6 @@ const TeachersManagement = () => {
               </div>
             )}
           </div>
-        )}
 
         {/* Modal for New Teacher Registration */}
         <NewTeacherModal
