@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { isValidEmail, isValidPhone, isValidDni, formatDni, sanitizePhoneNumber } from '../../../utils/validators';
 
 import { TRATAMIENTOS_DOCENTE, ESTADOS_DOCENTE } from './teacherConstants';
 
-const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
+const EditTeacherModal = ({ isOpen, teacher, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     tratamiento: 'Prof.',
     nombre: '',
@@ -19,7 +19,29 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (teacher) {
+      const cleanNombre = teacher.nombre || '';
+      const cleanApellido = teacher.apellido || '';
+      const matchTratamiento = teacher.nombreCompleto?.match(/^(Prof\.|Ing\.|Lic\.|Dra\.|Dr\.|Mg\.|Tec\.)/)?.[0];
+      const tratamiento = teacher.tratamiento || matchTratamiento || 'Prof.';
+
+      setFormData({
+        tratamiento,
+        nombre: cleanNombre,
+        apellido: cleanApellido,
+        dni: formatDni(teacher.dni || ''),
+        titulacion: teacher.titulacion || '',
+        especialidad: teacher.especialidad || '',
+        email: teacher.email || '',
+        telefono: teacher.telefono || '',
+        estado: teacher.estado || 'Titular',
+      });
+      setErrors({});
+    }
+  }, [teacher]);
+
+  if (!isOpen || !teacher) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -64,7 +86,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
     if (!formData.telefono.trim()) {
       newErrors.telefono = 'El teléfono es obligatorio.';
     } else if (!isValidPhone(formData.telefono)) {
-      newErrors.telefono = 'El teléfono debe contener entre 10 y 11 dígitos numéricos.';
+      newErrors.telefono = 'El teléfono debe tener entre 10 y 11 dígitos numéricos.';
     }
 
     setErrors(newErrors);
@@ -77,23 +99,10 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
-      // Reset form
-      setFormData({
-        tratamiento: 'Prof.',
-        nombre: '',
-        apellido: '',
-        dni: '',
-        titulacion: '',
-        especialidad: '',
-        email: '',
-        telefono: '',
-        estado: 'Titular',
-      });
-      setErrors({});
+      await onSave(teacher.id, formData);
       onClose();
     } catch (err) {
-      console.error('Error al registrar docente:', err);
+      console.error('Error al modificar docente:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,11 +125,16 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
           {/* Header */}
           <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
-                Alta de Personal Académico
-              </span>
-              <h2 className="text-xl font-extrabold text-slate-900">
-                Registrar Nuevo Docente
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
+                  Modificación de Legajo Docente
+                </span>
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-mono text-[10px] font-bold rounded-full">
+                  {teacher.legajo}
+                </span>
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900 text-left">
+                Editar Datos del Docente
               </h2>
             </div>
             <button
@@ -135,21 +149,6 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 overflow-y-auto max-h-[76vh]">
-            {/* Aviso Legajo Automático & Contraseña por DNI */}
-            <div className="p-3.5 bg-blue-50/70 border border-blue-200/70 rounded-2xl flex items-start gap-3">
-              <span className="material-symbols-outlined text-blue-600 text-[20px] shrink-0 mt-0.5">
-                badge
-              </span>
-              <div className="flex flex-col text-xs text-slate-700">
-                <span className="font-bold text-blue-900">
-                  Legajo y Credenciales Automáticas
-                </span>
-                <span className="text-[11px] text-slate-600 mt-0.5">
-                  El número de legajo (#DOC-{new Date().getFullYear()}-XXXX) se asignará automáticamente al guardar. La contraseña por defecto para el primer ingreso será el número de DNI.
-                </span>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Tratamiento / Prefijo */}
               <div className="flex flex-col gap-1.5">
@@ -178,7 +177,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  placeholder="ej. Patricia"
+                  placeholder="ej. Mariana"
                   className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
                     errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
                   }`}
@@ -194,7 +193,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                   name="apellido"
                   value={formData.apellido}
                   onChange={handleChange}
-                  placeholder="ej. Benítez"
+                  placeholder="ej. Valenzuela"
                   className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
                     errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
                   }`}
@@ -210,7 +209,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                   name="dni"
                   value={formData.dni}
                   onChange={handleChange}
-                  placeholder="ej. 34.200.119"
+                  placeholder="ej. 32.189.440"
                   className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
                     errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
                   }`}
@@ -220,7 +219,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Estado */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Estado de Contratación *</label>
+                <label className="text-xs font-bold text-slate-700">Estado de Contratación / Situación *</label>
                 <select
                   name="estado"
                   value={formData.estado}
@@ -243,7 +242,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                   name="especialidad"
                   value={formData.especialidad}
                   onChange={handleChange}
-                  placeholder="ej. Ciencias Biológicas, Robótica Educativa, Matemática Superior"
+                  placeholder="ej. Ciencias Exactas, Matemática Aplicada & Robótica"
                   className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
                     errors.especialidad ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
                   }`}
@@ -259,7 +258,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                   name="titulacion"
                   value={formData.titulacion}
                   onChange={handleChange}
-                  placeholder="ej. Licenciada en Ciencias Biológicas & Máster en Docencia"
+                  placeholder="ej. Profesora Superior en Matemática y Estadística"
                   className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
                     errors.titulacion ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
                   }`}
@@ -275,7 +274,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="p.benitez@educar.edu.ar"
+                  placeholder="m.valenzuela@educar.edu.ar"
                   className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
                     errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
                   }`}
@@ -291,7 +290,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                   name="telefono"
                   value={formData.telefono}
                   onChange={handleChange}
-                  placeholder="3624000000 (10 u 11 dígitos)"
+                  placeholder="3624891120 (10 u 11 dígitos)"
                   className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
                     errors.telefono ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
                   }`}
@@ -315,7 +314,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
                 disabled={isSubmitting}
                 className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-full shadow-[0_4px_14px_rgba(11,80,213,0.3)] transition-all active:scale-95 cursor-pointer disabled:opacity-50"
               >
-                {isSubmitting ? 'Guardando...' : 'Guardar y Crear Legajo'}
+                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </form>
@@ -325,4 +324,4 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
   );
 };
 
-export default NewTeacherModal;
+export default EditTeacherModal;

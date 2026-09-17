@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import TeacherFilters from '../../components/admin/teachers/TeacherFilters';
 import TeacherTable from '../../components/admin/teachers/TeacherTable';
-import TeacherAssignmentsDrawer from '../../components/admin/teachers/TeacherAssignmentsDrawer';
 import NewTeacherModal from '../../components/admin/teachers/NewTeacherModal';
+import EditTeacherModal from '../../components/admin/teachers/EditTeacherModal';
 import {
   fetchTeachersApi,
   createTeacherApi,
-  updateTeacherAssignmentsApi,
+  updateTeacherApi,
+  toggleTeacherStatusApi,
+  resetTeacherPasswordApi,
+  deleteTeacherApi,
   exportTeachersPayrollCsv,
 } from '../../services/teachersService';
 import { auth } from '../../services/firebase';
@@ -75,17 +78,14 @@ const TeachersManagement = () => {
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNivel, setSelectedNivel] = useState('');
-  const [selectedEspecialidad, setSelectedEspecialidad] = useState('');
   const [selectedEstado, setSelectedEstado] = useState('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Modals & Drawer State
-  const [selectedTeacherForDrawer, setSelectedTeacherForDrawer] = useState(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Modals State
   const [isNewTeacherModalOpen, setIsNewTeacherModalOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState(null);
 
   // Notification State
   const [notification, setNotification] = useState(null);
@@ -118,40 +118,45 @@ const TeachersManagement = () => {
   // Filter Logic
   const filteredTeachers = useMemo(() => {
     return teachers.filter((t) => {
-      // Text search in name, legajo, email
+      // Text search in name, apellido, legajo, dni, especialidad, email
       if (searchTerm) {
         const query = searchTerm.toLowerCase().trim();
         const matchesName = (t.nombre || '').toLowerCase().includes(query);
+        const matchesApellido = (t.apellido || '').toLowerCase().includes(query);
+        const matchesCompleto = (t.nombreCompleto || '').toLowerCase().includes(query);
         const matchesLegajo = (t.legajo || '').toLowerCase().includes(query);
+        const matchesDni = (t.dni || '').replace(/\./g, '').includes(query.replace(/\./g, ''));
+        const matchesEspecialidad = (t.especialidad || '').toLowerCase().includes(query);
         const matchesEmail = (t.email || '').toLowerCase().includes(query);
-        if (!matchesName && !matchesLegajo && !matchesEmail) return false;
-      }
 
-      // Nivel filter
-      if (selectedNivel) {
-        if ((t.nivel || '').toLowerCase() !== selectedNivel.toLowerCase()) return false;
-      }
-
-      // Especialidad filter
-      if (selectedEspecialidad) {
-        if ((t.especialidadKey || '').toLowerCase() !== selectedEspecialidad.toLowerCase()) {
+        if (
+          !matchesName &&
+          !matchesApellido &&
+          !matchesCompleto &&
+          !matchesLegajo &&
+          !matchesDni &&
+          !matchesEspecialidad &&
+          !matchesEmail
+        ) {
           return false;
         }
       }
 
-      // Estado filter
+      // Estado filter (Titular, Suplente, Interino, Suspendido)
       if (selectedEstado) {
-        if ((t.estado || '').toLowerCase() !== selectedEstado.toLowerCase()) return false;
+        if (String(t.estado || '').toLowerCase() !== selectedEstado.toLowerCase()) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [teachers, searchTerm, selectedNivel, selectedEspecialidad, selectedEstado]);
+  }, [teachers, searchTerm, selectedEstado]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedNivel, selectedEspecialidad, selectedEstado]);
+  }, [searchTerm, selectedEstado]);
 
   // Pagination calculation
   const totalItems = filteredTeachers.length;
@@ -161,59 +166,92 @@ const TeachersManagement = () => {
 
   const handleResetFilters = () => {
     setSearchTerm('');
-    setSelectedNivel('');
-    setSelectedEspecialidad('');
     setSelectedEstado('');
   };
 
   // Actions
-  const handleOpenDrawer = (teacher) => {
-    setSelectedTeacherForDrawer(teacher);
-    setIsDrawerOpen(true);
-  };
-
-  const handleCloseDrawer = () => {
-    setIsDrawerOpen(false);
-    setSelectedTeacherForDrawer(null);
-  };
-
-  const handleSaveAssignments = async (teacherId, payload) => {
-    try {
-      const updated = await updateTeacherAssignmentsApi(teacherId, payload);
-      setTeachers((prev) => prev.map((t) => (t.id === teacherId ? updated : t)));
-      showToast('¡Asignaciones y carga horaria guardadas exitosamente!', 'success');
-      handleCloseDrawer();
-    } catch (err) {
-      console.error('Error al guardar asignaciones:', err);
-      showToast('Error al guardar asignaciones.', 'error');
-    }
-  };
-
   const handleCreateTeacher = async (teacherData) => {
     try {
       const created = await createTeacherApi(teacherData);
       setTeachers((prev) => [created, ...prev]);
-      showToast(`¡Docente ${created.nombre} registrado con legajo ${created.legajo}!`, 'success');
+      showToast(
+        `¡Docente ${created.nombreCompleto || created.nombre} registrado con legajo ${created.legajo}!`,
+        'success'
+      );
     } catch (err) {
       console.error('Error al registrar docente:', err);
       showToast('Error al registrar docente.', 'error');
     }
   };
 
+  const handleEditTeacher = (teacher) => {
+    setEditingTeacher(teacher);
+  };
+
+  const handleSaveEditTeacher = async (teacherId, teacherData) => {
+    try {
+      const updated = await updateTeacherApi(teacherId, teacherData);
+      setTeachers((prev) => prev.map((t) => (t.id === teacherId ? updated : t)));
+      showToast(
+        `¡Datos de ${updated.nombreCompleto || updated.nombre} actualizados con éxito!`,
+        'success'
+      );
+      setEditingTeacher(null);
+    } catch (err) {
+      console.error('Error al actualizar docente:', err);
+      showToast('Error al actualizar datos del docente.', 'error');
+    }
+  };
+
+  const handleToggleStatus = async (teacher) => {
+    try {
+      const { teacher: updated, nuevoEstado } = await toggleTeacherStatusApi(teacher.id);
+      setTeachers((prev) => prev.map((t) => (t.id === teacher.id ? updated : t)));
+
+      if (nuevoEstado === 'Suspendido') {
+        showToast(`El docente ${teacher.nombreCompleto || teacher.nombre} fue deshabilitado (Suspendido).`, 'info');
+      } else {
+        showToast(`El docente ${teacher.nombreCompleto || teacher.nombre} fue habilitado como ${nuevoEstado}.`, 'success');
+      }
+    } catch (err) {
+      console.error('Error al cambiar estado del docente:', err);
+      showToast('No se pudo cambiar el estado del docente.', 'error');
+    }
+  };
+
+  const handleResetPassword = async (teacher) => {
+    try {
+      const result = await resetTeacherPasswordApi(teacher.id);
+      showToast(
+        `Contraseña restablecida al DNI (${result.dni}) para ${result.nombre}.`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error al restablecer contraseña:', err);
+      showToast('Error al restablecer contraseña.', 'error');
+    }
+  };
+
+  const handleDeleteTeacher = async (teacher) => {
+    const displayName = teacher.nombreCompleto || `${teacher.nombre} ${teacher.apellido || ''}`;
+    const confirmed = window.confirm(
+      `¿Confirmas la baja y eliminación definitiva del legajo de ${displayName} (${teacher.legajo})?\n\nEsta acción eliminará el registro del personal académico.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteTeacherApi(teacher.id);
+      setTeachers((prev) => prev.filter((t) => t.id !== teacher.id));
+      showToast(`Legajo de ${displayName} eliminado definitivamente.`, 'success');
+    } catch (err) {
+      console.error('Error al eliminar docente:', err);
+      showToast('No se pudo eliminar el docente.', 'error');
+    }
+  };
+
   const handleExportNomina = () => {
     exportTeachersPayrollCsv(filteredTeachers);
     showToast('Exportando nómina docente en formato CSV...', 'info');
-  };
-
-  const handleOpenMallaAsignaciones = () => {
-    // Si hay docentes, abrimos el primer docente o mostramos vista informativa
-    if (teachers.length > 0) {
-      setSelectedTeacherForDrawer(teachers[0]);
-      setIsDrawerOpen(true);
-      showToast('Abriendo visor de malla horaria institucional...', 'info');
-    } else {
-      showToast('No hay docentes registrados para mostrar la malla horaria.', 'info');
-    }
   };
 
   return (
@@ -262,17 +300,17 @@ const TeachersManagement = () => {
               Gestión del Plantel Docente y Académico
             </h1>
             <p className="text-sm font-medium text-slate-500 mt-1">
-              Administración centralizada de legajos docentes, designaciones y carga horaria académica.
+              Administración centralizada de legajos docentes, designaciones y estado de personal.
             </p>
           </div>
 
-          {/* Action Buttons Top Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-2xl mx-auto">
+          {/* Action Buttons Top Bar (Sin Malla de asignaciones) */}
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full">
             {/* Exportar Nómina */}
             <button
               type="button"
               onClick={handleExportNomina}
-              className="flex-1 w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px] text-amber-500">
                 file_download
@@ -280,23 +318,11 @@ const TeachersManagement = () => {
               <span>Exportar Nómina</span>
             </button>
 
-            {/* Malla de Asignaciones */}
-            <button
-              type="button"
-              onClick={handleOpenMallaAsignaciones}
-              className="flex-1 w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-blue-600">
-                calendar_view_week
-              </span>
-              <span>Malla de Asignaciones</span>
-            </button>
-
             {/* Registrar Docente */}
             <button
               type="button"
               onClick={() => setIsNewTeacherModalOpen(true)}
-              className="flex-1 w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all rounded-full font-bold text-xs shadow-[0_4px_14px_rgba(11,80,213,0.3)] hover:shadow-lg active:scale-95 h-10 duration-200 text-center cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all rounded-full font-bold text-xs shadow-[0_4px_14px_rgba(11,80,213,0.3)] hover:shadow-lg active:scale-95 h-10 duration-200 text-center cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px] text-emerald-300">
                 person_add
@@ -310,10 +336,6 @@ const TeachersManagement = () => {
         <TeacherFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          selectedNivel={selectedNivel}
-          onNivelChange={setSelectedNivel}
-          selectedEspecialidad={selectedEspecialidad}
-          onEspecialidadChange={setSelectedEspecialidad}
           selectedEstado={selectedEstado}
           onEstadoChange={setSelectedEstado}
           onResetFilters={handleResetFilters}
@@ -329,7 +351,10 @@ const TeachersManagement = () => {
           <div className="flex flex-col gap-0">
             <TeacherTable
               teachers={currentTeachers}
-              onOpenAssignments={handleOpenDrawer}
+              onEditTeacher={handleEditTeacher}
+              onToggleStatus={handleToggleStatus}
+              onResetPassword={handleResetPassword}
+              onDeleteTeacher={handleDeleteTeacher}
             />
 
             {/* Pagination Controls */}
@@ -390,19 +415,19 @@ const TeachersManagement = () => {
           </div>
         )}
 
-        {/* Slide-over Drawer for Assignments */}
-        <TeacherAssignmentsDrawer
-          isOpen={isDrawerOpen}
-          teacher={selectedTeacherForDrawer}
-          onClose={handleCloseDrawer}
-          onSaveAssignments={handleSaveAssignments}
-        />
-
         {/* Modal for New Teacher Registration */}
         <NewTeacherModal
           isOpen={isNewTeacherModalOpen}
           onClose={() => setIsNewTeacherModalOpen(false)}
           onSubmit={handleCreateTeacher}
+        />
+
+        {/* Modal for Editing Existing Teacher */}
+        <EditTeacherModal
+          isOpen={Boolean(editingTeacher)}
+          teacher={editingTeacher}
+          onClose={() => setEditingTeacher(null)}
+          onSave={handleSaveEditTeacher}
         />
       </div>
     </AdminLayout>

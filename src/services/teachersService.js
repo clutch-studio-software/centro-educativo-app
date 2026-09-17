@@ -27,38 +27,45 @@ export const saveStoredTeachers = (teachers) => {
 
 /**
  * Obtiene el listado de docentes.
- * Inicialmente utiliza la fuente mock/localStorage. Preparado para alternar con Firestore `collection(db, 'teachers')`.
  */
 export const fetchTeachersApi = async () => {
-  // Simulamos ligera latencia de red para UX fluida
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  await new Promise((resolve) => setTimeout(resolve, 100));
   return getStoredTeachers();
 };
 
 /**
- * Registra un nuevo docente y genera su legajo institucional.
+ * Registra un nuevo docente y genera su legajo institucional automático.
+ * La contraseña inicial por defecto es su DNI.
  */
 export const createTeacherApi = async (teacherData) => {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await new Promise((resolve) => setTimeout(resolve, 150));
 
   const currentList = getStoredTeachers();
+  const year = new Date().getFullYear();
   const randomNum = Math.floor(1000 + Math.random() * 9000);
-  const legajo = `#DOC-${randomNum}`;
-  const id = `doc-${randomNum}`;
+  const legajo = `#DOC-${year}-${randomNum}`;
+  const id = `doc-${Date.now()}`;
+
+  const cleanNombre = (teacherData.nombre || '').trim();
+  const cleanApellido = (teacherData.apellido || '').trim();
+  const tratamiento = (teacherData.tratamiento || '').trim();
+  const nombreCompleto = tratamiento
+    ? `${tratamiento} ${cleanNombre} ${cleanApellido}`.trim()
+    : `${cleanNombre} ${cleanApellido}`.trim();
 
   const newTeacher = {
     id,
     legajo,
-    nombre: teacherData.nombre,
-    dni: teacherData.dni,
-    titulacion: teacherData.titulacion,
-    especialidad: teacherData.especialidad,
-    especialidadKey: teacherData.especialidadKey || 'exactas',
-    nivel: teacherData.nivel || 'secundario',
-    email: teacherData.email,
-    telefono: teacherData.telefono,
-    estado: 'activo',
-    estadoContratacion: teacherData.estadoContratacion || 'Titular - En Actividad',
+    tratamiento,
+    nombre: cleanNombre,
+    apellido: cleanApellido,
+    nombreCompleto,
+    dni: (teacherData.dni || '').trim(),
+    titulacion: (teacherData.titulacion || '').trim(),
+    especialidad: (teacherData.especialidad || '').trim(),
+    email: (teacherData.email || '').trim().toLowerCase(),
+    telefono: (teacherData.telefono || '').trim(),
+    estado: teacherData.estado || 'Titular',
     avatar: null,
     cargaHoras: 0,
     cargaMaxHoras: 30,
@@ -78,10 +85,107 @@ export const createTeacherApi = async (teacherData) => {
 };
 
 /**
+ * Modifica los datos de un docente existente.
+ */
+export const updateTeacherApi = async (teacherId, teacherData) => {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const currentList = getStoredTeachers();
+  const cleanNombre = (teacherData.nombre || '').trim();
+  const cleanApellido = (teacherData.apellido || '').trim();
+  const tratamiento = (
+    teacherData.tratamiento !== undefined ? teacherData.tratamiento : ''
+  ).trim();
+  const nombreCompleto = tratamiento
+    ? `${tratamiento} ${cleanNombre} ${cleanApellido}`.trim()
+    : `${cleanNombre} ${cleanApellido}`.trim();
+
+  const updatedList = currentList.map((t) => {
+    if (t.id === teacherId) {
+      return {
+        ...t,
+        tratamiento,
+        nombre: cleanNombre,
+        apellido: cleanApellido,
+        nombreCompleto: nombreCompleto || t.nombreCompleto,
+        dni: (teacherData.dni || t.dni).trim(),
+        titulacion: (teacherData.titulacion || t.titulacion).trim(),
+        especialidad: (teacherData.especialidad || t.especialidad).trim(),
+        email: (teacherData.email || t.email).trim().toLowerCase(),
+        telefono: (teacherData.telefono || t.telefono).trim(),
+        estado: teacherData.estado || t.estado,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    return t;
+  });
+
+  saveStoredTeachers(updatedList);
+  return updatedList.find((t) => t.id === teacherId);
+};
+
+/**
+ * Alterna el estado de habilitación del docente (Suspendido <-> Titular).
+ */
+export const toggleTeacherStatusApi = async (teacherId) => {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const currentList = getStoredTeachers();
+  const teacher = currentList.find((t) => t.id === teacherId);
+  if (!teacher) throw new Error('Docente no encontrado');
+
+  const nuevoEstado = teacher.estado === 'Suspendido' ? 'Titular' : 'Suspendido';
+
+  const updatedList = currentList.map((t) => {
+    if (t.id === teacherId) {
+      return {
+        ...t,
+        estado: nuevoEstado,
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    return t;
+  });
+
+  saveStoredTeachers(updatedList);
+  return { teacher: updatedList.find((t) => t.id === teacherId), nuevoEstado };
+};
+
+/**
+ * Restablece la contraseña institucional del docente a su número de DNI por defecto.
+ */
+export const resetTeacherPasswordApi = async (teacherId) => {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const currentList = getStoredTeachers();
+  const teacher = currentList.find((t) => t.id === teacherId);
+  if (!teacher) throw new Error('Docente no encontrado');
+
+  return {
+    success: true,
+    dni: teacher.dni,
+    nombre: teacher.nombreCompleto || teacher.nombre,
+  };
+};
+
+/**
+ * Elimina definitivamente un docente de la lista.
+ */
+export const deleteTeacherApi = async (teacherId) => {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const currentList = getStoredTeachers();
+  const updatedList = currentList.filter((t) => t.id !== teacherId);
+  saveStoredTeachers(updatedList);
+
+  return { success: true };
+};
+
+/**
  * Actualiza las cátedras y carga horaria asignadas a un docente.
  */
 export const updateTeacherAssignmentsApi = async (teacherId, { catedras, grillaHoraria }) => {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await new Promise((resolve) => setTimeout(resolve, 150));
 
   const currentList = getStoredTeachers();
   const totalHoras = catedras.reduce((acc, cat) => acc + (Number(cat.horasSemanales) || 0), 0);
@@ -106,18 +210,18 @@ export const updateTeacherAssignmentsApi = async (teacherId, { catedras, grillaH
  * Exporta la nómina docente a un archivo CSV estructurado.
  */
 export const exportTeachersPayrollCsv = (teachers = []) => {
-  const headers = ['Legajo', 'Nombre Completo', 'DNI', 'Titulación', 'Especialidad', 'Nivel', 'Email', 'Teléfono', 'Estado', 'Contratación', 'Horas Asignadas'];
+  const headers = ['Legajo', 'DNI', 'Nombre', 'Apellido', 'Nombre Completo', 'Titulación', 'Especialidad', 'Email', 'Teléfono', 'Estado', 'Horas Asignadas'];
   const rows = teachers.map((t) => [
     t.legajo,
-    `"${(t.nombre || '').replace(/"/g, '""')}"`,
     t.dni,
+    `"${(t.nombre || '').replace(/"/g, '""')}"`,
+    `"${(t.apellido || '').replace(/"/g, '""')}"`,
+    `"${(t.nombreCompleto || `${t.nombre || ''} ${t.apellido || ''}`).trim().replace(/"/g, '""')}"`,
     `"${(t.titulacion || '').replace(/"/g, '""')}"`,
     `"${(t.especialidad || '').replace(/"/g, '""')}"`,
-    t.nivel,
     t.email,
     t.telefono,
     t.estado,
-    `"${(t.estadoContratacion || '').replace(/"/g, '""')}"`,
     t.cargaHoras || 0,
   ]);
 
