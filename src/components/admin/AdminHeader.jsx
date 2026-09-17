@@ -42,17 +42,6 @@ const AdminHeader = ({ onToggleMobile, breadcrumbs = [] }) => {
           ))}
         </nav>
       </div>
-
-      {/* Right Header Status / Tag */}
-      <div className="flex items-center gap-3">
-        <span
-          data-testid="admin-header-cycle-badge"
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-lime-50 text-emerald-700 border border-lime-200/60 shadow-xs"
-        >
-          <span className="w-2 h-2 rounded-full bg-lime-500 animate-pulse"></span>
-          Ciclo 2027
-        </span>
-      </div>
     </header>
   );
 };

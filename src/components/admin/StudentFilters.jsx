@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
+import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
 
 const StudentFilters = ({
   searchQuery,
@@ -7,11 +8,14 @@ const StudentFilters = ({
   onLevelChange,
   courseFilter,
   onCourseChange,
+  divisionFilter = 'todos',
+  onDivisionChange = () => {},
   statusFilter,
   onStatusChange,
   serviceFilter,
   onServiceChange,
   onResetFilters,
+  academicOffer = DEFAULT_ACADEMIC_OFFER,
 }) => {
   const searchInputRef = useRef(null);
 
@@ -27,6 +31,45 @@ const StudentFilters = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Cursos disponibles según el nivel seleccionado
+  const coursesByLevel = useMemo(() => {
+    if (levelFilter === 'todos') {
+      return academicOffer || {};
+    }
+    return {
+      [levelFilter]: academicOffer?.[levelFilter] || {},
+    };
+  }, [academicOffer, levelFilter]);
+
+  // Divisiones disponibles según el curso o nivel seleccionado
+  const availableDivisions = useMemo(() => {
+    if (courseFilter === 'todos' || courseFilter === 'sin asignar') {
+      // Si hay un nivel seleccionado, recopilar todas las divisiones únicas de ese nivel
+      if (levelFilter !== 'todos' && academicOffer?.[levelFilter]) {
+        const divs = new Set();
+        Object.values(academicOffer[levelFilter]).forEach((divList) => {
+          if (Array.isArray(divList)) divList.forEach((d) => divs.add(d));
+        });
+        return Array.from(divs);
+      }
+      return [];
+    }
+
+    // Curso específico seleccionado
+    let divs = [];
+    if (levelFilter !== 'todos' && academicOffer?.[levelFilter]?.[courseFilter]) {
+      divs = academicOffer[levelFilter][courseFilter];
+    } else {
+      for (const lvl of Object.keys(academicOffer || {})) {
+        if (academicOffer[lvl]?.[courseFilter]) {
+          divs = academicOffer[lvl][courseFilter];
+          break;
+        }
+      }
+    }
+    return Array.isArray(divs) ? divs : [];
+  }, [academicOffer, levelFilter, courseFilter]);
 
   return (
     <section
@@ -78,13 +121,13 @@ const StudentFilters = ({
         </div>
       </div>
 
-      {/* Fila 2: Curso / División, Estado Alumno, Servicios Asignados y Botón Limpiar */}
+      {/* Fila 2: Curso, División, Estado Alumno, Servicios Asignados y Botón Limpiar */}
       <div className="flex flex-wrap items-end justify-between gap-4 pt-1 border-t border-slate-100/80 w-full">
-        <div className="flex flex-wrap items-end gap-4 flex-1 min-w-0">
-          {/* Curso y División */}
-          <div className="flex flex-col gap-1 min-w-[180px]">
+        <div className="flex flex-wrap items-end gap-3 flex-1 min-w-0">
+          {/* Curso (Filtrado según nivel seleccionado) */}
+          <div className="flex flex-col gap-1 min-w-[170px]">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Curso / División
+              Curso {levelFilter !== 'todos' ? `(${levelFilter})` : ''}
             </label>
             <select
               data-testid="student-course-select"
@@ -92,36 +135,61 @@ const StudentFilters = ({
               onChange={(e) => onCourseChange(e.target.value)}
               className="h-9 px-3 bg-slate-50 hover:bg-slate-100/80 text-slate-800 font-semibold text-xs rounded-full border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white shadow-xs transition-all cursor-pointer"
             >
-              <option value="todos">Todos los cursos</option>
+              <option value="todos">
+                {levelFilter === 'todos' ? 'Todos los cursos' : `Todos los cursos (${levelFilter})`}
+              </option>
               <option value="sin asignar">Sin asignar</option>
-              <optgroup label="Nivel Inicial">
-                <option value="Sala de 2 Años">Sala de 2 Años</option>
-                <option value="Sala de 3 Años">Sala de 3 Años</option>
-                <option value="Sala de 4 Años">Sala de 4 Años</option>
-                <option value="Sala de 5 Años">Sala de 5 Años</option>
-              </optgroup>
-              <optgroup label="Nivel Primario">
-                <option value="1er Grado">1er Grado</option>
-                <option value="2do Grado">2do Grado</option>
-                <option value="3er Grado">3er Grado</option>
-                <option value="4to Grado">4to Grado</option>
-                <option value="5to Grado">5to Grado</option>
-                <option value="6to Grado">6to Grado</option>
-                <option value="7mo Grado">7mo Grado</option>
-              </optgroup>
-              <optgroup label="Nivel Secundario">
-                <option value="1er Año">1er Año</option>
-                <option value="2do Año">2do Año</option>
-                <option value="3er Año">3er Año</option>
-                <option value="4to Año">4to Año</option>
-                <option value="5to Año">5to Año</option>
-                <option value="6to Año">6to Año</option>
-              </optgroup>
+              {levelFilter === 'todos' ? (
+                Object.entries(coursesByLevel).map(([nivelKey, cursosObj]) => (
+                  <optgroup key={nivelKey} label={`Nivel ${nivelKey}`}>
+                    {Object.keys(cursosObj).map((cursoName) => (
+                      <option key={cursoName} value={cursoName}>
+                        {cursoName}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))
+              ) : (
+                Object.keys(coursesByLevel[levelFilter] || {}).map((cursoName) => (
+                  <option key={cursoName} value={cursoName}>
+                    {cursoName}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* División / Sala (Dependiente del curso) */}
+          <div className="flex flex-col gap-1 min-w-[150px]">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              División / Sala
+            </label>
+            <select
+              data-testid="student-division-select"
+              value={divisionFilter}
+              onChange={(e) => onDivisionChange(e.target.value)}
+              disabled={courseFilter === 'todos' && levelFilter === 'todos'}
+              className={`h-9 px-3 text-slate-800 font-semibold text-xs rounded-full border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 shadow-xs transition-all ${
+                courseFilter === 'todos' && levelFilter === 'todos'
+                  ? 'bg-slate-100/60 text-slate-400 cursor-not-allowed'
+                  : 'bg-slate-50 hover:bg-slate-100/80 cursor-pointer focus:bg-white'
+              }`}
+            >
+              <option value="todos">
+                {courseFilter === 'todos' && levelFilter === 'todos'
+                  ? 'Elegir curso...'
+                  : 'Todas las divisiones'}
+              </option>
+              {availableDivisions.map((divName) => (
+                <option key={divName} value={divName}>
+                  {divName.toLowerCase().startsWith('sala') ? divName : `División "${divName}"`}
+                </option>
+              ))}
             </select>
           </div>
 
           {/* Estado Administrativo */}
-          <div className="flex flex-col gap-1 min-w-[180px]">
+          <div className="flex flex-col gap-1 min-w-[170px]">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Estado Alumno
             </label>

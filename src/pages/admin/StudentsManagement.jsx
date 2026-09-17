@@ -12,7 +12,9 @@ import {
   fetchAdminDashboardData,
   createParentAndStudentsApi,
   updateUserProfileApi,
-  deleteStudentApi
+  deleteStudentApi,
+  fetchAcademicOfferApi,
+  DEFAULT_ACADEMIC_OFFER,
 } from '../../services/adminService';
 import { formatDni } from '../../utils/validators';
 
@@ -78,6 +80,16 @@ const StudentsManagement = () => {
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [parentsList, setParentsList] = useState([]);
+  const [academicOffer, setAcademicOffer] = useState(DEFAULT_ACADEMIC_OFFER);
+
+  // Cargar oferta académica desde Firebase
+  useEffect(() => {
+    fetchAcademicOfferApi()
+      .then((data) => {
+        if (data) setAcademicOffer(data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch from Firebase Firestore on Mount
   const loadStudentsData = useCallback(async () => {
@@ -204,6 +216,7 @@ const StudentsManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('todos');
   const [courseFilter, setCourseFilter] = useState('todos');
+  const [divisionFilter, setDivisionFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [serviceFilter, setServiceFilter] = useState('todos');
 
@@ -263,9 +276,14 @@ const StudentsManagement = () => {
       if (courseFilter !== 'todos') {
         if (courseFilter === 'sin asignar') {
           if (student.curso !== 'sin asignar') return false;
-        } else if (!student.curso?.toLowerCase().includes(courseFilter.toLowerCase())) {
+        } else if (student.curso !== courseFilter && !student.curso?.toLowerCase().includes(courseFilter.toLowerCase())) {
           return false;
         }
+      }
+
+      // Division filter (dependiente del curso)
+      if (divisionFilter !== 'todos' && student.division !== divisionFilter) {
+        return false;
       }
 
       // Status filter
@@ -280,7 +298,7 @@ const StudentsManagement = () => {
 
       return true;
     });
-  }, [students, searchQuery, levelFilter, courseFilter, statusFilter, serviceFilter]);
+  }, [students, searchQuery, levelFilter, courseFilter, divisionFilter, statusFilter, serviceFilter]);
 
   // Paginated Students Slice
   const totalItems = filteredStudents.length;
@@ -300,11 +318,19 @@ const StudentsManagement = () => {
 
   const handleLevelChange = (val) => {
     setLevelFilter(val);
+    setCourseFilter('todos');
+    setDivisionFilter('todos');
     setCurrentPage(1);
   };
 
   const handleCourseChange = (val) => {
     setCourseFilter(val);
+    setDivisionFilter('todos');
+    setCurrentPage(1);
+  };
+
+  const handleDivisionChange = (val) => {
+    setDivisionFilter(val);
     setCurrentPage(1);
   };
 
@@ -322,6 +348,7 @@ const StudentsManagement = () => {
     setSearchQuery('');
     setLevelFilter('todos');
     setCourseFilter('todos');
+    setDivisionFilter('todos');
     setStatusFilter('todos');
     setServiceFilter('todos');
     setCurrentPage(1);
@@ -618,11 +645,14 @@ const StudentsManagement = () => {
           onLevelChange={handleLevelChange}
           courseFilter={courseFilter}
           onCourseChange={handleCourseChange}
+          divisionFilter={divisionFilter}
+          onDivisionChange={handleDivisionChange}
           statusFilter={statusFilter}
           onStatusChange={handleStatusChange}
           serviceFilter={serviceFilter}
           onServiceChange={handleServiceChange}
           onResetFilters={handleResetFilters}
+          academicOffer={academicOffer}
         />
 
         {/* Loading Indicator */}

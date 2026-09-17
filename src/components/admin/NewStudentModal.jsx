@@ -271,9 +271,6 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2"
               >
                 Registrar Nuevo Alumno{' '}
-                <span className="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/70 rounded-full text-[11px] font-bold">
-                  Ciclo 2027
-                </span>
               </h2>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
                 Asignación de legajo, vinculación de tutor responsable y datos académicos del ingresante.
