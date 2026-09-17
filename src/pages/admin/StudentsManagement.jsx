@@ -125,14 +125,28 @@ const StudentsManagement = () => {
                 ? 'from-blue-500 to-indigo-500'
                 : 'from-emerald-400 to-lime-500';
 
-          const parent = (parents || []).find((p) => p.id === s.parentId);
+          const parent =
+            (parents || []).find((p) => p.id && s.parentId && p.id === s.parentId) ||
+            (parents || []).find((p) => Array.isArray(p.studentIds) && p.studentIds.includes(s.id)) ||
+            (parents || []).find(
+              (p) =>
+                p.email &&
+                s.emailPadre &&
+                p.email.trim().toLowerCase() === s.emailPadre.trim().toLowerCase()
+            ) ||
+            null;
+
           const tutorNombre = parent
-            ? `${parent.nombre} (Tutor)`
-            : s.emailPadre
-              ? `Tutor (${s.emailPadre})`
-              : 'Tutor';
-          const tutorTelefono = parent?.telefono || '';
-          const tutorEmail = parent?.email || s.emailPadre || '';
+            ? parent.nombre
+            : s.tutorNombre
+              ? s.tutorNombre.replace(' (Tutor)', '')
+              : s.emailPadre
+                ? `Tutor (${s.emailPadre})`
+                : 'Tutor';
+          const tutorDni = parent?.dni || s.tutorDni || s.dniPadre || s.dniTutor || '';
+          const tutorTelefono = parent?.telefono || s.tutorTelefono || s.telefonoPadre || '';
+          const tutorEmail = parent?.email || s.tutorEmail || s.emailPadre || '';
+          const tutorDomicilio = parent?.domicilio || s.tutorDomicilio || '';
 
           const initials =
             (s.nombre || '')
@@ -156,13 +170,15 @@ const StudentsManagement = () => {
 
           return {
             id: s.id,
-            parentId: s.parentId || null,
+            parentId: s.parentId || parent?.id || null,
             legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
             dni: formatDni(s.dni || ''),
             nombre: s.nombre || 'Sin Nombre',
             tutorNombre,
+            tutorDni,
             tutorTelefono,
             tutorEmail,
+            tutorDomicilio,
             domicilio: s.domicilio || parent?.domicilio || 'Sin domicilio registrado',
             nivel,
             curso,
@@ -741,6 +757,7 @@ const StudentsManagement = () => {
       <StudentDetailsModal
         isOpen={!!viewingStudent}
         student={viewingStudent}
+        tutors={parentsList}
         onClose={() => setViewingStudent(null)}
         onEditStudent={(student) => {
           setViewingStudent(null);

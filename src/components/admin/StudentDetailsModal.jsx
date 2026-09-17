@@ -4,12 +4,36 @@ import { formatDni, calcularEdad } from '../../utils/validators';
 const StudentDetailsModal = ({
   isOpen,
   student,
+  tutors = [],
   onClose,
   onEditStudent,
 }) => {
   if (!isOpen || !student) return null;
 
   const edad = calcularEdad(student.fechaNacimiento);
+
+  // Buscar tutor asociado como respaldo si algún campo viene desnormalizado
+  const matchedTutor =
+    (tutors || []).find((t) => t.id && student.parentId && t.id === student.parentId) ||
+    (tutors || []).find((t) => Array.isArray(t.studentIds) && t.studentIds.includes(student.id)) ||
+    (tutors || []).find(
+      (t) =>
+        t.email &&
+        student.tutorEmail &&
+        t.email.trim().toLowerCase() === student.tutorEmail.trim().toLowerCase()
+    ) ||
+    null;
+
+  const resolvedTutorNombre =
+    student.tutorNombre && student.tutorNombre !== 'Tutor'
+      ? student.tutorNombre
+      : matchedTutor?.nombre || student.tutorNombre || 'No asignado';
+
+  const rawTutorDni = student.tutorDni || matchedTutor?.dni || '';
+  const resolvedTutorDni = rawTutorDni ? formatDni(rawTutorDni) : 'S/D';
+  const resolvedTutorTelefono = student.tutorTelefono || matchedTutor?.telefono || 'No registrado';
+  const resolvedTutorEmail = student.tutorEmail || matchedTutor?.email || 'Sin email';
+  const resolvedTutorDomicilio = student.tutorDomicilio || matchedTutor?.domicilio || '';
 
   // Formatear fecha de nacimiento a DD/MM/AAAA
   const formatDateDisplay = (dateString) => {
@@ -55,28 +79,28 @@ const StudentDetailsModal = ({
     switch (estado) {
       case 'Activo - Regular':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100/80 text-emerald-800 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-100/80 text-emerald-800 border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-md bg-emerald-500 animate-pulse"></span>
             Activo - Regular
           </span>
         );
       case 'Condicional':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100/80 text-amber-800 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-amber-100/80 text-amber-800 border border-amber-200">
+            <span className="w-1.5 h-1.5 rounded-md bg-amber-500"></span>
             Condicional
           </span>
         );
       case 'Baja Administrativa':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100/80 text-red-800 border border-red-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-red-100/80 text-red-800 border border-red-200">
+            <span className="w-1.5 h-1.5 rounded-md bg-red-500"></span>
             Baja Administrativa
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
             {estado || 'Sin estado'}
           </span>
         );
@@ -136,7 +160,7 @@ const StudentDetailsModal = ({
             type="button"
             data-testid="student-details-close-button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent shrink-0"
+            className="w-8 h-8 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer border-none bg-transparent shrink-0"
             title="Cerrar modal"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
@@ -156,7 +180,7 @@ const StudentDetailsModal = ({
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Nivel Educativo
                 </span>
@@ -168,7 +192,7 @@ const StudentDetailsModal = ({
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Curso Asignado
                 </span>
@@ -177,7 +201,7 @@ const StudentDetailsModal = ({
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   División
                 </span>
@@ -190,7 +214,7 @@ const StudentDetailsModal = ({
             </div>
 
             {/* Servicios Contratados */}
-            <div className="bg-white p-3 rounded-xl border border-slate-200/70 flex flex-col gap-1.5">
+            <div className="bg-white p-3 rounded-md border border-slate-200/70 flex flex-col gap-1.5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Servicios Extracurriculares Contratados
               </span>
@@ -224,7 +248,7 @@ const StudentDetailsModal = ({
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   DNI / Documento
                 </span>
@@ -233,7 +257,7 @@ const StudentDetailsModal = ({
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Fecha de Nacimiento
                 </span>
@@ -242,7 +266,7 @@ const StudentDetailsModal = ({
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Edad Calculada
                 </span>
@@ -251,7 +275,7 @@ const StudentDetailsModal = ({
                 </span>
               </div>
 
-              <div className="sm:col-span-3 bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="sm:col-span-3 bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Domicilio Registrado
                 </span>
@@ -270,50 +294,50 @@ const StudentDetailsModal = ({
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Nombre del Tutor
                 </span>
                 <span className="font-bold text-slate-800 text-sm">
-                  {student.tutorNombre || 'No asignado'}
+                  {resolvedTutorNombre}
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   DNI del Tutor
                 </span>
                 <span className="font-mono font-semibold text-slate-800">
-                  {student.tutorDni ? formatDni(student.tutorDni) : 'S/D'}
+                  {resolvedTutorDni}
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Teléfono / WhatsApp
                 </span>
                 <span className="font-mono font-semibold text-blue-700 flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px] text-blue-500">call</span>
-                  {student.tutorTelefono || 'No registrado'}
+                  {resolvedTutorTelefono}
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-slate-200/70">
+              <div className="bg-white p-3 rounded-md border border-slate-200/70">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                   Correo Electrónico
                 </span>
                 <span className="font-medium text-slate-700 truncate block">
-                  {student.tutorEmail || 'Sin email'}
+                  {resolvedTutorEmail}
                 </span>
               </div>
 
-              {student.tutorDomicilio && (
-                <div className="sm:col-span-2 bg-white p-3 rounded-xl border border-slate-200/70">
+              {resolvedTutorDomicilio && (
+                <div className="sm:col-span-2 bg-white p-3 rounded-md border border-slate-200/70">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
                     Domicilio del Tutor
                   </span>
                   <span className="font-medium text-slate-800">
-                    {student.tutorDomicilio}
+                    {resolvedTutorDomicilio}
                   </span>
                 </div>
               )}
@@ -337,8 +361,8 @@ const StudentDetailsModal = ({
               </span>
             </div>
 
-            <div className="p-5 bg-white border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center">
+            <div className="p-5 bg-white border border-dashed border-slate-200 rounded-md flex flex-col items-center justify-center text-center gap-2">
+              <div className="w-10 h-10 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center">
                 <span className="material-symbols-outlined text-[20px]">
                   health_and_safety
                 </span>
@@ -362,15 +386,15 @@ const StudentDetailsModal = ({
                 <span className="material-symbols-outlined text-[16px] text-indigo-500">
                   assignment
                 </span>
-                Entradas de Preceptorado
+                Entradas de Preceptoría
               </h3>
               <span className="text-[10px] font-bold text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded-md">
                 0 registros
               </span>
             </div>
 
-            <div className="p-5 bg-white border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center">
+            <div className="p-5 bg-white border border-dashed border-slate-200 rounded-md flex flex-col items-center justify-center text-center gap-2">
+              <div className="w-10 h-10 rounded-md bg-indigo-50 text-indigo-500 flex items-center justify-center">
                 <span className="material-symbols-outlined text-[20px]">
                   fact_check
                 </span>
@@ -391,7 +415,7 @@ const StudentDetailsModal = ({
             type="button"
             data-testid="student-details-close-btn"
             onClick={onClose}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border-none"
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-md transition-colors cursor-pointer border-none"
           >
             Cerrar
           </button>
@@ -405,7 +429,7 @@ const StudentDetailsModal = ({
                 onClose();
                 onEditStudent(target);
               }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5 shadow-xs"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-md transition-colors cursor-pointer border-none flex items-center gap-1.5 shadow-xs"
             >
               <span className="material-symbols-outlined text-[16px]">edit</span>
               <span>Editar Legajo</span>
