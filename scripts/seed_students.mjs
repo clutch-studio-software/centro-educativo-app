@@ -196,8 +196,8 @@ async function seed() {
   console.log('==================================================');
 
   // Autenticar como administrador
-  console.log(`\nAutenticando en Firebase con ${envVars.VITE_ADMIN_EMAIL}...`);
-  const userCred = await signInWithEmailAndPassword(auth, envVars.VITE_ADMIN_EMAIL, envVars.VITE_ADMIN_PASSWORD);
+  const adminKey = envVars.VITE_DEV_ADMIN_KEY || envVars.VITE_ADMIN_PASSWORD;
+  const userCred = await signInWithEmailAndPassword(auth, envVars.VITE_ADMIN_EMAIL, adminKey);
   console.log(`Sesión iniciada con UID: ${userCred.user.uid}`);
 
   // 1. Obtener o inicializar la Oferta Académica

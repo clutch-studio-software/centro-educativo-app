@@ -126,13 +126,9 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
                 }
             }
         }
-        const studentDocIds = [];
-        const createdStudentsInfo = [];
-        // Procesar cada estudiante
-        for (const student of students) {
-            if (!student.nombre || !student.dni) {
-                continue;
-            }
+        // Procesar estudiantes en paralelo
+        const validStudents = (students || []).filter((s) => s.nombre && s.dni);
+        const createdStudents = await Promise.all(validStudents.map(async (student) => {
             const studentID_login = await generateUniqueStudentIdLogin();
             // Hashear el DNI del alumno como su contraseña por defecto
             const salt = await bcrypt.genSalt(10);
@@ -153,13 +149,14 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
                 division: student.division || 'sin asignar',
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            studentDocIds.push(studentRef.id);
-            createdStudentsInfo.push({
+            return {
                 id: studentRef.id,
                 studentID_login,
                 nombre: student.nombre
-            });
-        }
+            };
+        }));
+        const studentDocIds = createdStudents.map(s => s.id);
+        const createdStudentsInfo = createdStudents;
         // Guardar o actualizar los datos del Padre en Firestore
         await db.collection('users').doc(parentUser.uid).set({
             role: 'Padre',
@@ -499,19 +496,35 @@ exports.cf_createAdministrativeUser = (0, https_1.onRequest)({ cors: true, invok
             return;
         }
         // Crear el usuario en Auth usando su DNI como contraseña inicial
-        const userRecord = await admin.auth().createUser({
-            email,
-            password: dni.trim(),
-            emailVerified: true,
-            displayName: extraFields.nombreCompleto || name
-        });
+        let userRecord;
+        try {
+            userRecord = await admin.auth().createUser({
+                email,
+                password: dni.trim(),
+                emailVerified: true,
+                displayName: extraFields.nombreCompleto || name
+            });
+        }
+        catch (authErr) {
+            if (authErr.code === 'auth/email-already-exists') {
+                const existing = await admin.auth().getUserByEmail(email);
+                userRecord = await admin.auth().updateUser(existing.uid, {
+                    password: dni.trim(),
+                    displayName: extraFields.nombreCompleto || name,
+                    disabled: false
+                });
+            }
+            else {
+                throw authErr;
+            }
+        }
         // Asignar Custom Claim
         await admin.auth().setCustomUserClaims(userRecord.uid, { role });
         // Guardar en Firestore
         await db.collection('users').doc(userRecord.uid).set({
             role,
             email,
-            nombre: name,
+            nombre: extraFields.nombre || name,
             dni: dni.trim(),
             mustChangePassword: true,
             emailInvalid: false,
@@ -707,15 +720,30 @@ exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'pu
         if (targetType === 'parent' || targetType === 'administrative' || targetType === 'staff' || targetType === 'teacher') {
             const userRef = db.collection('users').doc(targetId);
             const userDoc = await userRef.get();
-            if (!userDoc.exists) {
-                res.status(404).send({ error: 'Usuario no encontrado.' });
-                return;
-            }
             // Si se solicita eliminación definitiva del usuario
             if (fields.deleteUser === true || fields._action === 'delete') {
-                await admin.auth().deleteUser(targetId).catch(() => { });
-                await userRef.delete();
+                try {
+                    await admin.auth().deleteUser(targetId);
+                }
+                catch (authErr) {
+                    console.warn(`No se pudo eliminar de Auth por UID (${targetId}):`, authErr.message);
+                    const emailCandidate = fields.email || (userDoc.exists ? userDoc.data()?.email : null);
+                    if (emailCandidate) {
+                        try {
+                            const u = await admin.auth().getUserByEmail(emailCandidate);
+                            await admin.auth().deleteUser(u.uid);
+                        }
+                        catch (_) { }
+                    }
+                }
+                if (userDoc.exists) {
+                    await userRef.delete();
+                }
                 res.status(200).send({ message: 'Usuario eliminado definitivamente de Auth y Firestore.' });
+                return;
+            }
+            if (!userDoc.exists) {
+                res.status(404).send({ error: 'Usuario no encontrado.' });
                 return;
             }
             // Si se modifica el email, actualizar también en Firebase Auth

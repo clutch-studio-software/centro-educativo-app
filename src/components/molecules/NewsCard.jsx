@@ -31,11 +31,21 @@ const NewsCard = ({
     if (onButtonClick) onButtonClick();
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
   // 1. RENDER PARA NOTICIA DESTACADA (FEATURED)
   if (variant === 'featured') {
     return (
       <article
+        role="button"
+        tabIndex={0}
         onClick={handleCardClick}
+        onKeyDown={handleKeyDown}
         className="md:col-span-8 bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden group cursor-pointer border border-surface-container-highest shadow-md transition-all duration-300"
       >
         {/* Capa decorativa y gradiente de fondo */}
@@ -100,7 +110,10 @@ const NewsCard = ({
   // 2. RENDER PARA NOTICIA HORIZONTAL SECUNDARIA (SECONDARY)
   return (
     <article
+      role="button"
+      tabIndex={0}
       onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
       className="md:col-span-6 bg-surface-container-lowest rounded-xl p-6 flex flex-col sm:flex-row gap-6 shadow-[0_8px_30px_rgba(0,0,0,0.02)] border border-surface-container-highest hover:-translate-y-1 hover:shadow-lg transition-all duration-300 text-left cursor-pointer relative"
     >
       {/* Delete Button for Admin */}

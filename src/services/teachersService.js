@@ -2,7 +2,7 @@ import {
   collection,
   getDocs,
   doc,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -25,10 +25,10 @@ export const ensureAdminAuth = async () => {
   // En entorno de desarrollo, auto-autenticar con credenciales de admin configuradas
   if (import.meta.env.DEV) {
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
-    if (adminEmail && adminPassword) {
+    const adminKey = import.meta.env.VITE_DEV_ADMIN_KEY;
+    if (adminEmail && adminKey) {
       try {
-        const cred = await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        const cred = await signInWithEmailAndPassword(auth, adminEmail, adminKey);
         return cred.user;
       } catch (err) {
         console.warn('Auto sign-in user_admin falló:', err.message);
@@ -78,10 +78,27 @@ export const saveStoredTeachers = (teachers) => {
  * Normaliza los datos de un documento de Firestore a la estructura del docente.
  */
 const normalizeFirestoreTeacher = (docId, data = {}) => {
-  const cleanNombre = (data.nombre || '').trim();
-  const cleanApellido = (data.apellido || '').trim();
-  const tratamiento = (data.tratamiento || '').trim();
+  let cleanNombre = (data.nombre || '').trim();
+  let cleanApellido = (data.apellido || '').trim();
+  let tratamiento = (data.tratamiento || '').trim();
   const legajo = data.legajo || `#DOC-${new Date().getFullYear()}-${docId.slice(-4).toUpperCase()}`;
+
+  // Si no tiene tratamiento explícito, detectar si viene prefijado en nombre, apellido o nombreCompleto
+  const titleRegex = /^(Prof\.|Ing\.|Lic\.|Dra\.|Dr\.|Mg\.|Tec\.|Sr\.|Sra\.)\s*/i;
+  if (!tratamiento) {
+    const match =
+      cleanNombre.match(titleRegex) ||
+      cleanApellido.match(titleRegex) ||
+      (data.nombreCompleto || '').trim().match(titleRegex) ||
+      (data.name || '').trim().match(titleRegex);
+    if (match) {
+      tratamiento = match[1];
+    }
+  }
+
+  // Quitar el tratamiento si quedó concatenado dentro de cleanNombre o cleanApellido
+  cleanNombre = cleanNombre.replace(titleRegex, '').trim();
+  cleanApellido = cleanApellido.replace(titleRegex, '').trim();
 
   let nombreCompleto = (data.nombreCompleto || data.name || '').trim();
   if (!nombreCompleto && (cleanNombre || cleanApellido)) {
@@ -90,12 +107,20 @@ const normalizeFirestoreTeacher = (docId, data = {}) => {
       : `${cleanNombre} ${cleanApellido}`.trim();
   }
 
-  // Resolver nombre y apellido si solo venía `name` o `nombreCompleto`
+  // Resolver nombre y apellido si falta apellido o nombre
   let nombreFinal = cleanNombre;
   let apellidoFinal = cleanApellido;
-  if (!nombreFinal && !apellidoFinal && nombreCompleto) {
-    const sinTratamiento = nombreCompleto.replace(/^(Prof\.|Ing\.|Lic\.|Dra\.|Dr\.)\s*/i, '').trim();
-    const partes = sinTratamiento.split(' ');
+
+  if (!apellidoFinal && nombreFinal) {
+    // Caso donde en Firestore solo se guardó el nombre completo en 'nombre' sin 'apellido'
+    const partes = nombreFinal.split(/\s+/);
+    if (partes.length > 1) {
+      apellidoFinal = partes.pop() || '';
+      nombreFinal = partes.join(' ');
+    }
+  } else if (!nombreFinal && !apellidoFinal && nombreCompleto) {
+    const sinTratamiento = nombreCompleto.replace(titleRegex, '').trim();
+    const partes = sinTratamiento.split(/\s+/);
     if (partes.length === 1) {
       nombreFinal = partes[0];
     } else {
@@ -117,7 +142,11 @@ const normalizeFirestoreTeacher = (docId, data = {}) => {
     tratamiento,
     nombre: nombreFinal,
     apellido: apellidoFinal,
-    nombreCompleto: nombreCompleto || `${nombreFinal} ${apellidoFinal}`.trim(),
+    nombreCompleto:
+      nombreCompleto ||
+      (tratamiento
+        ? `${tratamiento} ${nombreFinal} ${apellidoFinal}`.trim()
+        : `${nombreFinal} ${apellidoFinal}`.trim()),
     dni: String(data.dni || '').trim(),
     titulacion: (data.titulacion || '').trim(),
     especialidad: (data.especialidad || '').trim(),
@@ -189,7 +218,7 @@ export const createTeacherApi = async (teacherData) => {
 
   const year = new Date().getFullYear();
   const randomNum = Math.floor(1000 + Math.random() * 9000);
-  const legajo = `#DOC-${year}-${randomNum}`;
+  const legajo = teacherData.legajo || `#DOC-${year}-${randomNum}`;
 
   const cleanNombre = (teacherData.nombre || '').trim();
   const cleanApellido = (teacherData.apellido || '').trim();
@@ -204,58 +233,77 @@ export const createTeacherApi = async (teacherData) => {
   const cleanEspecialidad = (teacherData.especialidad || '').trim();
   const estado = teacherData.estado || 'Titular';
 
-  let createdId = null;
+  // Registrar docente de forma segura exclusivamente en el servidor vía Cloud Function
+  const cfResult = await callAdminFunction('cf_createAdministrativeUser', {
+    email: cleanEmail,
+    name: nombreCompleto,
+    role: 'Staff',
+    dni: cleanDni,
+    tratamiento,
+    nombre: cleanNombre,
+    apellido: cleanApellido,
+    legajo,
+    titulacion: cleanTitulacion,
+    especialidad: cleanEspecialidad,
+    telefono: cleanTelefono,
+    estado,
+    nombreCompleto,
+  });
 
-  // 1. Intentar registrar vía Cloud Function
-  try {
-    const cfResult = await callAdminFunction('cf_createAdministrativeUser', {
-      email: cleanEmail,
-      name: nombreCompleto,
-      role: 'Staff',
-      dni: cleanDni,
-      tratamiento,
-      nombre: cleanNombre,
-      apellido: cleanApellido,
-      legajo,
-      titulacion: cleanTitulacion,
-      especialidad: cleanEspecialidad,
-      telefono: cleanTelefono,
-      estado,
-      nombreCompleto,
-    });
-    createdId = cfResult.uid || cfResult.id;
-  } catch (cfErr) {
-    console.warn(
-      'Fallo en Cloud Function cf_createAdministrativeUser, ejecutando persistencia directa en Firestore:',
-      cfErr.message
-    );
-    // 2. Fallback a persistencia directa en Firestore
+  const createdId = cfResult.uid || cfResult.id;
+
+  const fieldsToPersist = {
+    role: 'Staff',
+    email: cleanEmail,
+    tratamiento,
+    nombre: cleanNombre,
+    apellido: cleanApellido,
+    nombreCompleto,
+    dni: cleanDni,
+    titulacion: cleanTitulacion,
+    especialidad: cleanEspecialidad,
+    telefono: cleanTelefono,
+    estado,
+    legajo,
+    disabled: estado === 'Suspendido',
+    cargaHoras: 0,
+    cargaMaxHoras: 30,
+    catedras: [],
+    grillaHoraria: [
+      { hora: '07:30 - 08:50', lun: null, mar: null, mie: null, jue: null, vie: null },
+      { hora: '09:00 - 10:20', lun: null, mar: null, mie: null, jue: null, vie: null },
+      { hora: '10:30 - 11:50', lun: null, mar: null, mie: null, jue: null, vie: null },
+    ],
+  };
+
+  // 1. Intentar persistir campos completos mediante Cloud Function cf_updateUserProfile si está disponible
+  if (createdId) {
     try {
-      const newDocRef = await addDoc(collection(db, 'users'), {
-        role: 'Staff',
-        legajo,
-        tratamiento,
-        nombre: cleanNombre,
-        apellido: cleanApellido,
-        nombreCompleto,
-        dni: cleanDni,
-        titulacion: cleanTitulacion,
-        especialidad: cleanEspecialidad,
-        email: cleanEmail,
-        telefono: cleanTelefono,
-        estado,
-        disabled: estado === 'Suspendido',
-        mustChangePassword: true,
-        cargaHoras: 0,
-        cargaMaxHoras: 30,
-        catedras: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      await callAdminFunction('cf_updateUserProfile', {
+        targetId: createdId,
+        targetType: 'administrative',
+        fields: fieldsToPersist,
       });
-      createdId = newDocRef.id;
+    } catch (cfErr) {
+      console.warn(
+        'cf_updateUserProfile tras creación no disponible, guardando en Firestore directo:',
+        cfErr.message
+      );
+    }
+
+    // 2. Persistir directamente en Firestore para garantizar que todos los atributos (apellido, especialidad,
+    // titulación, teléfono, etc.) queden guardados inmediatamente y no se pierdan al hacer F5
+    try {
+      await setDoc(
+        doc(db, 'users', createdId),
+        {
+          ...fieldsToPersist,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
     } catch (firestoreErr) {
-      console.error('Error en persistencia directa a Firestore:', firestoreErr.message);
-      throw firestoreErr;
+      console.warn('Error al guardar datos completos del docente en Firestore:', firestoreErr.message);
     }
   }
 
@@ -332,7 +380,7 @@ export const updateTeacherApi = async (teacherId, teacherData) => {
   try {
     await callAdminFunction('cf_updateUserProfile', {
       targetId: teacherId,
-      targetType: 'staff',
+      targetType: 'administrative',
       fields: fieldsToUpdate,
     });
   } catch (cfErr) {
@@ -424,7 +472,7 @@ export const resetTeacherPasswordApi = async (teacherId) => {
   try {
     await callAdminFunction('cf_resetUserPasswordToDni', {
       userId: teacherId,
-      userType: 'staff',
+      userType: 'administrative',
     });
   } catch (cfErr) {
     console.warn(
@@ -449,19 +497,28 @@ export const resetTeacherPasswordApi = async (teacherId) => {
 };
 
 /**
- * Elimina definitivamente un docente en Auth y Firestore.
+ * Elimina definitivamente y físicamente un docente en Auth y Firestore.
  */
-export const deleteTeacherApi = async (teacherId) => {
+export const deleteTeacherApi = async (teacherId, teacherEmail = null) => {
   await ensureAdminAuth();
 
-  // 1. Intentar vía Cloud Function
+  let emailToDelete = teacherEmail;
+  if (!emailToDelete) {
+    const current = getStoredTeachers().find((t) => t.id === teacherId);
+    if (current?.email) {
+      emailToDelete = current.email;
+    }
+  }
+
+  // 1. Intentar vía Cloud Function (elimina físicamente de Auth y Firestore)
   try {
     await callAdminFunction('cf_updateUserProfile', {
       targetId: teacherId,
-      targetType: 'staff',
+      targetType: 'administrative',
       fields: {
         deleteUser: true,
         _action: 'delete',
+        email: emailToDelete,
       },
     });
   } catch (cfErr) {

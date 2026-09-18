@@ -94,7 +94,7 @@ const TeachersManagement = () => {
           await signInWithEmailAndPassword(
             auth,
             import.meta.env.VITE_ADMIN_EMAIL,
-            import.meta.env.VITE_ADMIN_PASSWORD
+            import.meta.env.VITE_DEV_ADMIN_KEY
           );
           loadTeachers();
           return;
@@ -254,7 +254,7 @@ const TeachersManagement = () => {
     if (!confirmed) return;
 
     try {
-      await deleteTeacherApi(teacher.id);
+      await deleteTeacherApi(teacher.id, teacher.email);
       setTeachers((prev) => prev.filter((t) => t.id !== teacher.id));
       showToast(`Legajo de ${displayName} eliminado definitivamente.`, 'success');
     } catch (err) {

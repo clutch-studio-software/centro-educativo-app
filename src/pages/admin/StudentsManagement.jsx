@@ -61,7 +61,7 @@ const StudentsManagement = () => {
           await signInWithEmailAndPassword(
             auth,
             import.meta.env.VITE_ADMIN_EMAIL,
-            import.meta.env.VITE_ADMIN_PASSWORD
+            import.meta.env.VITE_DEV_ADMIN_KEY
           );
           return;
         } catch (devErr) {
