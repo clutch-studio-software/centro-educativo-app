@@ -553,8 +553,8 @@ const News = () => {
                 </div>
 
                 {/* Origen de Imagen (Selector) */}
-                <div className="flex flex-col gap-2 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Imagen de Portada</label>
+                <fieldset className="flex flex-col gap-2 md:col-span-2 border-0 p-0 m-0">
+                  <legend className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Imagen de Portada</legend>
                   
                   <div className="flex gap-4 mb-2">
                     <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 cursor-pointer">
@@ -620,7 +620,7 @@ const News = () => {
                       />
                     </div>
                   )}
-                </div>
+                </fieldset>
 
                 {/* Noticia Destacada (Checkbox) */}
                 <div className="flex items-center gap-3 md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">

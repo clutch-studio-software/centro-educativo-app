@@ -172,16 +172,17 @@ const TeacherAssignmentsDrawerContent = ({
               </div>
 
               {/* Formulario Añadir Cátedra */}
-              <div className="flex flex-col gap-3">
-                <label className="font-bold text-sm text-slate-800">
+              <fieldset className="flex flex-col gap-3 border-0 p-0 m-0">
+                <legend className="font-bold text-sm text-slate-800">
                   Añadir Nueva Cátedra / Módulo Horario
-                </label>
+                </legend>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <span className="text-xs font-semibold text-slate-500 mb-1 block">
+                    <label htmlFor="drawer-curso-select" className="text-xs font-semibold text-slate-500 mb-1 block">
                       Curso / División
-                    </span>
+                    </label>
                     <select
+                      id="drawer-curso-select"
                       value={selectedCurso}
                       onChange={(e) => setSelectedCurso(e.target.value)}
                       className="w-full bg-slate-50 text-slate-800 text-xs font-medium px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500/40 focus:outline-none focus:bg-white"
@@ -194,10 +195,11 @@ const TeacherAssignmentsDrawerContent = ({
                     </select>
                   </div>
                   <div>
-                    <span className="text-xs font-semibold text-slate-500 mb-1 block">
+                    <label htmlFor="drawer-subject-select" className="text-xs font-semibold text-slate-500 mb-1 block">
                       Asignatura / Espacio Curricular
-                    </span>
+                    </label>
                     <select
+                      id="drawer-subject-select"
                       value={selectedSubjectIdx}
                       onChange={(e) => setSelectedSubjectIdx(Number(e.target.value))}
                       className="w-full bg-slate-50 text-slate-800 text-xs font-medium px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500/40 focus:outline-none focus:bg-white"
@@ -220,7 +222,7 @@ const TeacherAssignmentsDrawerContent = ({
                     <span>Vincular Cátedra al Horario</span>
                   </button>
                 </div>
-              </div>
+              </fieldset>
 
               {/* Grilla Horaria Semanal */}
               <div className="flex flex-col gap-2">

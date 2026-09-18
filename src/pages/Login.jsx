@@ -274,13 +274,14 @@ const Login = () => {
 
             {/* Role Selection Premium Custom Dropdown with Badges */}
             <div className="mb-8" ref={dropdownRef}>
-              <label className="block font-label text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">
+              <span id="role-selector-label" className="block font-label text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">
                 Selecciona tu Rol
-              </label>
+              </span>
               <div className="relative">
                 {/* Dropdown Trigger Button (Styled as a Badge) */}
                 <button
                   type="button"
+                  aria-labelledby="role-selector-label"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 text-slate-800 border-2 border-slate-200 rounded-xl hover:bg-slate-100/50 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200 cursor-pointer"
                 >

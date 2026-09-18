@@ -14,6 +14,7 @@ import Icon from '../atoms/Icon';
  * @param {number} maxSizeInMB - Tamaño máximo en megabytes.
  * @param {string} label - Texto principal de la zona de carga.
  * @param {string} subLabel - Texto secundario/de ayuda.
+ * @param {string} [inputId] - Opcional. ID para el input file oculto, utilizado con htmlFor en un label externo.
  */
 const FileUploadZone = ({
   file,
@@ -24,7 +25,8 @@ const FileUploadZone = ({
   accept = '.pdf',
   maxSizeInMB = 5,
   label = 'Haz clic para buscar',
-  subLabel = 'o arrastra tu archivo aquí'
+  subLabel = 'o arrastra tu archivo aquí',
+  inputId,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -103,6 +105,7 @@ const FileUploadZone = ({
       <input
         type="file"
         ref={fileInputRef}
+        id={inputId}
         onChange={handleInputChange}
         accept={accept}
         className="hidden"

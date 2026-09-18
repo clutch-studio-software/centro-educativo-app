@@ -434,10 +434,11 @@ const EditStudentModalContent = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   {/* Selector de Nivel */}
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-nivel-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Nivel Educativo *
                     </label>
                     <select
+                      id="edit-student-nivel-select"
                       data-testid="edit-student-level-select"
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold"
                       value={studentNivel}
@@ -451,10 +452,11 @@ const EditStudentModalContent = ({
 
                   {/* Selector de Curso */}
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-curso-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Curso *
                     </label>
                     <select
+                      id="edit-student-curso-select"
                       data-testid="edit-student-course-select"
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
                       value={studentCurso}
@@ -471,10 +473,11 @@ const EditStudentModalContent = ({
 
                   {/* Selector de División */}
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-division-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       División / Sala *
                     </label>
                     <select
+                      id="edit-student-division-select"
                       data-testid="edit-student-division-select"
                       disabled={studentCurso === 'sin asignar'}
                       className={`w-full h-9 px-3 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -498,10 +501,11 @@ const EditStudentModalContent = ({
 
                 {/* Estado Administrativo */}
                 <div className="mt-1">
-                  <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                  <label htmlFor="edit-student-estado-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                     Estado Administrativo
                   </label>
                   <select
+                    id="edit-student-estado-select"
                     data-testid="edit-student-status-select"
                     className="w-full sm:w-1/2 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={studentEstado}

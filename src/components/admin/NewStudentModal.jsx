@@ -367,7 +367,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
             {tutorMode === 'existing' && (
               <div data-testid="existing-tutor-selector" className="pt-1 flex flex-col gap-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  <label htmlFor="existing-tutor-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
                     Seleccionar Tutor Registrado (Orden Alfabético A-Z)
                   </label>
                   <span className="text-[10px] text-slate-500 font-medium">
@@ -405,6 +405,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                 </div>
 
                 <select
+                  id="existing-tutor-select"
                   data-testid="existing-tutor-select"
                   onChange={(e) => handleSelectExistingTutor(e.target.value)}
                   className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-lime-400 cursor-pointer"
@@ -673,10 +674,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               {/* Nivel Educativo, Curso y División */}
               <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  <label htmlFor="new-student-nivel-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Nivel Educativo *
                   </label>
                   <select
+                    id="new-student-nivel-select"
                     data-testid="student-level-select"
                     value={studentNivel}
                     onChange={(e) => handleNivelChange(e.target.value)}
@@ -689,10 +691,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  <label htmlFor="new-student-curso-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Curso
                   </label>
                   <select
+                    id="new-student-curso-select"
                     data-testid="student-course-select"
                     value={studentCurso}
                     onChange={(e) => handleCursoChange(e.target.value)}
@@ -708,10 +711,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  <label htmlFor="new-student-division-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     División
                   </label>
                   <select
+                    id="new-student-division-select"
                     data-testid="student-division-select"
                     value={studentDivision}
                     onChange={(e) => setStudentDivision(e.target.value)}
@@ -732,10 +736,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               {/* Estado Inicial del Alumno */}
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+              <fieldset className="sm:col-span-2 border-0 p-0 m-0">
+                <legend className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
                   Estado de Matrícula *
-                </label>
+                </legend>
                 <div className="flex flex-wrap items-center gap-3">
                   <label
                     data-testid="student-status-label-regular"
@@ -792,7 +796,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     Pase Pendiente
                   </label>
                 </div>
-              </div>
+              </fieldset>
             </div>
 
             {/* Vincular Hermanos / Múltiples Alumnos */}

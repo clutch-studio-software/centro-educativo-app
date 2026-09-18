@@ -154,10 +154,11 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Tratamiento / Prefijo */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">
+                <label htmlFor="new-teacher-tratamiento" className="text-xs font-bold text-slate-700">
                   Tratamiento / Título
                 </label>
                 <select
+                  id="new-teacher-tratamiento"
                   name="tratamiento"
                   value={formData.tratamiento}
                   onChange={handleChange}
