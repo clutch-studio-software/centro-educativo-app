@@ -30,7 +30,7 @@ const TeacherAssignmentsDrawerContent = ({
   );
   const [grilla, setGrilla] = useState(() =>
     teacher?.grillaHoraria && teacher.grillaHoraria.length > 0
-      ? JSON.parse(JSON.stringify(teacher.grillaHoraria))
+      ? structuredClone(teacher.grillaHoraria)
       : [
           { hora: '07:30 - 08:50', lun: null, mar: null, mie: null, jue: null, vie: null },
           { hora: '09:00 - 10:20', lun: null, mar: null, mie: null, jue: null, vie: null },
@@ -66,7 +66,7 @@ const TeacherAssignmentsDrawerContent = ({
     setCatedrasList(nextCatedras);
 
     // Asignar en un slot libre de la grilla horaria para visualizar el bloque
-    const nextGrilla = JSON.parse(JSON.stringify(grilla));
+    const nextGrilla = structuredClone(grilla);
     const dias = ['lun', 'mar', 'mie', 'jue', 'vie'];
     let placed = false;
 

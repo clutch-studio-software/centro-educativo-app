@@ -620,4 +620,5 @@ export const exportTeachersPayrollCsv = (teachers = []) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 };

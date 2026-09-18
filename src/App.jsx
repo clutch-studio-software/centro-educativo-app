@@ -1,8 +1,7 @@
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer';
 import ChangePasswordModal from './components/organisms/ChangePasswordModal';
 import AdminPanel from './pages/AdminPanel';
-import AdminPanelLegacy from './pages/AdminPanelLegacy';
 import Contact from './pages/Contact';
 import EmploymentRequest from './pages/EmploymentRequest';
 import Gallery from './pages/Gallery';
@@ -37,7 +36,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/alumnos" element={<AdminPanel />} />
-        <Route path="/admin/legacy" element={<AdminPanelLegacy />} />
+        <Route path="/admin/legacy" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
         <Route path="/admin/docentes" element={<TeachersManagement />} />
         <Route path="/admin/oferta-academica" element={<AdminPlaceholder />} />

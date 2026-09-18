@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 
-const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = [] }) => {
+const DEFAULT_BREADCRUMBS = [];
+
+const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = DEFAULT_BREADCRUMBS }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {

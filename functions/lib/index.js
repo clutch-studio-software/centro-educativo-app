@@ -129,9 +129,11 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
         // Procesar estudiantes en paralelo
         const validStudents = (students || []).filter((s) => s.nombre && s.dni);
         const createdStudents = await Promise.all(validStudents.map(async (student) => {
-            const studentID_login = await generateUniqueStudentIdLogin();
-            // Hashear el DNI del alumno como su contraseña por defecto
-            const salt = await bcrypt.genSalt(10);
+            // Generar ID único del estudiante y salt para la contraseña en paralelo
+            const [studentID_login, salt] = await Promise.all([
+                generateUniqueStudentIdLogin(),
+                bcrypt.genSalt(10)
+            ]);
             const hashedPassword = await bcrypt.hash(student.dni.trim(), salt);
             const studentRef = await db.collection('students').add({
                 studentID_login,

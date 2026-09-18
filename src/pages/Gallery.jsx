@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Icon from '../components/atoms/Icon';
 import SuccessModal from '../components/molecules/SuccessModal';
@@ -36,8 +36,8 @@ const Gallery = () => {
   // Carousel Lightbox State
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
+  const touchStartRef = useRef(0);
+  const touchEndRef = useRef(0);
 
 
 
@@ -69,18 +69,18 @@ const Gallery = () => {
 
   // Touch handlers for mobile swiping
   const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientX);
+    touchStartRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    touchEndRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 75) {
+    if (touchStartRef.current - touchEndRef.current > 75) {
       handleNext();
     }
-    if (touchStart - touchEnd < -75) {
+    if (touchStartRef.current - touchEndRef.current < -75) {
       handlePrev();
     }
   };
