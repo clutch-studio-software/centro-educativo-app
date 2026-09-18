@@ -377,10 +377,14 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
 
                 {/* Buscador interactivo para filtrar la lista */}
                 <div className="relative">
+                  <label htmlFor="existing-tutor-search-input" className="sr-only">
+                    Filtrar tutores registrados
+                  </label>
                   <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">
                     search
                   </span>
                   <input
+                    id="existing-tutor-search-input"
                     type="text"
                     data-testid="existing-tutor-search-input"
                     value={tutorFilter}
@@ -418,7 +422,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
             {/* Campos del Tutor */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="tutor-name-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Nombre y Apellido del Tutor *
                 </label>
                 <div className="relative">
@@ -426,6 +430,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     person
                   </span>
                   <input
+                    id="tutor-name-input"
                     data-testid="tutor-name-input"
                     className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400"
                     placeholder="Ej: Marcelo Gómez"
@@ -437,7 +442,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="tutor-dni-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   DNI del Tutor *
                 </label>
                 <div className="relative">
@@ -445,6 +450,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     badge
                   </span>
                   <input
+                    id="tutor-dni-input"
                     data-testid="tutor-dni-input"
                     className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 font-mono"
                     placeholder="Ej: 28.451.902"
@@ -456,7 +462,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="tutor-phone-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Teléfono de Contacto *
                 </label>
                 <div className="relative">
@@ -464,6 +470,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     call
                   </span>
                   <input
+                    id="tutor-phone-input"
                     data-testid="tutor-phone-input"
                     className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 font-mono"
                     placeholder="Ej: 1123456789 (10 u 11 dígitos)"
@@ -476,7 +483,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="tutor-email-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Correo Electrónico
                 </label>
                 <div className="relative">
@@ -484,6 +491,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     mail
                   </span>
                   <input
+                    id="tutor-email-input"
                     data-testid="tutor-email-input"
                     className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400"
                     placeholder="tutor@correo.com"
@@ -495,7 +503,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="tutor-address-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Domicilio Familiar / Tutor *
                 </label>
                 <div className="relative">
@@ -503,6 +511,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     home
                   </span>
                   <input
+                    id="tutor-address-input"
                     data-testid="tutor-address-input"
                     className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400"
                     placeholder="Calle, Número, Piso, Localidad"
@@ -534,7 +543,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
             {/* Inputs del Alumno */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="student-dni-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   DNI del Alumno *
                 </label>
                 <div className="relative">
@@ -542,6 +551,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     badge
                   </span>
                   <input
+                    id="student-dni-input"
                     data-testid="student-dni-input"
                     className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white font-mono"
                     placeholder="Ej: 49.821.305"
@@ -553,7 +563,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="student-birthdate-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Fecha de Nacimiento *
                 </label>
                 <div className="relative">
@@ -561,6 +571,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                     calendar_month
                   </span>
                   <input
+                    id="student-birthdate-input"
                     data-testid="student-birthdate-input"
                     className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
                     type="date"
@@ -590,10 +601,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="student-firstname-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Nombre *
                 </label>
                 <input
+                  id="student-firstname-input"
                   data-testid="student-firstname-input"
                   className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white"
                   placeholder="Ej: Lucas Valentín"
@@ -604,10 +616,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                <label htmlFor="student-lastname-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                   Apellido *
                 </label>
                 <input
+                  id="student-lastname-input"
                   data-testid="student-lastname-input"
                   className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white"
                   placeholder="Ej: Gómez"
@@ -620,7 +633,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
               {/* Domicilio del alumno */}
               <div className="sm:col-span-2 flex flex-col gap-1.5">
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  <label htmlFor="student-address-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Domicilio del Alumno
                   </label>
                   <div className="relative">
@@ -628,6 +641,7 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
                       location_on
                     </span>
                     <input
+                      id="student-address-input"
                       data-testid="student-address-input"
                       disabled={sameAddressAsTutor}
                       className={`w-full h-9 pl-9 pr-3 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 ${sameAddressAsTutor

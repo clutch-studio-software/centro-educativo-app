@@ -571,18 +571,16 @@ const StudentsManagement = () => {
         {/* Encabezado de Sección y Acciones Principales */}
         <section data-testid="students-management-header" className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-lime-500 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[22px]">school</span>
-                </span>
-                <h1 data-testid="students-management-title" className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <div className="flex items-center gap-3">
+              <span className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-lime-400 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[22px]">school</span>
+              </span>
+              <div className="flex items-left flex-col">
+                <h1 className="text-2xl text-left lg:text-3xl font-extrabold text-slate-900">
                   Gestión de Alumnos y Legajos Académicos
                 </h1>
+                <span className="text-s text-left font-medium text-slate-500 mt-1">Padrón general, legajos digitales, servicios asignados y regularidad académica.</span>
               </div>
-              <p className="text-xs md:text-sm text-left text-slate-500 mt-1 font-medium">
-                Padrón general, legajos digitales, servicios asignados y regularidad académica.
-              </p>
             </div>
 
             {/* Acciones Principales */}

@@ -496,8 +496,9 @@ const News = () => {
                 
                 {/* Título */}
                 <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Título de la Noticia</label>
+                  <label htmlFor="news-title-input" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Título de la Noticia</label>
                   <input
+                    id="news-title-input"
                     type="text"
                     placeholder="Ej. Taller de Ciencias Innovador"
                     value={titleInput}
@@ -509,8 +510,9 @@ const News = () => {
 
                 {/* Subtítulo / Copete */}
                 <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtítulo / Copete</label>
+                  <label htmlFor="news-subtitle-input" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Subtítulo / Copete</label>
                   <textarea
+                    id="news-subtitle-input"
                     placeholder="Escribe un breve resumen de la noticia que capte la atención..."
                     value={subtitleInput}
                     onChange={(e) => setSubtitleInput(e.target.value)}
@@ -522,8 +524,9 @@ const News = () => {
 
                 {/* Categoría */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoría</label>
+                  <label htmlFor="news-category-select" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoría</label>
                   <select
+                    id="news-category-select"
                     value={categoryInput}
                     onChange={(e) => setCategoryInput(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all text-sm font-semibold text-slate-800 appearance-none"
@@ -538,8 +541,9 @@ const News = () => {
 
                 {/* Texto del Botón */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Texto del Botón</label>
+                  <label htmlFor="news-button-text-input" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Texto del Botón</label>
                   <input
+                    id="news-button-text-input"
                     type="text"
                     placeholder="Ej. Leer más, Ver detalles"
                     value={buttonTextInput}
@@ -602,13 +606,19 @@ const News = () => {
                     </div>
                   ) : (
                     /* Custom URL Input */
-                    <input
-                      type="url"
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                      value={customUrl}
-                      onChange={(e) => setCustomUrl(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all text-sm font-medium text-slate-800"
-                    />
+                    <div>
+                      <label htmlFor="news-custom-url-input" className="sr-only">
+                        Enlace de Imagen Externo
+                      </label>
+                      <input
+                        id="news-custom-url-input"
+                        type="url"
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                        value={customUrl}
+                        onChange={(e) => setCustomUrl(e.target.value)}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-orange-500 focus:bg-white focus:outline-none transition-all text-sm font-medium text-slate-800"
+                      />
+                    </div>
                   )}
                 </div>
 

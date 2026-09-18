@@ -377,10 +377,14 @@ const AdminPanel = () => {
             {/* Filters Bar */}
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
               <div className="relative w-full md:w-96">
+                <label htmlFor="admin-legacy-search" className="sr-only">
+                  Buscar alumno o tutor
+                </label>
                 <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                   <Icon name="search" />
                 </span>
                 <input
+                  id="admin-legacy-search"
                   type="text"
                   placeholder="Buscar por alumno, email del tutor o ID..."
                   value={searchFilter}
@@ -917,8 +921,9 @@ const AdminPanel = () => {
                   <h3 className="font-label font-bold text-xs uppercase tracking-widest text-slate-500">Datos del Padre/Tutor</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-semibold text-slate-600">Nombre Completo del Tutor</label>
+                      <label htmlFor="parent-fullname-input" className="text-sm font-semibold text-slate-600">Nombre Completo del Tutor</label>
                       <input
+                        id="parent-fullname-input"
                         type="text"
                         placeholder="Ej. Andrés Martínez"
                         value={parentName}
@@ -928,8 +933,9 @@ const AdminPanel = () => {
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-semibold text-slate-600">DNI del Tutor</label>
+                      <label htmlFor="parent-dni-input" className="text-sm font-semibold text-slate-600">DNI del Tutor</label>
                       <input
+                        id="parent-dni-input"
                         type="text"
                         placeholder="Número de DNI"
                         value={parentDni}
@@ -939,8 +945,9 @@ const AdminPanel = () => {
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-semibold text-slate-600">Correo Electrónico</label>
+                      <label htmlFor="parent-email-input" className="text-sm font-semibold text-slate-600">Correo Electrónico</label>
                       <input
+                        id="parent-email-input"
                         type="email"
                         placeholder="tutor@ejemplo.com"
                         value={parentEmail}
@@ -983,8 +990,9 @@ const AdminPanel = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                           <div className="flex flex-col gap-2">
-                            <label className="text-xs font-semibold text-slate-600">Nombre Completo</label>
+                            <label htmlFor={`student-name-input-${student.id || idx}`} className="text-xs font-semibold text-slate-600">Nombre Completo</label>
                             <input
+                              id={`student-name-input-${student.id || idx}`}
                               type="text"
                               placeholder="Ej. Lucas Martínez"
                               value={student.nombre}
@@ -994,8 +1002,9 @@ const AdminPanel = () => {
                             />
                           </div>
                           <div className="flex flex-col gap-2">
-                            <label className="text-xs font-semibold text-slate-600">DNI</label>
+                            <label htmlFor={`student-dni-input-${student.id || idx}`} className="text-xs font-semibold text-slate-600">DNI</label>
                             <input
+                              id={`student-dni-input-${student.id || idx}`}
                               type="text"
                               placeholder="Número de DNI"
                               value={student.dni}
@@ -1079,8 +1088,9 @@ const AdminPanel = () => {
                   <h3 className="font-label font-bold text-xs uppercase tracking-widest text-slate-500">Datos del Personal / Administrativo</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-semibold text-slate-600">Nombre Completo</label>
+                      <label htmlFor="admin-name-input" className="text-sm font-semibold text-slate-600">Nombre Completo</label>
                       <input
+                        id="admin-name-input"
                         type="text"
                         placeholder="Ej. Juan Pérez"
                         value={adminName}
@@ -1090,8 +1100,9 @@ const AdminPanel = () => {
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-semibold text-slate-600">DNI del Personal</label>
+                      <label htmlFor="admin-dni-input" className="text-sm font-semibold text-slate-600">DNI del Personal</label>
                       <input
+                        id="admin-dni-input"
                         type="text"
                         placeholder="Número de DNI"
                         value={adminDni}
@@ -1101,8 +1112,9 @@ const AdminPanel = () => {
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-sm font-semibold text-slate-600">Correo Electrónico</label>
+                      <label htmlFor="admin-email-input" className="text-sm font-semibold text-slate-600">Correo Electrónico</label>
                       <input
+                        id="admin-email-input"
                         type="email"
                         placeholder="juan.perez@ejemplo.com"
                         value={adminEmail}

@@ -299,8 +299,9 @@ const Levels = () => {
 
             <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
+                <label htmlFor="level-booking-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
                 <input 
+                  id="level-booking-name"
                   type="text" 
                   name="name"
                   value={formData.name}
@@ -312,8 +313,9 @@ const Levels = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
+                <label htmlFor="level-booking-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
                 <input 
+                  id="level-booking-email"
                   type="email" 
                   name="email"
                   value={formData.email}

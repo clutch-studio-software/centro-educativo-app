@@ -15,6 +15,9 @@ const TeacherFilters = ({
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 w-full">
           {/* Input Buscador */}
           <div className="relative flex-1 min-w-[260px]">
+            <label htmlFor="filtro-docente-input" className="sr-only">
+              Buscar docentes
+            </label>
             <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
               search
             </span>

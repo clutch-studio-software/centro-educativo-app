@@ -172,8 +172,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Nombre */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Nombre *</label>
+                <label htmlFor="new-teacher-nombre" className="text-xs font-bold text-slate-700">Nombre *</label>
                 <input
+                  id="new-teacher-nombre"
                   type="text"
                   name="nombre"
                   value={formData.nombre}
@@ -188,8 +189,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Apellido */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Apellido *</label>
+                <label htmlFor="new-teacher-apellido" className="text-xs font-bold text-slate-700">Apellido *</label>
                 <input
+                  id="new-teacher-apellido"
                   type="text"
                   name="apellido"
                   value={formData.apellido}
@@ -204,8 +206,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* DNI */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Documento Nacional (DNI) *</label>
+                <label htmlFor="new-teacher-dni" className="text-xs font-bold text-slate-700">Documento Nacional (DNI) *</label>
                 <input
+                  id="new-teacher-dni"
                   type="text"
                   name="dni"
                   value={formData.dni}
@@ -220,8 +223,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Estado */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Estado de Contratación *</label>
+                <label htmlFor="new-teacher-estado" className="text-xs font-bold text-slate-700">Estado de Contratación *</label>
                 <select
+                  id="new-teacher-estado"
                   name="estado"
                   value={formData.estado}
                   onChange={handleChange}
@@ -237,8 +241,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Especialidad (texto libre) */}
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label className="text-xs font-bold text-slate-700">Especialidad Académica (Texto libre) *</label>
+                <label htmlFor="new-teacher-especialidad" className="text-xs font-bold text-slate-700">Especialidad Académica (Texto libre) *</label>
                 <input
+                  id="new-teacher-especialidad"
                   type="text"
                   name="especialidad"
                   value={formData.especialidad}
@@ -253,8 +258,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Título Universitario / Pedagógico */}
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label className="text-xs font-bold text-slate-700">Título Universitario / Pedagógico *</label>
+                <label htmlFor="new-teacher-titulacion" className="text-xs font-bold text-slate-700">Título Universitario / Pedagógico *</label>
                 <input
+                  id="new-teacher-titulacion"
                   type="text"
                   name="titulacion"
                   value={formData.titulacion}
@@ -269,8 +275,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Email */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Correo Electrónico Institucional *</label>
+                <label htmlFor="new-teacher-email" className="text-xs font-bold text-slate-700">Correo Electrónico Institucional *</label>
                 <input
+                  id="new-teacher-email"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -285,8 +292,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
               {/* Teléfono */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Teléfono de Contacto *</label>
+                <label htmlFor="new-teacher-telefono" className="text-xs font-bold text-slate-700">Teléfono de Contacto *</label>
                 <input
+                  id="new-teacher-telefono"
                   type="tel"
                   name="telefono"
                   value={formData.telefono}

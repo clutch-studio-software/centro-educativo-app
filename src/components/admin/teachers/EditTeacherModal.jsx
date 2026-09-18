@@ -152,8 +152,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* Nombre */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Nombre *</label>
+                <label htmlFor="edit-teacher-nombre" className="text-xs font-bold text-slate-700">Nombre *</label>
                 <input
+                  id="edit-teacher-nombre"
                   type="text"
                   name="nombre"
                   value={formData.nombre}
@@ -168,8 +169,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* Apellido */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Apellido *</label>
+                <label htmlFor="edit-teacher-apellido" className="text-xs font-bold text-slate-700">Apellido *</label>
                 <input
+                  id="edit-teacher-apellido"
                   type="text"
                   name="apellido"
                   value={formData.apellido}
@@ -184,8 +186,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* DNI */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Documento Nacional (DNI) *</label>
+                <label htmlFor="edit-teacher-dni" className="text-xs font-bold text-slate-700">Documento Nacional (DNI) *</label>
                 <input
+                  id="edit-teacher-dni"
                   type="text"
                   name="dni"
                   value={formData.dni}
@@ -200,8 +203,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* Estado */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Estado de Contratación / Situación *</label>
+                <label htmlFor="edit-teacher-estado" className="text-xs font-bold text-slate-700">Estado de Contratación / Situación *</label>
                 <select
+                  id="edit-teacher-estado"
                   name="estado"
                   value={formData.estado}
                   onChange={handleChange}
@@ -217,8 +221,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* Especialidad (texto libre) */}
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label className="text-xs font-bold text-slate-700">Especialidad Académica (Texto libre) *</label>
+                <label htmlFor="edit-teacher-especialidad" className="text-xs font-bold text-slate-700">Especialidad Académica (Texto libre) *</label>
                 <input
+                  id="edit-teacher-especialidad"
                   type="text"
                   name="especialidad"
                   value={formData.especialidad}
@@ -233,8 +238,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* Título Universitario / Pedagógico */}
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label className="text-xs font-bold text-slate-700">Título Universitario / Pedagógico *</label>
+                <label htmlFor="edit-teacher-titulacion" className="text-xs font-bold text-slate-700">Título Universitario / Pedagógico *</label>
                 <input
+                  id="edit-teacher-titulacion"
                   type="text"
                   name="titulacion"
                   value={formData.titulacion}
@@ -249,8 +255,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* Email */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Correo Electrónico Institucional *</label>
+                <label htmlFor="edit-teacher-email" className="text-xs font-bold text-slate-700">Correo Electrónico Institucional *</label>
                 <input
+                  id="edit-teacher-email"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -265,8 +272,9 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
 
               {/* Teléfono */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-700">Teléfono de Contacto *</label>
+                <label htmlFor="edit-teacher-telefono" className="text-xs font-bold text-slate-700">Teléfono de Contacto *</label>
                 <input
+                  id="edit-teacher-telefono"
                   type="tel"
                   name="telefono"
                   value={formData.telefono}

@@ -328,10 +328,11 @@ const EditStudentModalContent = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-name-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Nombre Completo *
                     </label>
                     <input
+                      id="edit-student-name-input"
                       data-testid="edit-student-name-input"
                       type="text"
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
@@ -343,7 +344,7 @@ const EditStudentModalContent = ({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-dni-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       DNI del Alumno *
                     </label>
                     <div className="relative">
@@ -351,6 +352,7 @@ const EditStudentModalContent = ({
                         badge
                       </span>
                       <input
+                        id="edit-student-dni-input"
                         data-testid="edit-student-dni-input"
                         type="text"
                         className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono font-semibold"
@@ -363,7 +365,7 @@ const EditStudentModalContent = ({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-birthdate-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Fecha de Nacimiento
                     </label>
                     <div className="relative">
@@ -371,6 +373,7 @@ const EditStudentModalContent = ({
                         calendar_month
                       </span>
                       <input
+                        id="edit-student-birthdate-input"
                         data-testid="edit-student-birthdate-input"
                         type="date"
                         className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
@@ -400,7 +403,7 @@ const EditStudentModalContent = ({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-address-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Domicilio
                     </label>
                     <div className="relative">
@@ -408,6 +411,7 @@ const EditStudentModalContent = ({
                         location_on
                       </span>
                       <input
+                        id="edit-student-address-input"
                         data-testid="edit-student-address-input"
                         type="text"
                         className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
@@ -592,10 +596,11 @@ const EditStudentModalContent = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="sm:col-span-2">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-name-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Nombre y Apellido del Tutor *
                       </label>
                       <input
+                        id="edit-tutor-name-input"
                         data-testid="edit-tutor-name-input"
                         type="text"
                         className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
@@ -607,10 +612,11 @@ const EditStudentModalContent = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-dni-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         DNI del Tutor
                       </label>
                       <input
+                        id="edit-tutor-dni-input"
                         data-testid="edit-tutor-dni-input"
                         type="text"
                         className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-semibold"
@@ -621,7 +627,7 @@ const EditStudentModalContent = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-phone-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Teléfono / WhatsApp de Contacto
                       </label>
                       <div className="relative">
@@ -629,6 +635,7 @@ const EditStudentModalContent = ({
                           call
                         </span>
                         <input
+                          id="edit-tutor-phone-input"
                           data-testid="edit-tutor-phone-input"
                           type="tel"
                           maxLength={11}
@@ -641,7 +648,7 @@ const EditStudentModalContent = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-email-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Correo Electrónico
                       </label>
                       <div className="relative">
@@ -649,6 +656,7 @@ const EditStudentModalContent = ({
                           mail
                         </span>
                         <input
+                          id="edit-tutor-email-input"
                           data-testid="edit-tutor-email-input"
                           type="email"
                           className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
@@ -660,7 +668,7 @@ const EditStudentModalContent = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-address-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Domicilio del Tutor
                       </label>
                       <div className="relative">
@@ -668,6 +676,7 @@ const EditStudentModalContent = ({
                           home
                         </span>
                         <input
+                          id="edit-tutor-address-input"
                           data-testid="edit-tutor-address-input"
                           type="text"
                           className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
@@ -696,10 +705,14 @@ const EditStudentModalContent = ({
 
                   {/* Buscador de Tutores */}
                   <div className="relative">
+                    <label htmlFor="reassign-tutor-search-input" className="sr-only">
+                      Filtrar tutores
+                    </label>
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
                       search
                     </span>
                     <input
+                      id="reassign-tutor-search-input"
                       data-testid="reassign-tutor-search-input"
                       type="text"
                       className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-md text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"

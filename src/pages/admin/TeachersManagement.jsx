@@ -302,48 +302,47 @@ const TeachersManagement = () => {
         )}
 
         {/* Section Header */}
-        <section className="flex flex-col gap-6 w-full">
-          <div className="flex flex-col w-full">
-            <div className="flex gap-2 text-xs font-bold uppercase tracking-wider mb-1">
-            </div>
+        <section data-testid="teachers-management-header" className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-lime-500 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
+              <span className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-lime-400 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[22px]">badge</span>
               </span>
-              <h1 className="text-2xl text-center lg:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Gestión del Plantel Docente y Académico
-              </h1>
+              <div className="flex items-left flex-col">
+                <h1 className="text-2xl text-left lg:text-3xl font-extrabold text-slate-900">
+                  Gestión del Plantel Docente y Académico
+                </h1>
+                <span className="text-s text-left font-medium text-slate-500 mt-1">Administración centralizada de legajos docentes, designaciones y estado de personal.</span>
+              </div>
             </div>
-            <p className="text-s text-left font-medium text-slate-500 mt-1">
-              Administración centralizada de legajos docentes, designaciones y estado de personal.
-            </p>
-          </div>
 
-          {/* Action Buttons Top Bar (Sin Malla de asignaciones) */}
-          <div data-testid="buttons-actions-teachers" className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
-            {/* Exportar Nómina */}
-            <button
-              type="button"
-              onClick={handleExportNomina}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-amber-500">
-                file_download
-              </span>
-              <span>Exportar Nómina</span>
-            </button>
 
-            {/* Registrar Docente */}
-            <button
-              type="button"
-              onClick={() => setIsNewTeacherModalOpen(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all rounded-full font-bold text-xs shadow-[0_4px_14px_rgba(11,80,213,0.3)] hover:shadow-lg active:scale-95 h-10 duration-200 text-center cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px] text-emerald-300">
-                person_add
-              </span>
-              <span>+ Registrar Docente</span>
-            </button>
+            {/* Action Buttons Top Bar */}
+            <div data-testid="buttons-actions-teachers" className="flex items-center gap-3">
+              {/* Exportar Nómina */}
+              <button
+                type="button"
+                onClick={handleExportNomina}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px] text-amber-500">
+                  file_download
+                </span>
+                <span>Exportar Nómina</span>
+              </button>
+
+              {/* Registrar Docente */}
+              <button
+                type="button"
+                onClick={() => setIsNewTeacherModalOpen(true)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all rounded-full font-bold text-xs shadow-[0_4px_14px_rgba(11,80,213,0.3)] hover:shadow-lg active:scale-95 h-10 duration-200 text-center cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px] text-emerald-300">
+                  person_add
+                </span>
+                <span>Registrar Docente</span>
+              </button>
+            </div>
           </div>
         </section>
 
