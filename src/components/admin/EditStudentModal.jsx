@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
 import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
 import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
@@ -12,8 +12,24 @@ const AVAILABLE_SERVICIOS = [
   'Inglés Cambridge',
 ];
 
-const EditStudentModal = ({
-  isOpen,
+const getMatchedTutor = (tutorsList, currentStudent) => {
+  const sortedTutors = (tutorsList || [])
+    .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+
+  return (
+    sortedTutors.find((t) => t.id === currentStudent?.parentId) ||
+    sortedTutors.find(
+      (t) =>
+        t.email &&
+        currentStudent?.tutorEmail &&
+        t.email.trim().toLowerCase() === currentStudent.tutorEmail.trim().toLowerCase()
+    ) ||
+    null
+  );
+};
+
+const EditStudentModalContent = ({
   student,
   tutors = [],
   academicOffer = DEFAULT_ACADEMIC_OFFER,
@@ -23,25 +39,37 @@ const EditStudentModal = ({
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState('student'); // 'student' | 'tutor'
 
+  const matchedTutor = getMatchedTutor(tutors, student);
+
   // Student State
-  const [studentNombre, setStudentNombre] = useState('');
-  const [studentDni, setStudentDni] = useState('');
-  const [studentFechaNacimiento, setStudentFechaNacimiento] = useState('');
-  const [studentDomicilio, setStudentDomicilio] = useState('');
-  const [studentNivel, setStudentNivel] = useState('Primario');
-  const [studentCurso, setStudentCurso] = useState('sin asignar');
-  const [studentDivision, setStudentDivision] = useState('sin asignar');
-  const [studentEstado, setStudentEstado] = useState('Activo - Regular');
-  const [studentServicios, setStudentServicios] = useState([]);
+  const [studentNombre, setStudentNombre] = useState(student?.nombre || '');
+  const [studentDni, setStudentDni] = useState(() => formatDni(student?.dni || ''));
+  const [studentFechaNacimiento, setStudentFechaNacimiento] = useState(student?.fechaNacimiento || '');
+  const [studentDomicilio, setStudentDomicilio] = useState(student?.domicilio || '');
+  const [studentNivel, setStudentNivel] = useState(student?.nivel || 'Primario');
+  const [studentCurso, setStudentCurso] = useState(student?.curso || 'sin asignar');
+  const [studentDivision, setStudentDivision] = useState(student?.division || 'sin asignar');
+  const [studentEstado, setStudentEstado] = useState(student?.estado || 'Activo - Regular');
+  const [studentServicios, setStudentServicios] = useState(() =>
+    Array.isArray(student?.servicios) ? [...student.servicios] : ['Comedor Escolar']
+  );
 
   // Tutor Mode ('current' | 'reassign')
   const [tutorMode, setTutorMode] = useState('current');
-  const [currentTutorId, setCurrentTutorId] = useState(null);
-  const [tutorNombre, setTutorNombre] = useState('');
-  const [tutorDni, setTutorDni] = useState('');
-  const [tutorTelefono, setTutorTelefono] = useState('');
-  const [tutorEmail, setTutorEmail] = useState('');
-  const [tutorDomicilio, setTutorDomicilio] = useState('');
+  const currentTutorId = matchedTutor?.id || student?.parentId || null;
+  const [tutorNombre, setTutorNombre] = useState(
+    matchedTutor?.nombre || (student?.tutorNombre || '').replace(' (Tutor)', '')
+  );
+  const [tutorDni, setTutorDni] = useState(() => formatDni(matchedTutor?.dni || ''));
+  const [tutorTelefono, setTutorTelefono] = useState(
+    matchedTutor?.telefono || student?.tutorTelefono || ''
+  );
+  const [tutorEmail, setTutorEmail] = useState(
+    matchedTutor?.email || student?.tutorEmail || ''
+  );
+  const [tutorDomicilio, setTutorDomicilio] = useState(
+    matchedTutor?.domicilio || ''
+  );
 
   // Reassignment State
   const [reassignedTutorId, setReassignedTutorId] = useState(null);
@@ -56,56 +84,6 @@ const EditStudentModal = ({
     .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
 
-  // Populate form on student prop change
-  useEffect(() => {
-    if (!isOpen || !student) {
-      setFormError('');
-      setIsSubmitting(false);
-      return;
-    }
-
-    setActiveTab('student');
-    setTutorMode('current');
-    setReassignedTutorId(null);
-    setTutorSearchFilter('');
-    setFormError('');
-
-    // Pre-populate student data
-    setStudentNombre(student.nombre || '');
-    setStudentDni(formatDni(student.dni || ''));
-    setStudentFechaNacimiento(student.fechaNacimiento || '');
-    setStudentDomicilio(student.domicilio || '');
-    setStudentNivel(student.nivel || 'Primario');
-    setStudentCurso(student.curso || 'sin asignar');
-    setStudentDivision(student.division || 'sin asignar');
-    setStudentEstado(student.estado || 'Activo - Regular');
-    setStudentServicios(Array.isArray(student.servicios) ? [...student.servicios] : ['Comedor Escolar']);
-
-    // Pre-populate tutor data
-    const sortedTutors = (tutors || [])
-      .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
-
-    const matchedTutor =
-      sortedTutors.find((t) => t.id === student.parentId) ||
-      sortedTutors.find(
-        (t) =>
-          t.email &&
-          student.tutorEmail &&
-          t.email.trim().toLowerCase() === student.tutorEmail.trim().toLowerCase()
-      ) ||
-      null;
-
-    const tid = matchedTutor?.id || student.parentId || null;
-    setCurrentTutorId(tid);
-    setTutorNombre(matchedTutor?.nombre || (student.tutorNombre || '').replace(' (Tutor)', ''));
-    setTutorDni(formatDni(matchedTutor?.dni || ''));
-    setTutorTelefono(matchedTutor?.telefono || student.tutorTelefono || '');
-    setTutorEmail(matchedTutor?.email || student.tutorEmail || '');
-    setTutorDomicilio(matchedTutor?.domicilio || '');
-  }, [isOpen, student, tutors]);
-
-  if (!isOpen || !student) return null;
 
   // Cursos disponibles para el nivel seleccionado
   const availableCursos = CURSOS_POR_NIVEL[studentNivel] || [];
@@ -864,6 +842,28 @@ const EditStudentModal = ({
         </form>
       </div>
     </div>
+  );
+};
+
+const EditStudentModal = ({
+  isOpen,
+  student,
+  tutors = [],
+  academicOffer = DEFAULT_ACADEMIC_OFFER,
+  onClose,
+  onSaveStudent,
+}) => {
+  if (!isOpen || !student) return null;
+
+  return (
+    <EditStudentModalContent
+      key={student.id}
+      student={student}
+      tutors={tutors}
+      academicOffer={academicOffer}
+      onClose={onClose}
+      onSaveStudent={onSaveStudent}
+    />
   );
 };
 

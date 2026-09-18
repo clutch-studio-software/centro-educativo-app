@@ -1,47 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { isValidEmail, isValidPhone, isValidDni, formatDni, sanitizePhoneNumber } from '../../../utils/validators';
 
 import { TRATAMIENTOS_DOCENTE, ESTADOS_DOCENTE } from './teacherConstants';
 
-const EditTeacherModal = ({ isOpen, teacher, onClose, onSave }) => {
+const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
+  const cleanNombre = teacher.nombre || '';
+  const cleanApellido = teacher.apellido || '';
+  const matchTratamiento = teacher.nombreCompleto?.match(/^(Prof\.|Ing\.|Lic\.|Dra\.|Dr\.|Mg\.|Tec\.)/)?.[0];
+  const tratamiento = teacher.tratamiento || matchTratamiento || 'Prof.';
+
   const [formData, setFormData] = useState({
-    tratamiento: 'Prof.',
-    nombre: '',
-    apellido: '',
-    dni: '',
-    titulacion: '',
-    especialidad: '',
-    email: '',
-    telefono: '',
-    estado: 'Titular',
+    tratamiento,
+    nombre: cleanNombre,
+    apellido: cleanApellido,
+    dni: formatDni(teacher.dni || ''),
+    titulacion: teacher.titulacion || '',
+    especialidad: teacher.especialidad || '',
+    email: teacher.email || '',
+    telefono: teacher.telefono || '',
+    estado: teacher.estado || 'Titular',
   });
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (teacher) {
-      const cleanNombre = teacher.nombre || '';
-      const cleanApellido = teacher.apellido || '';
-      const matchTratamiento = teacher.nombreCompleto?.match(/^(Prof\.|Ing\.|Lic\.|Dra\.|Dr\.|Mg\.|Tec\.)/)?.[0];
-      const tratamiento = teacher.tratamiento || matchTratamiento || 'Prof.';
-
-      setFormData({
-        tratamiento,
-        nombre: cleanNombre,
-        apellido: cleanApellido,
-        dni: formatDni(teacher.dni || ''),
-        titulacion: teacher.titulacion || '',
-        especialidad: teacher.especialidad || '',
-        email: teacher.email || '',
-        telefono: teacher.telefono || '',
-        estado: teacher.estado || 'Titular',
-      });
-      setErrors({});
-    }
-  }, [teacher]);
-
-  if (!isOpen || !teacher) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -321,6 +302,19 @@ const EditTeacherModal = ({ isOpen, teacher, onClose, onSave }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+const EditTeacherModal = ({ isOpen, teacher, onClose, onSave }) => {
+  if (!isOpen || !teacher) return null;
+
+  return (
+    <EditTeacherModalContent
+      key={teacher.id}
+      teacher={teacher}
+      onClose={onClose}
+      onSave={onSave}
+    />
   );
 };
 

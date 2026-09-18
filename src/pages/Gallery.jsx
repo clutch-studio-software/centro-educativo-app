@@ -352,7 +352,7 @@ const Gallery = () => {
             <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 px-4 scrollbar-none md:scrollbar-thin scrollbar-thumb-white/20 max-w-full">
               {carouselImages.map((img, i) => (
                 <button
-                  key={i}
+                  key={img.id || img.url}
                   onClick={() => setCarouselIndex(i)}
                   className={`relative flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                     i === carouselIndex ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent opacity-40 hover:opacity-75'

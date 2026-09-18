@@ -13,15 +13,13 @@ const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = [] }) => 
   });
 
   const handleToggleCollapse = () => {
-    setIsCollapsed((prev) => {
-      const nextVal = !prev;
-      try {
-        localStorage.setItem('admin_sidebar_collapsed', String(nextVal));
-      } catch (err) {
-        console.warn('No se pudo guardar la preferencia del sidebar en localStorage:', err.message);
-      }
-      return nextVal;
-    });
+    const nextVal = !isCollapsed;
+    setIsCollapsed(nextVal);
+    try {
+      localStorage.setItem('admin_sidebar_collapsed', String(nextVal));
+    } catch (err) {
+      console.warn('No se pudo guardar la preferencia del sidebar en localStorage:', err.message);
+    }
   };
 
   return (

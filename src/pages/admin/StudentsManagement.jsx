@@ -580,8 +580,8 @@ const StudentsManagement = () => {
                   Gestión de Alumnos y Legajos Académicos
                 </h1>
               </div>
-              <p className="text-xs md:text-sm text-slate-500 mt-1 font-medium">
-                Padrón general, legajos digitales, servicios asignados y regularidad académica Ciclo 2027.
+              <p className="text-xs md:text-sm text-left text-slate-500 mt-1 font-medium">
+                Padrón general, legajos digitales, servicios asignados y regularidad académica.
               </p>
             </div>
 

@@ -148,9 +148,9 @@ const Login = () => {
 
             <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 sm:p-8 my-6 text-left max-w-md mx-auto">
               <ul className="space-y-4">
-                {currentRole?.permissions.map((permission, index) => (
+                {currentRole?.permissions.map((permission) => (
                   <li
-                    key={index}
+                    key={permission}
                     className="flex items-center gap-3 text-slate-700 text-base font-medium"
                   >
                     <span

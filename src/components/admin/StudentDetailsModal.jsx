@@ -220,9 +220,9 @@ const StudentDetailsModal = ({
               </span>
               {Array.isArray(student.servicios) && student.servicios.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {student.servicios.map((srv, idx) => (
+                  {student.servicios.map((srv) => (
                     <span
-                      key={idx}
+                      key={srv}
                       className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 flex items-center gap-1"
                     >
                       <span className="material-symbols-outlined text-[13px] text-blue-500">

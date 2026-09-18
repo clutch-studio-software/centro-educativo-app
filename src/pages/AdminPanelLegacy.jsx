@@ -18,9 +18,16 @@ import {
   updateUserProfileApi
 } from '../services/adminService';
 
-const INITIAL_STUDENTS_STATE = [
-  { nombre: '', dni: '', fechaNacimiento: '', nivel: 'inicial', genero: 'Masculino' }
-];
+const createEmptyStudent = () => ({
+  id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `student-${Date.now()}-${Math.random()}`,
+  nombre: '',
+  dni: '',
+  fechaNacimiento: '',
+  nivel: 'inicial',
+  genero: 'Masculino',
+});
+
+const INITIAL_STUDENTS_STATE = [createEmptyStudent()];
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -136,7 +143,7 @@ const AdminPanel = () => {
     setParentEmail('');
     setParentName('');
     setParentDni('');
-    setStudents(INITIAL_STUDENTS_STATE);
+    setStudents([createEmptyStudent()]);
   };
 
   const resetAdminForm = () => {
@@ -231,7 +238,7 @@ const AdminPanel = () => {
   };
 
   const addStudentField = () => {
-    setStudents([...students, { nombre: '', dni: '', fechaNacimiento: '', nivel: 'inicial', genero: 'Masculino' }]);
+    setStudents([...students, createEmptyStudent()]);
   };
 
   const removeStudentField = (index) => {
@@ -961,7 +968,7 @@ const AdminPanel = () => {
 
                   <div className="space-y-4">
                     {students.map((student, idx) => (
-                      <div key={idx} className="relative border border-slate-100 p-4 sm:p-6 rounded-2xl bg-white shadow-sm space-y-4 text-left">
+                      <div key={student.id} className="relative border border-slate-100 p-4 sm:p-6 rounded-2xl bg-white shadow-sm space-y-4 text-left">
                         {students.length > 1 && (
                           <button
                             type="button"

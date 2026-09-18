@@ -275,20 +275,19 @@ const TeachersManagement = () => {
         {notification && (
           <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 duration-300">
             <div
-              className={`flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs font-bold ${
-                notification.type === 'success'
-                  ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                  : notification.type === 'error'
+              className={`flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs font-bold ${notification.type === 'success'
+                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
+                : notification.type === 'error'
                   ? 'bg-red-600 text-white shadow-red-600/30'
                   : 'bg-slate-900 text-white shadow-slate-900/30'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[18px]">
                 {notification.type === 'success'
                   ? 'check_circle'
                   : notification.type === 'error'
-                  ? 'error'
-                  : 'info'}
+                    ? 'error'
+                    : 'info'}
               </span>
               <span>{notification.message}</span>
               <button
@@ -305,21 +304,23 @@ const TeachersManagement = () => {
         {/* Section Header */}
         <section className="flex flex-col gap-6 w-full">
           <div className="flex flex-col w-full">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider mb-1">
-              <span className="px-2.5 py-0.5 bg-orange-100 text-amber-600 rounded-full font-bold">
-                Área Académica
-              </span>
+            <div className="flex gap-2 text-xs font-bold uppercase tracking-wider mb-1">
             </div>
-            <h1 className="text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Gestión del Plantel Docente y Académico
-            </h1>
-            <p className="text-sm font-medium text-slate-500 mt-1">
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-lime-500 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[22px]">badge</span>
+              </span>
+              <h1 className="text-2xl text-center lg:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Gestión del Plantel Docente y Académico
+              </h1>
+            </div>
+            <p className="text-s text-left font-medium text-slate-500 mt-1">
               Administración centralizada de legajos docentes, designaciones y estado de personal.
             </p>
           </div>
 
           {/* Action Buttons Top Bar (Sin Malla de asignaciones) */}
-          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full">
+          <div data-testid="buttons-actions-teachers" className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
             {/* Exportar Nómina */}
             <button
               type="button"
@@ -381,59 +382,56 @@ const TeachersManagement = () => {
           {/* Pagination Controls */}
           {!isLoading && totalItems > 0 && (
             <div className="px-6 py-4 bg-white/70 border-t border-slate-100 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
-                <div className="text-xs font-semibold text-slate-500">
-                  Mostrando{' '}
-                  <span className="font-bold text-slate-900">
-                    {startIndex + 1} - {Math.min(startIndex + PAGE_SIZE, totalItems)}
-                  </span>{' '}
-                  de <span className="font-bold text-slate-900">{totalItems}</span> docentes registrados
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className={`px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold transition-colors ${
-                      currentPage === 1
-                        ? 'text-slate-300 cursor-not-allowed'
-                        : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
-                    }`}
-                  >
-                    Anterior
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-colors cursor-pointer ${
-                        currentPage === pageNum
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-amber-50 hover:text-amber-600'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className={`px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold transition-colors ${
-                      currentPage === totalPages
-                        ? 'text-slate-300 cursor-not-allowed'
-                        : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
-                    }`}
-                  >
-                    Siguiente
-                  </button>
-                </div>
+              <div className="text-xs font-semibold text-slate-500">
+                Mostrando{' '}
+                <span className="font-bold text-slate-900">
+                  {startIndex + 1} - {Math.min(startIndex + PAGE_SIZE, totalItems)}
+                </span>{' '}
+                de <span className="font-bold text-slate-900">{totalItems}</span> docentes registrados
               </div>
-            )}
-          </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold transition-colors ${currentPage === 1
+                    ? 'text-slate-300 cursor-not-allowed'
+                    : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
+                    }`}
+                >
+                  Anterior
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-colors cursor-pointer ${currentPage === pageNum
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-amber-50 hover:text-amber-600'
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold transition-colors ${currentPage === totalPages
+                    ? 'text-slate-300 cursor-not-allowed'
+                    : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
+                    }`}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Modal for New Teacher Registration */}
         <NewTeacherModal

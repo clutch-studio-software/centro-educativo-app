@@ -256,9 +256,9 @@ const Levels = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-            {transversalValues.map((value, index) => (
+            {transversalValues.map((value) => (
               <ValueCard
-                key={index}
+                key={value.id || value.title}
                 title={value.title}
                 description={value.description}
                 icon={value.icon}
