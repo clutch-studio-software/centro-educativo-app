@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 
-const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = [] }) => {
+const DEFAULT_BREADCRUMBS = [];
+
+const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = DEFAULT_BREADCRUMBS }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
@@ -13,15 +15,13 @@ const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = [] }) => 
   });
 
   const handleToggleCollapse = () => {
-    setIsCollapsed((prev) => {
-      const nextVal = !prev;
-      try {
-        localStorage.setItem('admin_sidebar_collapsed', String(nextVal));
-      } catch (err) {
-        console.warn('No se pudo guardar la preferencia del sidebar en localStorage:', err.message);
-      }
-      return nextVal;
-    });
+    const nextVal = !isCollapsed;
+    setIsCollapsed(nextVal);
+    try {
+      localStorage.setItem('admin_sidebar_collapsed', String(nextVal));
+    } catch (err) {
+      console.warn('No se pudo guardar la preferencia del sidebar en localStorage:', err.message);
+    }
   };
 
   return (

@@ -24,6 +24,18 @@ const HomeLevels = ({ onExploreLevels }) => {
         {/* 1. Nivel Inicial (col-span-2) */}
         <div
           onClick={onExploreLevels}
+          onKeyDown={
+            onExploreLevels
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onExploreLevels(e);
+                  }
+                }
+              : undefined
+          }
+          role="button"
+          tabIndex={0}
           className="bg-secondary-container rounded-[2rem] p-6 sm:p-8 min-h-[380px] md:min-h-0 relative overflow-hidden group shadow-[0_20px_40px_rgba(172,248,71,0.15)] hover:shadow-[0_20px_40px_rgba(172,248,71,0.3)] hover:-translate-y-1 transition-all md:col-span-2 cursor-pointer border border-secondary-container/10"
         >
           <div className="absolute inset-0 z-0">
@@ -60,6 +72,18 @@ const HomeLevels = ({ onExploreLevels }) => {
         {/* 2. Nivel Primario (col-span-1) */}
         <div
           onClick={onExploreLevels}
+          onKeyDown={
+            onExploreLevels
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onExploreLevels(e);
+                  }
+                }
+              : undefined
+          }
+          role="button"
+          tabIndex={0}
           className="bg-tertiary-container rounded-[2rem] p-6 sm:p-8 min-h-[380px] md:min-h-0 relative overflow-hidden group shadow-[0_20px_40px_rgba(255,149,90,0.15)] hover:shadow-[0_20px_40px_rgba(255,149,90,0.3)] hover:-translate-y-1 transition-all cursor-pointer border border-tertiary-container/10"
         >
           <div className="absolute inset-0 z-0">
@@ -80,7 +104,7 @@ const HomeLevels = ({ onExploreLevels }) => {
               <h3 className="text-2xl font-extrabold text-on-tertiary-container font-headline mb-3">
                 Nivel Primario
               </h3>
-              <p className="text-on-tertiary-container/80 font-body text-sm md:text-base leading-relaxed">
+              <p className="text-on-tertiary-container/90 font-body text-sm md:text-base leading-relaxed">
                 Construyendo bases sólidas en alfabetización, matemáticas y
                 pensamiento crítico con metodologías activas.
               </p>
@@ -121,7 +145,7 @@ const HomeLevels = ({ onExploreLevels }) => {
             </div>
 
             <div className="flex text-white flex-col md:flex-row justify-between items-start md:items-end gap-6 text-left">
-              <p className="text-primary-container text-white primary-fixed font-body max-w-2xl text-base md:text-lg leading-relaxed">
+              <p className="text-white primary-fixed font-body max-w-2xl text-base md:text-lg leading-relaxed">
                 Preparación pre-universitaria integral, enfoque en tecnología,
                 liderazgo y proyectos de impacto social comunitario.
               </p>

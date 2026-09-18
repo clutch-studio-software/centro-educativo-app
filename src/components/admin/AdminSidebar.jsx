@@ -128,6 +128,18 @@ const AdminSidebar = ({
               <div
                 className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-100 via-amber-50 to-blue-50 p-1 flex items-center justify-center shadow-sm shrink-0 ring-2 ring-lime-400/20 cursor-pointer"
                 onClick={isCollapsed ? onToggleCollapse : undefined}
+                onKeyDown={
+                  isCollapsed
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onToggleCollapse();
+                        }
+                      }
+                    : undefined
+                }
+                role={isCollapsed ? 'button' : undefined}
+                tabIndex={isCollapsed ? 0 : undefined}
                 title={isCollapsed ? 'Expandir menú lateral' : 'Educar para Transformar'}
               >
                 <img

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Icon from '../components/atoms/Icon';
 import SuccessModal from '../components/molecules/SuccessModal';
+import VisitDateAndLevelFields from '../components/molecules/VisitDateAndLevelFields';
 import GalleryHero from '../components/organisms/GalleryHero';
 import GalleryGrid from '../components/organisms/GalleryGrid';
 import { images } from '../services/imagesConfig';
@@ -36,8 +37,8 @@ const Gallery = () => {
   // Carousel Lightbox State
   const [isCarouselOpen, setIsCarouselOpen] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [touchStart, setTouchStart] = useState(0);
-  const [touchEnd, setTouchEnd] = useState(0);
+  const touchStartRef = useRef(0);
+  const touchEndRef = useRef(0);
 
 
 
@@ -69,18 +70,18 @@ const Gallery = () => {
 
   // Touch handlers for mobile swiping
   const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientX);
+    touchStartRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    touchEndRef.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchEnd = () => {
-    if (touchStart - touchEnd > 75) {
+    if (touchStartRef.current - touchEndRef.current > 75) {
       handleNext();
     }
-    if (touchStart - touchEnd < -75) {
+    if (touchStartRef.current - touchEndRef.current < -75) {
       handlePrev();
     }
   };
@@ -184,8 +185,9 @@ const Gallery = () => {
             <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
               {/* Nombre */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
+                <label htmlFor="gallery-booking-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
                 <input 
+                  id="gallery-booking-name"
                   type="text" 
                   name="name"
                   value={formData.name}
@@ -198,8 +200,9 @@ const Gallery = () => {
 
               {/* Email */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
+                <label htmlFor="gallery-booking-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
                 <input 
+                  id="gallery-booking-email"
                   type="email" 
                   name="email"
                   value={formData.email}
@@ -210,37 +213,13 @@ const Gallery = () => {
                 {errors.email && <span className="text-xs text-red-500 font-semibold">{errors.email}</span>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Fecha */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fecha</label>
-                  <input 
-                    type="date" 
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.date ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  />
-                  {errors.date && <span className="text-xs text-red-500 font-semibold">{errors.date}</span>}
-                </div>
-
-                {/* Nivel */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nivel</label>
-                  <select 
-                    name="level"
-                    value={formData.level}
-                    onChange={handleInputChange}
-                    className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.level ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  >
-                    <option value="">Nivel...</option>
-                    <option value="inicial">Inicial</option>
-                    <option value="primario">Primario</option>
-                    <option value="secundario">Secundario</option>
-                  </select>
-                  {errors.level && <span className="text-xs text-red-500 font-semibold">{errors.level}</span>}
-                </div>
-              </div>
+              <VisitDateAndLevelFields
+                date={formData.date}
+                level={formData.level}
+                onChange={handleInputChange}
+                errors={errors}
+                idPrefix="gallery-booking"
+              />
 
               <button 
                 type="submit" 
@@ -352,7 +331,7 @@ const Gallery = () => {
             <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 px-4 scrollbar-none md:scrollbar-thin scrollbar-thumb-white/20 max-w-full">
               {carouselImages.map((img, i) => (
                 <button
-                  key={i}
+                  key={img.id || img.url}
                   onClick={() => setCarouselIndex(i)}
                   className={`relative flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                     i === carouselIndex ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent opacity-40 hover:opacity-75'

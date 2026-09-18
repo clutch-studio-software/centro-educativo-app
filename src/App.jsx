@@ -1,8 +1,7 @@
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer';
 import ChangePasswordModal from './components/organisms/ChangePasswordModal';
 import AdminPanel from './pages/AdminPanel';
-import AdminPanelLegacy from './pages/AdminPanelLegacy';
 import Contact from './pages/Contact';
 import EmploymentRequest from './pages/EmploymentRequest';
 import Gallery from './pages/Gallery';
@@ -16,6 +15,7 @@ import Wellness from './pages/Wellness';
 import Privacy from './pages/Privacy';
 
 import AdminPlaceholder from './pages/admin/AdminPlaceholder';
+import TeachersManagement from './pages/admin/TeachersManagement';
 
 function App() {
   const location = useLocation();
@@ -36,9 +36,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/alumnos" element={<AdminPanel />} />
-        <Route path="/admin/legacy" element={<AdminPanelLegacy />} />
+        <Route path="/admin/legacy" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
-        <Route path="/admin/docentes" element={<AdminPlaceholder />} />
+        <Route path="/admin/docentes" element={<TeachersManagement />} />
         <Route path="/admin/oferta-academica" element={<AdminPlaceholder />} />
         <Route path="/admin/servicios" element={<AdminPlaceholder />} />
         <Route path="/admin/finanzas" element={<AdminPlaceholder />} />

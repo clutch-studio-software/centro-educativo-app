@@ -36,7 +36,7 @@ const AdminHeader = ({ onToggleMobile, isCollapsed = false, breadcrumbs = [] }) 
             Consola Administrativa
           </span>
           {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={idx}>
+            <React.Fragment key={crumb}>
               <span className="text-slate-300">/</span>
               <span data-testid={`breadcrumb-item-${idx}`} className="text-slate-800 font-semibold">
                 {crumb}

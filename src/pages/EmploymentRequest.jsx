@@ -140,8 +140,9 @@ const EmploymentRequest = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Nombre */}
                                 <div className="flex flex-col gap-2">
-                                    <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo <span className="text-red-500">*</span></label>
+                                    <label htmlFor="employment-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo <span className="text-red-500">*</span></label>
                                     <input 
+                                        id="employment-name"
                                         type="text" 
                                         name="name"
                                         value={formData.name}
@@ -154,8 +155,9 @@ const EmploymentRequest = () => {
                                 
                                 {/* Email */}
                                 <div className="flex flex-col gap-2">
-                                    <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo Electrónico <span className="text-red-500">*</span></label>
+                                    <label htmlFor="employment-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo Electrónico <span className="text-red-500">*</span></label>
                                     <input 
+                                        id="employment-email"
                                         type="email" 
                                         name="email"
                                         value={formData.email}

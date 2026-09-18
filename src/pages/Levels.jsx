@@ -4,6 +4,7 @@ import Icon from '../components/atoms/Icon';
 import LevelDetail from '../components/molecules/LevelDetail';
 import ValueCard from '../components/molecules/ValueCard';
 import SuccessModal from '../components/molecules/SuccessModal';
+import VisitDateAndLevelFields from '../components/molecules/VisitDateAndLevelFields';
 import LevelsHero from '../components/organisms/LevelsHero';
 import LevelsCTA from '../components/organisms/LevelsCTA';
 
@@ -256,9 +257,9 @@ const Levels = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-            {transversalValues.map((value, index) => (
+            {transversalValues.map((value) => (
               <ValueCard
-                key={index}
+                key={value.id || value.title}
                 title={value.title}
                 description={value.description}
                 icon={value.icon}
@@ -299,8 +300,9 @@ const Levels = () => {
 
             <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
+                <label htmlFor="level-booking-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
                 <input 
+                  id="level-booking-name"
                   type="text" 
                   name="name"
                   value={formData.name}
@@ -312,8 +314,9 @@ const Levels = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
+                <label htmlFor="level-booking-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
                 <input 
+                  id="level-booking-email"
                   type="email" 
                   name="email"
                   value={formData.email}
@@ -324,35 +327,13 @@ const Levels = () => {
                 {errors.email && <span className="text-xs text-red-500 font-semibold">{errors.email}</span>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Fecha</label>
-                  <input 
-                    type="date" 
-                    name="date"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.date ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  />
-                  {errors.date && <span className="text-xs text-red-500 font-semibold">{errors.date}</span>}
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nivel</label>
-                  <select 
-                    name="level"
-                    value={formData.level}
-                    onChange={handleInputChange}
-                    className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.level ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  >
-                    <option value="">Nivel...</option>
-                    <option value="inicial">Inicial</option>
-                    <option value="primario">Primario</option>
-                    <option value="secundario">Secundario</option>
-                  </select>
-                  {errors.level && <span className="text-xs text-red-500 font-semibold">{errors.level}</span>}
-                </div>
-              </div>
+              <VisitDateAndLevelFields
+                date={formData.date}
+                level={formData.level}
+                onChange={handleInputChange}
+                errors={errors}
+                idPrefix="level-booking"
+              />
 
               <button 
                 type="submit" 

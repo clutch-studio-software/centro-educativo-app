@@ -8,6 +8,7 @@ import StudentPagination from '../../components/admin/StudentPagination';
 import NewStudentModal from '../../components/admin/NewStudentModal';
 import EditStudentModal from '../../components/admin/EditStudentModal';
 import StudentDetailsModal from '../../components/admin/StudentDetailsModal';
+import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import { auth } from '../../services/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import {
@@ -61,7 +62,7 @@ const StudentsManagement = () => {
           await signInWithEmailAndPassword(
             auth,
             import.meta.env.VITE_ADMIN_EMAIL,
-            import.meta.env.VITE_ADMIN_PASSWORD
+            import.meta.env.VITE_DEV_ADMIN_KEY
           );
           return;
         } catch (devErr) {
@@ -571,19 +572,11 @@ const StudentsManagement = () => {
         {/* Encabezado de Sección y Acciones Principales */}
         <section data-testid="students-management-header" className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-lime-500 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[22px]">school</span>
-                </span>
-                <h1 data-testid="students-management-title" className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
-                  Gestión de Alumnos y Legajos Académicos
-                </h1>
-              </div>
-              <p className="text-xs md:text-sm text-slate-500 mt-1 font-medium">
-                Padrón general, legajos digitales, servicios asignados y regularidad académica Ciclo 2027.
-              </p>
-            </div>
+            <AdminSectionTitle
+              icon="school"
+              title="Gestión de Alumnos y Legajos Académicos"
+              subtitle="Padrón general, legajos digitales, servicios asignados y regularidad académica."
+            />
 
             {/* Acciones Principales */}
             <div className="flex items-center gap-3">

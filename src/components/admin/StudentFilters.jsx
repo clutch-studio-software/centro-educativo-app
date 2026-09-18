@@ -80,7 +80,7 @@ const StudentFilters = ({
       <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4 w-full">
         {/* Input de Búsqueda */}
         <div className="flex flex-col gap-1 flex-1 min-w-[260px]">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <label htmlFor="student-search-input" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             Búsqueda Rápida
           </label>
           <div className="relative">
@@ -88,6 +88,7 @@ const StudentFilters = ({
               search
             </span>
             <input
+              id="student-search-input"
               ref={searchInputRef}
               data-testid="student-search-input"
               type="text"

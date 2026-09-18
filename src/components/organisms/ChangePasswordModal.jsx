@@ -79,8 +79,9 @@ const ChangePasswordModal = () => {
 
             <div className="form-inputs-group">
               <div className="input-field-group">
-                <label className="input-label">Nueva Contraseña</label>
+                <label htmlFor="new-password-input" className="input-label">Nueva Contraseña</label>
                 <input
+                  id="new-password-input"
                   type="password"
                   placeholder="Mínimo 6 caracteres"
                   value={newPassword}
@@ -91,8 +92,9 @@ const ChangePasswordModal = () => {
               </div>
 
               <div className="input-field-group">
-                <label className="input-label">Confirmar Contraseña</label>
+                <label htmlFor="confirm-password-input" className="input-label">Confirmar Contraseña</label>
                 <input
+                  id="confirm-password-input"
                   type="password"
                   placeholder="Repite la contraseña"
                   value={confirmPassword}

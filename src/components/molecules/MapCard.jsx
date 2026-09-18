@@ -12,6 +12,7 @@ const MapCard = ({
     <div className="contact-map-card group">
       <iframe
         src={embedUrl}
+        sandbox=''
         width="100%"
         height="100%"
         style={{ border: 0 }}
@@ -21,10 +22,10 @@ const MapCard = ({
         className="contact-map-iframe"
       />
       <div className="contact-map-overlay" />
-      <a 
-        href={mapsUrl} 
-        target="_blank" 
-        rel="noopener noreferrer" 
+      <a
+        href={mapsUrl}
+        target="_blank"
+        rel="noopener noreferrer"
         className="contact-map-badge"
         aria-label={`Ver ubicación de ${locationName} en Google Maps`}
       >

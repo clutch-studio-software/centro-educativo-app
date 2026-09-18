@@ -113,6 +113,14 @@ const FileUploadZone = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={handleZoneClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleZoneClick();
+          }
+        }}
+        role="button"
+        tabIndex={0}
         className={`w-full border-2 border-dashed ${
           isDragging 
             ? 'border-primary bg-primary/5' 

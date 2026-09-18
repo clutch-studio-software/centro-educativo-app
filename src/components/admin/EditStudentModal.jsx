@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
 import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
 import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
@@ -12,8 +12,24 @@ const AVAILABLE_SERVICIOS = [
   'Inglés Cambridge',
 ];
 
-const EditStudentModal = ({
-  isOpen,
+const getMatchedTutor = (tutorsList, currentStudent) => {
+  const sortedTutors = (tutorsList || [])
+    .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+
+  return (
+    sortedTutors.find((t) => t.id === currentStudent?.parentId) ||
+    sortedTutors.find(
+      (t) =>
+        t.email &&
+        currentStudent?.tutorEmail &&
+        t.email.trim().toLowerCase() === currentStudent.tutorEmail.trim().toLowerCase()
+    ) ||
+    null
+  );
+};
+
+const EditStudentModalContent = ({
   student,
   tutors = [],
   academicOffer = DEFAULT_ACADEMIC_OFFER,
@@ -23,25 +39,37 @@ const EditStudentModal = ({
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState('student'); // 'student' | 'tutor'
 
+  const matchedTutor = getMatchedTutor(tutors, student);
+
   // Student State
-  const [studentNombre, setStudentNombre] = useState('');
-  const [studentDni, setStudentDni] = useState('');
-  const [studentFechaNacimiento, setStudentFechaNacimiento] = useState('');
-  const [studentDomicilio, setStudentDomicilio] = useState('');
-  const [studentNivel, setStudentNivel] = useState('Primario');
-  const [studentCurso, setStudentCurso] = useState('sin asignar');
-  const [studentDivision, setStudentDivision] = useState('sin asignar');
-  const [studentEstado, setStudentEstado] = useState('Activo - Regular');
-  const [studentServicios, setStudentServicios] = useState([]);
+  const [studentNombre, setStudentNombre] = useState(student?.nombre || '');
+  const [studentDni, setStudentDni] = useState(() => formatDni(student?.dni || ''));
+  const [studentFechaNacimiento, setStudentFechaNacimiento] = useState(student?.fechaNacimiento || '');
+  const [studentDomicilio, setStudentDomicilio] = useState(student?.domicilio || '');
+  const [studentNivel, setStudentNivel] = useState(student?.nivel || 'Primario');
+  const [studentCurso, setStudentCurso] = useState(student?.curso || 'sin asignar');
+  const [studentDivision, setStudentDivision] = useState(student?.division || 'sin asignar');
+  const [studentEstado, setStudentEstado] = useState(student?.estado || 'Activo - Regular');
+  const [studentServicios, setStudentServicios] = useState(() =>
+    Array.isArray(student?.servicios) ? [...student.servicios] : ['Comedor Escolar']
+  );
 
   // Tutor Mode ('current' | 'reassign')
   const [tutorMode, setTutorMode] = useState('current');
-  const [currentTutorId, setCurrentTutorId] = useState(null);
-  const [tutorNombre, setTutorNombre] = useState('');
-  const [tutorDni, setTutorDni] = useState('');
-  const [tutorTelefono, setTutorTelefono] = useState('');
-  const [tutorEmail, setTutorEmail] = useState('');
-  const [tutorDomicilio, setTutorDomicilio] = useState('');
+  const currentTutorId = matchedTutor?.id || student?.parentId || null;
+  const [tutorNombre, setTutorNombre] = useState(
+    matchedTutor?.nombre || (student?.tutorNombre || '').replace(' (Tutor)', '')
+  );
+  const [tutorDni, setTutorDni] = useState(() => formatDni(matchedTutor?.dni || ''));
+  const [tutorTelefono, setTutorTelefono] = useState(
+    matchedTutor?.telefono || student?.tutorTelefono || ''
+  );
+  const [tutorEmail, setTutorEmail] = useState(
+    matchedTutor?.email || student?.tutorEmail || ''
+  );
+  const [tutorDomicilio, setTutorDomicilio] = useState(
+    matchedTutor?.domicilio || ''
+  );
 
   // Reassignment State
   const [reassignedTutorId, setReassignedTutorId] = useState(null);
@@ -56,56 +84,6 @@ const EditStudentModal = ({
     .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
 
-  // Populate form on student prop change
-  useEffect(() => {
-    if (!isOpen || !student) {
-      setFormError('');
-      setIsSubmitting(false);
-      return;
-    }
-
-    setActiveTab('student');
-    setTutorMode('current');
-    setReassignedTutorId(null);
-    setTutorSearchFilter('');
-    setFormError('');
-
-    // Pre-populate student data
-    setStudentNombre(student.nombre || '');
-    setStudentDni(formatDni(student.dni || ''));
-    setStudentFechaNacimiento(student.fechaNacimiento || '');
-    setStudentDomicilio(student.domicilio || '');
-    setStudentNivel(student.nivel || 'Primario');
-    setStudentCurso(student.curso || 'sin asignar');
-    setStudentDivision(student.division || 'sin asignar');
-    setStudentEstado(student.estado || 'Activo - Regular');
-    setStudentServicios(Array.isArray(student.servicios) ? [...student.servicios] : ['Comedor Escolar']);
-
-    // Pre-populate tutor data
-    const sortedTutors = (tutors || [])
-      .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
-
-    const matchedTutor =
-      sortedTutors.find((t) => t.id === student.parentId) ||
-      sortedTutors.find(
-        (t) =>
-          t.email &&
-          student.tutorEmail &&
-          t.email.trim().toLowerCase() === student.tutorEmail.trim().toLowerCase()
-      ) ||
-      null;
-
-    const tid = matchedTutor?.id || student.parentId || null;
-    setCurrentTutorId(tid);
-    setTutorNombre(matchedTutor?.nombre || (student.tutorNombre || '').replace(' (Tutor)', ''));
-    setTutorDni(formatDni(matchedTutor?.dni || ''));
-    setTutorTelefono(matchedTutor?.telefono || student.tutorTelefono || '');
-    setTutorEmail(matchedTutor?.email || student.tutorEmail || '');
-    setTutorDomicilio(matchedTutor?.domicilio || '');
-  }, [isOpen, student, tutors]);
-
-  if (!isOpen || !student) return null;
 
   // Cursos disponibles para el nivel seleccionado
   const availableCursos = CURSOS_POR_NIVEL[studentNivel] || [];
@@ -350,10 +328,11 @@ const EditStudentModal = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-name-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Nombre Completo *
                     </label>
                     <input
+                      id="edit-student-name-input"
                       data-testid="edit-student-name-input"
                       type="text"
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
@@ -365,7 +344,7 @@ const EditStudentModal = ({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-dni-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       DNI del Alumno *
                     </label>
                     <div className="relative">
@@ -373,6 +352,7 @@ const EditStudentModal = ({
                         badge
                       </span>
                       <input
+                        id="edit-student-dni-input"
                         data-testid="edit-student-dni-input"
                         type="text"
                         className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono font-semibold"
@@ -385,7 +365,7 @@ const EditStudentModal = ({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-birthdate-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Fecha de Nacimiento
                     </label>
                     <div className="relative">
@@ -393,6 +373,7 @@ const EditStudentModal = ({
                         calendar_month
                       </span>
                       <input
+                        id="edit-student-birthdate-input"
                         data-testid="edit-student-birthdate-input"
                         type="date"
                         className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
@@ -422,7 +403,7 @@ const EditStudentModal = ({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    <label htmlFor="edit-student-address-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                       Domicilio
                     </label>
                     <div className="relative">
@@ -430,6 +411,7 @@ const EditStudentModal = ({
                         location_on
                       </span>
                       <input
+                        id="edit-student-address-input"
                         data-testid="edit-student-address-input"
                         type="text"
                         className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
@@ -614,10 +596,11 @@ const EditStudentModal = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="sm:col-span-2">
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-name-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Nombre y Apellido del Tutor *
                       </label>
                       <input
+                        id="edit-tutor-name-input"
                         data-testid="edit-tutor-name-input"
                         type="text"
                         className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
@@ -629,10 +612,11 @@ const EditStudentModal = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-dni-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         DNI del Tutor
                       </label>
                       <input
+                        id="edit-tutor-dni-input"
                         data-testid="edit-tutor-dni-input"
                         type="text"
                         className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-semibold"
@@ -643,7 +627,7 @@ const EditStudentModal = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-phone-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Teléfono / WhatsApp de Contacto
                       </label>
                       <div className="relative">
@@ -651,6 +635,7 @@ const EditStudentModal = ({
                           call
                         </span>
                         <input
+                          id="edit-tutor-phone-input"
                           data-testid="edit-tutor-phone-input"
                           type="tel"
                           maxLength={11}
@@ -663,7 +648,7 @@ const EditStudentModal = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-email-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Correo Electrónico
                       </label>
                       <div className="relative">
@@ -671,6 +656,7 @@ const EditStudentModal = ({
                           mail
                         </span>
                         <input
+                          id="edit-tutor-email-input"
                           data-testid="edit-tutor-email-input"
                           type="email"
                           className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
@@ -682,7 +668,7 @@ const EditStudentModal = ({
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                      <label htmlFor="edit-tutor-address-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
                         Domicilio del Tutor
                       </label>
                       <div className="relative">
@@ -690,6 +676,7 @@ const EditStudentModal = ({
                           home
                         </span>
                         <input
+                          id="edit-tutor-address-input"
                           data-testid="edit-tutor-address-input"
                           type="text"
                           className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
@@ -718,10 +705,14 @@ const EditStudentModal = ({
 
                   {/* Buscador de Tutores */}
                   <div className="relative">
+                    <label htmlFor="reassign-tutor-search-input" className="sr-only">
+                      Filtrar tutores
+                    </label>
                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
                       search
                     </span>
                     <input
+                      id="reassign-tutor-search-input"
                       data-testid="reassign-tutor-search-input"
                       type="text"
                       className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-md text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -748,6 +739,14 @@ const EditStudentModal = ({
                             key={t.id}
                             data-testid={`tutor-option-${t.id}`}
                             onClick={() => setReassignedTutorId(t.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setReassignedTutorId(t.id);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
                             className={`px-3.5 py-3 flex items-center gap-3 text-xs transition-colors cursor-pointer ${
                               isSelected
                                 ? 'bg-blue-50/90 text-blue-900'
@@ -864,6 +863,28 @@ const EditStudentModal = ({
         </form>
       </div>
     </div>
+  );
+};
+
+const EditStudentModal = ({
+  isOpen,
+  student,
+  tutors = [],
+  academicOffer = DEFAULT_ACADEMIC_OFFER,
+  onClose,
+  onSaveStudent,
+}) => {
+  if (!isOpen || !student) return null;
+
+  return (
+    <EditStudentModalContent
+      key={student.id}
+      student={student}
+      tutors={tutors}
+      academicOffer={academicOffer}
+      onClose={onClose}
+      onSaveStudent={onSaveStudent}
+    />
   );
 };
 
