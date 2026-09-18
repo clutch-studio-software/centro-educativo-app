@@ -8,6 +8,7 @@ import StudentPagination from '../../components/admin/StudentPagination';
 import NewStudentModal from '../../components/admin/NewStudentModal';
 import EditStudentModal from '../../components/admin/EditStudentModal';
 import StudentDetailsModal from '../../components/admin/StudentDetailsModal';
+import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import { auth } from '../../services/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import {
@@ -571,17 +572,11 @@ const StudentsManagement = () => {
         {/* Encabezado de Sección y Acciones Principales */}
         <section data-testid="students-management-header" className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-lime-400 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[22px]">school</span>
-              </span>
-              <div className="flex items-left flex-col">
-                <h1 className="text-2xl text-left lg:text-3xl font-extrabold text-slate-900">
-                  Gestión de Alumnos y Legajos Académicos
-                </h1>
-                <span className="text-s text-left font-medium text-slate-500 mt-1">Padrón general, legajos digitales, servicios asignados y regularidad académica.</span>
-              </div>
-            </div>
+            <AdminSectionTitle
+              icon="school"
+              title="Gestión de Alumnos y Legajos Académicos"
+              subtitle="Padrón general, legajos digitales, servicios asignados y regularidad académica."
+            />
 
             {/* Acciones Principales */}
             <div className="flex items-center gap-3">

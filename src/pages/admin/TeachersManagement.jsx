@@ -5,6 +5,7 @@ import TeacherFilters from '../../components/admin/teachers/TeacherFilters';
 import TeacherTable from '../../components/admin/teachers/TeacherTable';
 import NewTeacherModal from '../../components/admin/teachers/NewTeacherModal';
 import EditTeacherModal from '../../components/admin/teachers/EditTeacherModal';
+import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import {
   fetchTeachersApi,
   createTeacherApi,
@@ -304,17 +305,11 @@ const TeachersManagement = () => {
         {/* Section Header */}
         <section data-testid="teachers-management-header" className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-lime-400 text-white shadow-md shadow-lime-500/20 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[22px]">badge</span>
-              </span>
-              <div className="flex items-left flex-col">
-                <h1 className="text-2xl text-left lg:text-3xl font-extrabold text-slate-900">
-                  Gestión del Plantel Docente y Académico
-                </h1>
-                <span className="text-s text-left font-medium text-slate-500 mt-1">Administración centralizada de legajos docentes, designaciones y estado de personal.</span>
-              </div>
-            </div>
+            <AdminSectionTitle
+              icon="badge"
+              title="Gestión del Plantel Docente y Académico"
+              subtitle="Administración centralizada de legajos docentes, designaciones y estado de personal."
+            />
 
 
             {/* Action Buttons Top Bar */}
