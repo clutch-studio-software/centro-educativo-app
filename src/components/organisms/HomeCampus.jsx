@@ -91,6 +91,18 @@ const HomeCampus = ({ onGalleryClick }) => {
           {/* 4. Botón Tarjeta "Galería Completa" - col-span-1, row-span-1 */}
           <div
             onClick={onGalleryClick}
+            onKeyDown={
+              onGalleryClick
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onGalleryClick(e);
+                    }
+                  }
+                : undefined
+            }
+            role="button"
+            tabIndex={0}
             className="col-span-1 rounded-[1.5rem] overflow-hidden relative group bg-tertiary-container flex flex-col items-center justify-center text-center p-4 sm:p-6 text-on-tertiary-container hover:bg-tertiary-fixed transition-all duration-300 cursor-pointer shadow-sm border border-tertiary-container/10 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Icon

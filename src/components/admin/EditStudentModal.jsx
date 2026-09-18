@@ -739,6 +739,14 @@ const EditStudentModalContent = ({
                             key={t.id}
                             data-testid={`tutor-option-${t.id}`}
                             onClick={() => setReassignedTutorId(t.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setReassignedTutorId(t.id);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
                             className={`px-3.5 py-3 flex items-center gap-3 text-xs transition-colors cursor-pointer ${
                               isSelected
                                 ? 'bg-blue-50/90 text-blue-900'

@@ -97,6 +97,7 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
     >
       {/* Backdrop */}
       <div
+        aria-hidden="true"
         onClick={onClose}
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity cursor-pointer animate-in fade-in duration-200"
       />

@@ -27,6 +27,18 @@ const EventCard = ({
   return (
     <div 
       onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick(e);
+              }
+            }
+          : undefined
+      }
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className="bg-surface-container-low rounded-2xl p-6 flex flex-col gap-4 relative overflow-hidden group hover:bg-surface-container-lowest hover:shadow-lg transition-all duration-300 border border-surface-container-highest cursor-pointer text-left"
     >
       {/* Resplandor decorativo desenfocado en hover en la esquina superior derecha */}
