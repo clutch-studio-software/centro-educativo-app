@@ -103,6 +103,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
     <div
       aria-modal="true"
       role="dialog"
+      aria-labelledby="new-teacher-dialog-title"
       className="fixed inset-0 z-50 overflow-hidden"
     >
       {/* Backdrop */}
@@ -120,7 +121,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
               <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
                 Alta de Personal Académico
               </span>
-              <h2 className="text-xl font-extrabold text-slate-900">
+              <h2 id="new-teacher-dialog-title" className="text-xl font-extrabold text-slate-900">
                 Registrar Nuevo Docente
               </h2>
             </div>

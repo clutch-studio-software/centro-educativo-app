@@ -93,6 +93,7 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
     <div
       aria-modal="true"
       role="dialog"
+      aria-labelledby="edit-teacher-dialog-title"
       className="fixed inset-0 z-50 overflow-hidden"
     >
       {/* Backdrop */}
@@ -115,7 +116,7 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
                   {teacher.legajo}
                 </span>
               </div>
-              <h2 className="text-xl font-extrabold text-slate-900 text-left">
+              <h2 id="edit-teacher-dialog-title" className="text-xl font-extrabold text-slate-900 text-left">
                 Editar Datos del Docente
               </h2>
             </div>
