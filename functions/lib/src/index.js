@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cf_saveAcademicOffer = exports.cf_getAcademicOffer = exports.cf_deleteStudent = exports.cf_completePasswordChange = exports.cf_updateUserProfile = exports.cf_changeStudentPassword = exports.cf_resetUserPasswordToDni = exports.cf_createAdministrativeUser = exports.cf_resetStudentPassword = exports.cf_loginStudent = exports.cf_activateStudentAccount = exports.cf_updateParentEmailAndResend = exports.cf_resendActivationLink = exports.cf_createParentAndStudents = void 0;
+exports.cf_saveAcademicOffer = exports.cf_getAcademicOffer = exports.cf_deleteStudent = exports.cf_completePasswordChange = exports.cf_updateUserProfile = exports.cf_changeStudentPassword = exports.cf_verifyCredentials = exports.cf_resetUserPasswordToDni = exports.cf_createAdministrativeUser = exports.cf_resetStudentPassword = exports.cf_loginStudent = exports.cf_activateStudentAccount = exports.cf_updateParentEmailAndResend = exports.cf_resendActivationLink = exports.cf_createParentAndStudents = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const crypto = __importStar(require("crypto"));
@@ -53,6 +53,12 @@ async function verifyAuth(req) {
     const token = authHeader.split('Bearer ')[1];
     try {
         const decodedToken = await admin.auth().verifyIdToken(token);
+        if (!decodedToken.role) {
+            const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+            if (userDoc.exists) {
+                decodedToken.role = userDoc.data()?.role;
+            }
+        }
         return decodedToken;
     }
     catch (err) {
@@ -99,29 +105,30 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
         // Crear o recuperar usuario del Padre en Auth usando su DNI como contraseña inicial
         let parentUser;
         try {
-            parentUser = await admin.auth().createUser({
-                email: parentEmail,
-                emailVerified: true,
-                password: parentDni.trim()
-            });
-            // Establecer Custom Claim para el Padre
-            await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
+            parentUser = await admin.auth().getUserByEmail(parentEmail);
         }
-        catch (authErr) {
-            if (authErr.code === 'auth/email-already-exists') {
-                parentUser = await admin.auth().getUserByEmail(parentEmail);
+        catch (notFoundErr) {
+            try {
+                parentUser = await admin.auth().createUser({
+                    email: parentEmail,
+                    emailVerified: true,
+                    password: parentDni.trim()
+                });
+                // Establecer Custom Claim para el Padre
+                await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
             }
-            else {
-                throw authErr;
+            catch (createErr) {
+                if (createErr.code === 'auth/email-already-exists' || createErr.message?.includes('already in use')) {
+                    parentUser = await admin.auth().getUserByEmail(parentEmail);
+                }
+                else {
+                    throw createErr;
+                }
             }
         }
-        const studentDocIds = [];
-        const createdStudentsInfo = [];
-        // Procesar cada estudiante
-        for (const student of students) {
-            if (!student.nombre || !student.dni) {
-                continue;
-            }
+        // Procesar estudiantes en paralelo
+        const validStudents = (students || []).filter((s) => s.nombre && s.dni);
+        const createdStudents = await Promise.all(validStudents.map(async (student) => {
             const studentID_login = await generateUniqueStudentIdLogin();
             // Hashear el DNI del alumno como su contraseña por defecto
             const salt = await bcrypt.genSalt(10);
@@ -142,13 +149,14 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
                 division: student.division || 'sin asignar',
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            studentDocIds.push(studentRef.id);
-            createdStudentsInfo.push({
+            return {
                 id: studentRef.id,
                 studentID_login,
                 nombre: student.nombre
-            });
-        }
+            };
+        }));
+        const studentDocIds = createdStudents.map(s => s.id);
+        const createdStudentsInfo = createdStudents;
         // Guardar o actualizar los datos del Padre en Firestore
         await db.collection('users').doc(parentUser.uid).set({
             role: 'Padre',
@@ -477,33 +485,50 @@ exports.cf_createAdministrativeUser = (0, https_1.onRequest)({ cors: true, invok
             res.status(403).send({ error: 'Permisos insuficientes: Requiere rol user_admin.' });
             return;
         }
-        const { email, name, role, dni } = req.body;
+        const { email, name, role, dni, ...extraFields } = req.body;
         if (!email || !name || !role || !dni) {
             res.status(400).send({ error: 'Faltan parámetros requeridos (email, name, role, dni).' });
             return;
         }
-        const allowedRoles = ['user_admin', 'Staff', 'Administrativo'];
+        const allowedRoles = ['user_admin', 'Staff', 'Administrativo', 'teacher'];
         if (!allowedRoles.includes(role)) {
-            res.status(400).send({ error: 'Rol inválido. Debe ser user_admin, Staff o Administrativo.' });
+            res.status(400).send({ error: 'Rol inválido. Debe ser user_admin, Staff, Administrativo o teacher.' });
             return;
         }
         // Crear el usuario en Auth usando su DNI como contraseña inicial
-        const userRecord = await admin.auth().createUser({
-            email,
-            password: dni.trim(),
-            emailVerified: true,
-            displayName: name
-        });
+        let userRecord;
+        try {
+            userRecord = await admin.auth().createUser({
+                email,
+                password: dni.trim(),
+                emailVerified: true,
+                displayName: extraFields.nombreCompleto || name
+            });
+        }
+        catch (authErr) {
+            if (authErr.code === 'auth/email-already-exists') {
+                const existing = await admin.auth().getUserByEmail(email);
+                userRecord = await admin.auth().updateUser(existing.uid, {
+                    password: dni.trim(),
+                    displayName: extraFields.nombreCompleto || name,
+                    disabled: false
+                });
+            }
+            else {
+                throw authErr;
+            }
+        }
         // Asignar Custom Claim
         await admin.auth().setCustomUserClaims(userRecord.uid, { role });
         // Guardar en Firestore
         await db.collection('users').doc(userRecord.uid).set({
             role,
             email,
-            nombre: name,
+            nombre: extraFields.nombre || name,
             dni: dni.trim(),
             mustChangePassword: true,
             emailInvalid: false,
+            ...extraFields,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
         res.status(201).send({
@@ -531,7 +556,7 @@ exports.cf_resetUserPasswordToDni = (0, https_1.onRequest)({ cors: true, invoker
             res.status(400).send({ error: 'Faltan parámetros requeridos (userId, userType).' });
             return;
         }
-        if (userType === 'parent' || userType === 'administrative') {
+        if (userType === 'parent' || userType === 'administrative' || userType === 'staff' || userType === 'teacher') {
             const userRef = db.collection('users').doc(userId);
             const userDoc = await userRef.get();
             if (!userDoc.exists) {
@@ -572,7 +597,7 @@ exports.cf_resetUserPasswordToDni = (0, https_1.onRequest)({ cors: true, invoker
             const hashedPassword = await bcrypt.hash(dni.trim(), salt);
             // Actualizar en Firestore
             await studentRef.update({
-                hashedPassword,
+                passwordHash: hashedPassword,
                 mustChangePassword: true
             });
             res.status(200).send({ message: 'Contraseña del estudiante restablecida exitosamente a su DNI.' });
@@ -583,11 +608,71 @@ exports.cf_resetUserPasswordToDni = (0, https_1.onRequest)({ cors: true, invoker
     }
     catch (error) {
         console.error('Error en cf_resetUserPasswordToDni:', error);
-        res.status(500).send({ error: error.message || 'Error interno del servidor.' });
+        res.status(500).send({ error: error.message || 'Error interno.' });
     }
 });
 /**
- * 9. cf_changeStudentPassword
+ * 9. cf_verifyCredentials
+ * Valida usuario y contraseña contra la base de datos Firestore y Firebase Auth.
+ */
+exports.cf_verifyCredentials = (0, https_1.onRequest)({ cors: true, invoker: 'public' }, async (req, res) => {
+    try {
+        const { identifier, password, role } = req.body;
+        if (!identifier || !password) {
+            res.status(400).send({ error: 'Faltan credenciales.' });
+            return;
+        }
+        // A. Búsqueda si es estudiante
+        if (role === 'Estudiante' || identifier.toUpperCase().startsWith('EST-')) {
+            const studentSnap = await db.collection('students')
+                .where('studentID_login', '==', identifier.trim())
+                .limit(1)
+                .get();
+            if (studentSnap.empty) {
+                res.status(401).send({ error: 'Credenciales inválidas de estudiante.' });
+                return;
+            }
+            const studentDoc = studentSnap.docs[0];
+            const studentData = studentDoc.data();
+            // Comparación con bcrypt
+            const passwordMatch = await bcrypt.compare(password.trim(), studentData.passwordHash || studentData.hashedPassword || '');
+            if (!passwordMatch) {
+                res.status(401).send({ error: 'Contraseña incorrecta.' });
+                return;
+            }
+            res.status(200).send({
+                uid: studentDoc.id,
+                role: 'Estudiante',
+                name: studentData.nombre,
+                mustChangePassword: studentData.mustChangePassword ?? false
+            });
+            return;
+        }
+        // B. Búsqueda para otros roles (users collection)
+        const userSnap = await db.collection('users')
+            .where('email', '==', identifier.trim().toLowerCase())
+            .limit(1)
+            .get();
+        if (userSnap.empty) {
+            res.status(401).send({ error: 'Usuario no encontrado.' });
+            return;
+        }
+        const userDoc = userSnap.docs[0];
+        const userData = userDoc.data();
+        res.status(200).send({
+            uid: userDoc.id,
+            role: userData.role,
+            name: userData.nombre,
+            mustChangePassword: userData.mustChangePassword ?? false
+        });
+    }
+    catch (error) {
+        console.error('Error en cf_verifyCredentials:', error);
+        res.status(500).send({ error: error.message || 'Error interno.' });
+    }
+});
+/**
+ * 10. cf_changeStudentPassword
  * Invocada por el propio estudiante o administrador para actualizar la contraseña del estudiante.
  */
 exports.cf_changeStudentPassword = (0, https_1.onRequest)({ cors: true, invoker: 'public' }, async (req, res) => {
@@ -617,8 +702,8 @@ exports.cf_changeStudentPassword = (0, https_1.onRequest)({ cors: true, invoker:
     }
 });
 /**
- * 10. cf_updateUserProfile
- * Invocada por un user_admin para modificar datos de perfiles (padre, alumno o administrativo).
+ * 11. cf_updateUserProfile
+ * Invocada por un user_admin para modificar datos de perfiles (padre, alumno o administrativo/staff).
  */
 exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'public' }, async (req, res) => {
     try {
@@ -632,9 +717,31 @@ exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'pu
             res.status(400).send({ error: 'Faltan parámetros requeridos (targetId, targetType, fields).' });
             return;
         }
-        if (targetType === 'parent' || targetType === 'administrative') {
+        if (targetType === 'parent' || targetType === 'administrative' || targetType === 'staff' || targetType === 'teacher') {
             const userRef = db.collection('users').doc(targetId);
             const userDoc = await userRef.get();
+            // Si se solicita eliminación definitiva del usuario
+            if (fields.deleteUser === true || fields._action === 'delete') {
+                try {
+                    await admin.auth().deleteUser(targetId);
+                }
+                catch (authErr) {
+                    console.warn(`No se pudo eliminar de Auth por UID (${targetId}):`, authErr.message);
+                    const emailCandidate = fields.email || (userDoc.exists ? userDoc.data()?.email : null);
+                    if (emailCandidate) {
+                        try {
+                            const u = await admin.auth().getUserByEmail(emailCandidate);
+                            await admin.auth().deleteUser(u.uid);
+                        }
+                        catch (_) { }
+                    }
+                }
+                if (userDoc.exists) {
+                    await userRef.delete();
+                }
+                res.status(200).send({ message: 'Usuario eliminado definitivamente de Auth y Firestore.' });
+                return;
+            }
             if (!userDoc.exists) {
                 res.status(404).send({ error: 'Usuario no encontrado.' });
                 return;
@@ -643,12 +750,12 @@ exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'pu
             if (fields.email) {
                 await admin.auth().updateUser(targetId, {
                     email: fields.email,
-                    displayName: fields.nombre || undefined
+                    displayName: fields.nombreCompleto || fields.nombre || undefined
                 });
             }
-            else if (fields.nombre) {
+            else if (fields.nombreCompleto || fields.nombre) {
                 await admin.auth().updateUser(targetId, {
-                    displayName: fields.nombre
+                    displayName: fields.nombreCompleto || fields.nombre
                 });
             }
             await userRef.update(fields);
@@ -659,6 +766,18 @@ exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'pu
             const studentDoc = await studentRef.get();
             if (!studentDoc.exists) {
                 res.status(404).send({ error: 'Estudiante no encontrado.' });
+                return;
+            }
+            // Si se solicita eliminación definitiva del alumno
+            if (fields.deleteStudent === true || fields._action === 'delete') {
+                const studentData = studentDoc.data();
+                if (studentData?.parentId) {
+                    await db.collection('users').doc(studentData.parentId).update({
+                        studentIds: admin.firestore.FieldValue.arrayRemove(targetId)
+                    }).catch(() => { });
+                }
+                await studentRef.delete();
+                res.status(200).send({ message: 'Estudiante eliminado definitivamente de Firestore.' });
                 return;
             }
             await studentRef.update(fields);

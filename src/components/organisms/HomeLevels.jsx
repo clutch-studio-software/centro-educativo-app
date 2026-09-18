@@ -80,7 +80,7 @@ const HomeLevels = ({ onExploreLevels }) => {
               <h3 className="text-2xl font-extrabold text-on-tertiary-container font-headline mb-3">
                 Nivel Primario
               </h3>
-              <p className="text-on-tertiary-container/80 font-body text-sm md:text-base leading-relaxed">
+              <p className="text-on-tertiary-container/90 font-body text-sm md:text-base leading-relaxed">
                 Construyendo bases sólidas en alfabetización, matemáticas y
                 pensamiento crítico con metodologías activas.
               </p>
@@ -121,7 +121,7 @@ const HomeLevels = ({ onExploreLevels }) => {
             </div>
 
             <div className="flex text-white flex-col md:flex-row justify-between items-start md:items-end gap-6 text-left">
-              <p className="text-primary-container text-white primary-fixed font-body max-w-2xl text-base md:text-lg leading-relaxed">
+              <p className="text-white primary-fixed font-body max-w-2xl text-base md:text-lg leading-relaxed">
                 Preparación pre-universitaria integral, enfoque en tecnología,
                 liderazgo y proyectos de impacto social comunitario.
               </p>

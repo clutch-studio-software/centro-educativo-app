@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { auth, db } from '../services/firebase';
 import {
   onAuthStateChanged,
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   /**
    * Método de Login integrado con Firebase
    */
-  const login = async (identifier, password, role) => {
+  const login = useCallback(async (identifier, password, role) => {
     if (role === 'Estudiante') {
       // Iniciar sesión de alumno usando la Cloud Function cf_loginStudent (devuelve customToken)
       const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
@@ -98,19 +98,19 @@ export const AuthProvider = ({ children }) => {
       // Logear tutores, staff o administradores con email y contraseña estándar en Firebase Auth
       return signInWithEmailAndPassword(auth, identifier, password);
     }
-  };
+  }, []);
 
   /**
    * Método de Logout
    */
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await signOut(auth);
-  };
+  }, []);
 
   /**
    * Método para cambiar contraseña y limpiar la bandera mustChangePassword
    */
-  const changePassword = async (newPassword) => {
+  const changePassword = useCallback(async (newPassword) => {
     if (!user) throw new Error("No hay un usuario autenticado.");
 
     const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
@@ -163,10 +163,19 @@ export const AuthProvider = ({ children }) => {
       parsed.mustChangePassword = false;
       localStorage.setItem('school_user', JSON.stringify(parsed));
     }
-  };
+  }, [user]);
+
+  const authContextValue = useMemo(() => ({
+    user,
+    login,
+    logout,
+    changePassword,
+    isLoggedIn: !!user,
+    loading
+  }), [user, login, logout, changePassword, loading]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, changePassword, isLoggedIn: !!user, loading }}>
+    <AuthContext.Provider value={authContextValue}>
       {!loading && children}
     </AuthContext.Provider>
   );
