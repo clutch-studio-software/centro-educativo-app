@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 
 const COURSES_OPTIONS = [
   '1º Año Secundario - Div. A',
@@ -99,12 +99,24 @@ const TeacherAssignmentsDrawerContent = ({
     });
   };
 
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    if (!el.open) el.showModal();
+    const handleCancel = (e) => {
+      e.preventDefault();
+      onClose();
+    };
+    el.addEventListener('cancel', handleCancel);
+    return () => el.removeEventListener('cancel', handleCancel);
+  }, [onClose]);
   return (
-    <div
+    <dialog
+      ref={dialogRef}
       aria-labelledby="slide-over-title"
-      aria-modal="true"
-      role="dialog"
-      className="fixed inset-0 z-50 overflow-hidden"
+      className="fixed inset-0 z-50 overflow-hidden bg-transparent p-0 max-w-none w-full h-full"
     >
       {/* Backdrop */}
       <div
@@ -123,7 +135,7 @@ const TeacherAssignmentsDrawerContent = ({
                 <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
                   Planificación Académica 2027
                 </span>
-                <h2 className="text-xl font-extrabold text-slate-900">
+                <h2 id="slide-over-title" className="text-xl font-extrabold text-slate-900">
                   {teacher.nombre}
                 </h2>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -361,7 +373,7 @@ const TeacherAssignmentsDrawerContent = ({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 

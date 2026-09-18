@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { isValidEmail, isValidPhone, isValidDni, formatDni, sanitizePhoneNumber } from '../../../utils/validators';
 
 import { TRATAMIENTOS_DOCENTE, ESTADOS_DOCENTE } from './teacherConstants';
@@ -89,12 +89,24 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
     }
   };
 
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    if (!el.open) el.showModal();
+    const handleCancel = (e) => {
+      e.preventDefault();
+      onClose();
+    };
+    el.addEventListener('cancel', handleCancel);
+    return () => el.removeEventListener('cancel', handleCancel);
+  }, [onClose]);
   return (
-    <div
-      aria-modal="true"
-      role="dialog"
+    <dialog
+      ref={dialogRef}
       aria-labelledby="edit-teacher-dialog-title"
-      className="fixed inset-0 z-50 overflow-hidden"
+      className="fixed inset-0 z-50 overflow-hidden bg-transparent p-0 max-w-none w-full h-full"
     >
       {/* Backdrop */}
       <div
@@ -312,7 +324,7 @@ const EditTeacherModalContent = ({ teacher, onClose, onSave }) => {
           </form>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 
