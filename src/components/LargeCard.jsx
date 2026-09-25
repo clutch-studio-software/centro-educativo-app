@@ -10,7 +10,7 @@ const LargeCard = ({ image, title, subtitle, label, buttonText, onClick }) => {
   };
 
   return (
-    <article
+    <div
       className="large-card"
       role="button"
       tabIndex={0}
@@ -45,7 +45,7 @@ const LargeCard = ({ image, title, subtitle, label, buttonText, onClick }) => {
           </button>
         )}
       </div>
-    </article>
+    </div>
   );
 };
 

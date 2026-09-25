@@ -41,7 +41,7 @@ const NewsCard = ({
   // 1. RENDER PARA NOTICIA DESTACADA (FEATURED)
   if (variant === 'featured') {
     return (
-      <article
+      <div
         role="button"
         tabIndex={0}
         onClick={handleCardClick}
@@ -103,13 +103,13 @@ const NewsCard = ({
             <Icon name="arrow_forward" className="text-sm font-bold" />
           </button>
         </div>
-      </article>
+      </div>
     );
   }
 
   // 2. RENDER PARA NOTICIA HORIZONTAL SECUNDARIA (SECONDARY)
   return (
-    <article
+    <div
       role="button"
       tabIndex={0}
       onClick={handleCardClick}
@@ -170,7 +170,7 @@ const NewsCard = ({
           <Icon name="chevron_right" className="text-[18px] font-bold" />
         </button>
       </div>
-    </article>
+    </div>
   );
 };
 
