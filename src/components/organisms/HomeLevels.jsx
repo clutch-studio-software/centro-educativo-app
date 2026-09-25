@@ -122,6 +122,18 @@ const HomeLevels = ({ onExploreLevels }) => {
         {/* 3. Nivel Secundario (col-span-3, h-[300px]) */}
         <div
           onClick={onExploreLevels}
+          onKeyDown={
+            onExploreLevels
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onExploreLevels(e);
+                  }
+                }
+              : undefined
+          }
+          role="button"
+          tabIndex={0}
           className="bg-primary rounded-[2rem] p-6 sm:p-8 relative overflow-hidden group shadow-[0_20px_40px_rgba(13,88,184,0.2)] hover:shadow-[0_20px_40px_rgba(13,88,184,0.35)] hover:-translate-y-1 transition-all md:col-span-3 min-h-[300px] md:h-[300px] cursor-pointer border border-primary/10"
         >
           <div className="absolute inset-0 z-0">
@@ -149,15 +161,11 @@ const HomeLevels = ({ onExploreLevels }) => {
                 Preparación pre-universitaria integral, enfoque en tecnología,
                 liderazgo y proyectos de impacto social comunitario.
               </p>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onExploreLevels();
-                }}
-                className="bg-white text-primary font-headline font-bold px-6 py-3 rounded-full hover:bg-slate-50 transition-all shrink-0 shadow-md hover:shadow-lg cursor-pointer"
+              <span
+                className="bg-white text-primary font-headline font-bold px-6 py-3 rounded-full hover:bg-slate-50 transition-all shrink-0 shadow-md hover:shadow-lg inline-flex items-center justify-center"
               >
                 Ver Orientaciones
-              </button>
+              </span>
             </div>
           </div>
         </div>

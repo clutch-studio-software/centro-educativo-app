@@ -229,16 +229,19 @@ const EditStudentModalContent = ({
   };
 
   return (
-    <div
-      data-testid="edit-student-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isSubmitting) onClose();
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
+      {/* Backdrop */}
+      <div
+        data-testid="edit-student-modal-overlay"
+        aria-hidden="true"
+        onClick={() => {
+          if (!isSubmitting) onClose();
+        }}
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      />
       <div
         data-testid="edit-student-modal"
-        className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 text-left"
+        className="relative z-10 w-full max-w-3xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 text-left"
       >
         {/* Modal Header */}
         <div className="px-6 py-4 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0">

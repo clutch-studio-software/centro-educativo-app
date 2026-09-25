@@ -108,16 +108,17 @@ const StudentDetailsModal = ({
   };
 
   return (
-    <div
-      data-testid="student-details-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
+      {/* Backdrop */}
+      <div
+        data-testid="student-details-modal-overlay"
+        aria-hidden="true"
+        onClick={onClose}
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      />
       <div
         data-testid="student-details-modal-content"
-        className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-left animate-in zoom-in-95 duration-200"
+        className="relative z-10 bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-left animate-in zoom-in-95 duration-200"
       >
         {/* Header con Perfil Principal */}
         <div className="p-5 sm:p-6 border-b border-slate-100 bg-gradient-to-b from-slate-50/70 to-white flex items-start justify-between gap-4 shrink-0">
