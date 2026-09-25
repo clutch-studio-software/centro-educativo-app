@@ -559,6 +559,8 @@ const StudentsManagement = () => {
               </span>
               <span>{notification.message}</span>
               <button
+                type="button"
+                aria-label="Cerrar notificación"
                 data-testid="admin-notification-toast-close"
                 onClick={() => setNotification(null)}
                 className="ml-2 text-white/70 hover:text-white cursor-pointer border-none bg-transparent"

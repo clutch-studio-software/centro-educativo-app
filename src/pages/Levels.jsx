@@ -285,6 +285,8 @@ const Levels = () => {
           <div className="bg-white/95 dark:bg-slate-900/95 max-w-md w-full rounded-[2.5rem] p-8 border border-slate-200 shadow-2xl relative text-left animate-in zoom-in-95 duration-300">
             
             <button 
+              type="button"
+              aria-label="Cerrar modal"
               onClick={() => setIsModalOpen(false)}
               className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer border-none outline-none"
             >

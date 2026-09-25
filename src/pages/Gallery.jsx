@@ -169,6 +169,8 @@ const Gallery = () => {
             
             {/* Botón cerrar */}
             <button 
+              type="button"
+              aria-label="Cerrar modal"
               onClick={() => setIsModalOpen(false)}
               className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer"
             >
@@ -332,6 +334,8 @@ const Gallery = () => {
               {carouselImages.map((img, i) => (
                 <button
                   key={img.id || img.url}
+                  type="button"
+                  aria-label={img.title ? `Ver imagen ${i + 1}: ${img.title}` : `Ver imagen ${i + 1}`}
                   onClick={() => setCarouselIndex(i)}
                   className={`relative flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                     i === carouselIndex ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent opacity-40 hover:opacity-75'

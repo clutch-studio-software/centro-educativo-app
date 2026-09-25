@@ -484,6 +484,7 @@ const News = () => {
               </h3>
               <button
                 type="button"
+                aria-label="Cerrar modal"
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 transition-colors border-none bg-transparent cursor-pointer"
               >

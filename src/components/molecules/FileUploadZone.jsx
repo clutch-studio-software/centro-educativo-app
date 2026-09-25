@@ -157,6 +157,7 @@ const FileUploadZone = ({
             </div>
             <button
               type="button"
+              aria-label="Eliminar archivo"
               onClick={(e) => {
                 e.stopPropagation();
                 onFileRemove();
