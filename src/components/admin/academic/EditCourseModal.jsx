@@ -49,8 +49,9 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
       <div>
-        <label className="block font-semibold text-slate-700 mb-1.5">Nombre de la División</label>
+        <label htmlFor="edit-course-nombre" className="block font-semibold text-slate-700 mb-1.5">Nombre de la División</label>
         <input
+          id="edit-course-nombre"
           type="text"
           name="nombre"
           value={formData.nombre}
@@ -62,8 +63,9 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block font-semibold text-slate-700 mb-1.5">Turno / Horario</label>
+          <label htmlFor="edit-course-turno" className="block font-semibold text-slate-700 mb-1.5">Turno / Horario</label>
           <input
+            id="edit-course-turno"
             type="text"
             name="turno"
             value={formData.turno}
@@ -73,8 +75,9 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
         </div>
 
         <div>
-          <label className="block font-semibold text-slate-700 mb-1.5">Aula Asignada</label>
+          <label htmlFor="edit-course-aula" className="block font-semibold text-slate-700 mb-1.5">Aula Asignada</label>
           <input
+            id="edit-course-aula"
             type="text"
             name="aula"
             value={formData.aula}
@@ -86,8 +89,9 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block font-semibold text-slate-700 mb-1.5">Alumnos Inscriptos</label>
+          <label htmlFor="edit-course-cupoOcupado" className="block font-semibold text-slate-700 mb-1.5">Alumnos Inscriptos</label>
           <input
+            id="edit-course-cupoOcupado"
             type="number"
             name="cupoOcupado"
             min="0"
@@ -99,8 +103,9 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
         </div>
 
         <div>
-          <label className="block font-semibold text-slate-700 mb-1.5">Cupo Máximo</label>
+          <label htmlFor="edit-course-cupoMax" className="block font-semibold text-slate-700 mb-1.5">Cupo Máximo</label>
           <input
+            id="edit-course-cupoMax"
             type="number"
             name="cupoMax"
             min="1"
@@ -112,10 +117,11 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
       </div>
 
       <div>
-        <label className="block font-semibold text-slate-700 mb-1.5">
+        <label htmlFor="edit-course-docente-preceptor" className="block font-semibold text-slate-700 mb-1.5">
           {course.nivelId === 'secundario' ? 'Preceptor Asignado' : 'Docente Titular'}
         </label>
         <select
+          id="edit-course-docente-preceptor"
           name={course.nivelId === 'secundario' ? 'preceptor' : 'docenteTitular'}
           value={course.nivelId === 'secundario' ? formData.preceptor : formData.docenteTitular}
           onChange={handleChange}
@@ -137,6 +143,7 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
           <p className="text-[11px] text-slate-400">Permite inscripciones y asignación curricular activa.</p>
         </div>
         <label className="relative inline-flex items-center cursor-pointer">
+          <span className="sr-only">Estado de la División</span>
           <input
             type="checkbox"
             name="activo"

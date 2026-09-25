@@ -104,8 +104,9 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
 
           {/* Nivel Pedagógico */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1.5">Nivel Pedagógico</label>
+            <label htmlFor="new-course-nivelId" className="block font-semibold text-slate-700 mb-1.5">Nivel Pedagógico</label>
             <select
+              id="new-course-nivelId"
               name="nivelId"
               value={formData.nivelId}
               onChange={handleChange}
@@ -121,10 +122,11 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
 
           {/* Nombre del Curso */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="new-course-nombre" className="block font-semibold text-slate-700 mb-1.5">
               Nombre de la Sala / Grado / Curso
             </label>
             <input
+              id="new-course-nombre"
               type="text"
               name="nombre"
               value={formData.nombre}
@@ -137,10 +139,11 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
           {/* Orientación si es secundario */}
           {formData.nivelId === 'secundario' && (
             <div>
-              <label className="block font-semibold text-slate-700 mb-1.5">
+              <label htmlFor="new-course-orientacion" className="block font-semibold text-slate-700 mb-1.5">
                 Orientación o Modalidad (opcional)
               </label>
               <input
+                id="new-course-orientacion"
                 type="text"
                 name="orientacion"
                 value={formData.orientacion}
@@ -154,8 +157,9 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
           {/* Turno y Aula en grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1.5">Turno / Jornada</label>
+              <label htmlFor="new-course-turno" className="block font-semibold text-slate-700 mb-1.5">Turno / Jornada</label>
               <select
+                id="new-course-turno"
                 name="turno"
                 value={formData.turno}
                 onChange={handleChange}
@@ -170,8 +174,9 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1.5">Aula / Espacio</label>
+              <label htmlFor="new-course-aula" className="block font-semibold text-slate-700 mb-1.5">Aula / Espacio</label>
               <input
+                id="new-course-aula"
                 type="text"
                 name="aula"
                 value={formData.aula}
@@ -185,8 +190,9 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
           {/* Cupo Máximo y Docente/Preceptor */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1.5">Cupo Máximo</label>
+              <label htmlFor="new-course-cupoMax" className="block font-semibold text-slate-700 mb-1.5">Cupo Máximo</label>
               <input
+                id="new-course-cupoMax"
                 type="number"
                 name="cupoMax"
                 min="5"
@@ -198,10 +204,11 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1.5">
+              <label htmlFor="new-course-docente-preceptor" className="block font-semibold text-slate-700 mb-1.5">
                 {formData.nivelId === 'secundario' ? 'Preceptor Asignado' : 'Docente Titular'}
               </label>
               <select
+                id="new-course-docente-preceptor"
                 name={formData.nivelId === 'secundario' ? 'preceptor' : 'docenteTitular'}
                 value={formData.nivelId === 'secundario' ? formData.preceptor : formData.docenteTitular}
                 onChange={handleChange}

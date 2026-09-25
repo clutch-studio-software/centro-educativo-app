@@ -45,6 +45,7 @@ const CourseCard = ({
             </div>
             {/* Switch Status */}
             <label className="relative inline-flex items-center cursor-pointer" title={activo ? 'Pausar curso' : 'Activar curso'}>
+              <span className="sr-only">{activo ? 'Pausar curso' : 'Activar curso'}</span>
               <input
                 type="checkbox"
                 checked={activo}
@@ -115,6 +116,7 @@ const CourseCard = ({
               <p className="text-xs text-slate-400 mt-0.5">{turno}</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer" title={activo ? 'Pausar curso' : 'Activar curso'}>
+              <span className="sr-only">{activo ? 'Pausar curso' : 'Activar curso'}</span>
               <input
                 type="checkbox"
                 checked={activo}

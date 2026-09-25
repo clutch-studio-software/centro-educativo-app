@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useEffectEvent } from 'react';
 import { isValidEmail, isValidPhone, isValidDni, formatDni, sanitizePhoneNumber } from '../../../utils/validators';
 
 import { TRATAMIENTOS_DOCENTE, ESTADOS_DOCENTE } from './teacherConstants';
@@ -18,6 +18,24 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const dialogRef = useRef(null);
+
+  const onCancel = useEffectEvent(() => {
+    onClose();
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = dialogRef.current;
+    if (!el) return;
+    if (!el.open) el.showModal();
+    const handleCancel = (e) => {
+      e.preventDefault();
+      onCancel();
+    };
+    el.addEventListener('cancel', handleCancel);
+    return () => el.removeEventListener('cancel', handleCancel);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -100,11 +118,10 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
   };
 
   return (
-    <div
-      aria-modal="true"
-      role="dialog"
+    <dialog
+      ref={dialogRef}
       aria-labelledby="new-teacher-dialog-title"
-      className="fixed inset-0 z-50 overflow-hidden"
+      className="fixed inset-0 z-50 overflow-hidden bg-transparent p-0 max-w-none w-full h-full"
     >
       {/* Backdrop */}
       <div
@@ -332,7 +349,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
           </form>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 

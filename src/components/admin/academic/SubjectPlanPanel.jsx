@@ -165,6 +165,7 @@ const SubjectPlanPanel = ({
                         className="relative inline-flex items-center cursor-pointer"
                         title={dictadoActivo ? 'Pausar dictado' : 'Activar dictado'}
                       >
+                        <span className="sr-only">{dictadoActivo ? 'Pausar dictado' : 'Activar dictado'}</span>
                         <input
                           type="checkbox"
                           checked={dictadoActivo}

@@ -71,10 +71,11 @@ const ReassignTeacherModal = ({ isOpen, onClose, onSave, subject, teachers = [] 
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="reassign-teacher-select" className="block font-semibold text-slate-700 mb-1.5">
               Nuevo Docente / Profesor Responsable
             </label>
             <select
+              id="reassign-teacher-select"
               value={selectedTeacherId}
               onChange={(e) => setSelectedTeacherId(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"

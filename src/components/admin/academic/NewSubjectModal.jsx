@@ -87,8 +87,9 @@ const NewSubjectModal = ({ isOpen, onClose, onSave, courses = [], teachers = [],
           )}
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1.5">Curso Destino</label>
+            <label htmlFor="new-subject-cursoId" className="block font-semibold text-slate-700 mb-1.5">Curso Destino</label>
             <select
+              id="new-subject-cursoId"
               name="cursoId"
               value={formData.cursoId}
               onChange={handleChange}
@@ -103,10 +104,11 @@ const NewSubjectModal = ({ isOpen, onClose, onSave, courses = [], teachers = [],
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="new-subject-nombre" className="block font-semibold text-slate-700 mb-1.5">
               Nombre de la Materia / Espacio Curricular
             </label>
             <input
+              id="new-subject-nombre"
               type="text"
               name="nombre"
               value={formData.nombre}
@@ -117,8 +119,9 @@ const NewSubjectModal = ({ isOpen, onClose, onSave, courses = [], teachers = [],
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1.5">Carga Horaria Semanal</label>
+            <label htmlFor="new-subject-cargaHoraria" className="block font-semibold text-slate-700 mb-1.5">Carga Horaria Semanal</label>
             <select
+              id="new-subject-cargaHoraria"
               name="cargaHoraria"
               value={formData.cargaHoraria}
               onChange={handleChange}
@@ -134,10 +137,11 @@ const NewSubjectModal = ({ isOpen, onClose, onSave, courses = [], teachers = [],
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="new-subject-profesorId" className="block font-semibold text-slate-700 mb-1.5">
               Docente / Profesor Responsable
             </label>
             <select
+              id="new-subject-profesorId"
               name="profesorId"
               value={formData.profesorId}
               onChange={handleChange}
