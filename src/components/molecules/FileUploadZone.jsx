@@ -111,67 +111,63 @@ const FileUploadZone = ({
         className="hidden"
       />
 
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleZoneClick}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleZoneClick();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-        className={`w-full border-2 border-dashed ${
-          isDragging 
-            ? 'border-primary bg-primary/5' 
-            : error 
-              ? 'border-red-500 bg-red-50/10' 
-              : 'border-outline-variant/50 bg-surface-container-high/50 hover:bg-surface-container-high'
-        } rounded-xl p-8 flex flex-col items-center justify-center gap-4 transition-all duration-300 cursor-pointer group`}
-      >
-        {!file ? (
-          <>
-            <Icon 
-              name="cloud_upload" 
-              className={`text-4xl ${error ? 'text-red-400 group-hover:text-red-500' : 'text-outline group-hover:text-primary'} transition-colors duration-300`} 
-            />
-            <div className="text-center">
-              <p className="font-body font-bold text-on-surface">{label}</p>
-              <p className="font-body text-sm text-on-surface-variant">{`${subLabel} (Max ${maxSizeInMB}MB)`}</p>
-            </div>
-          </>
-        ) : (
-          <div 
-            className="flex items-center gap-4 w-full max-w-md bg-white border border-slate-200 rounded-xl p-4 shadow-md animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()} // Prevenir abrir el explorador al hacer clic dentro de la tarjeta de archivo cargado
-          >
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600 flex-shrink-0">
-              <Icon name="picture_as_pdf" filled={true} className="text-2xl" />
-            </div>
-            <div className="flex-grow min-w-0 text-left">
-              <p className="font-body font-bold text-on-surface text-sm truncate">{file.name}</p>
-              <p className="font-body text-xs text-on-surface-variant">{formatBytes(file.size)}</p>
-            </div>
-            <button
-              type="button"
-              aria-label="Eliminar archivo"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFileRemove();
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = '';
-                }
-              }}
-              className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <Icon name="close" className="text-lg" />
-            </button>
+      {!file ? (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={handleZoneClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleZoneClick();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          className={`w-full border-2 border-dashed ${
+            isDragging 
+              ? 'border-primary bg-primary/5' 
+              : error 
+                ? 'border-red-500 bg-red-50/10' 
+                : 'border-outline-variant/50 bg-surface-container-high/50 hover:bg-surface-container-high'
+          } rounded-xl p-8 flex flex-col items-center justify-center gap-4 transition-all duration-300 cursor-pointer group`}
+        >
+          <Icon 
+            name="cloud_upload" 
+            className={`text-4xl ${error ? 'text-red-400 group-hover:text-red-500' : 'text-outline group-hover:text-primary'} transition-colors duration-300`} 
+          />
+          <div className="text-center">
+            <p className="font-body font-bold text-on-surface">{label}</p>
+            <p className="font-body text-sm text-on-surface-variant">{`${subLabel} (Max ${maxSizeInMB}MB)`}</p>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div 
+          className="flex items-center gap-4 w-full max-w-md bg-white border border-slate-200 rounded-xl p-4 shadow-md animate-in fade-in zoom-in-95 duration-200 mx-auto"
+        >
+          <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600 flex-shrink-0">
+            <Icon name="picture_as_pdf" filled={true} className="text-2xl" />
+          </div>
+          <div className="flex-grow min-w-0 text-left">
+            <p className="font-body font-bold text-on-surface text-sm truncate">{file.name}</p>
+            <p className="font-body text-xs text-on-surface-variant">{formatBytes(file.size)}</p>
+          </div>
+          <button
+            type="button"
+            aria-label="Eliminar archivo"
+            onClick={() => {
+              onFileRemove();
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <Icon name="close" className="text-lg" />
+          </button>
+        </div>
+      )}
       {error && <span className="text-xs text-red-500 font-semibold text-left">{error}</span>}
     </div>
   );

@@ -33,16 +33,10 @@ const LargeCard = ({ image, title, subtitle, label, buttonText, onClick }) => {
         {subtitle && <p className="large-card-subtitle">{subtitle}</p>}
 
         {buttonText && (
-          <button
-            className="large-card-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onClick) onClick();
-            }}
-          >
+          <span className="large-card-button">
             {buttonText}{' '}
             <span className="material-symbols-outlined icon">→</span>
-          </button>
+          </span>
         )}
       </div>
     </div>
