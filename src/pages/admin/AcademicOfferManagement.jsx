@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import AdminToast from '../../components/admin/AdminToast';
 import LevelSection from '../../components/admin/academic/LevelSection';
 import SubjectPlanPanel from '../../components/admin/academic/SubjectPlanPanel';
 import NewCourseModal from '../../components/admin/academic/NewCourseModal';
@@ -127,35 +128,7 @@ const AcademicOfferManagement = () => {
     <AdminLayout activeItem="oferta-academica" breadcrumbs={['Oferta Académica']}>
       <div className="flex flex-col w-full gap-6">
         {/* Floating Toast Notification */}
-        {notification && (
-          <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-4 duration-300">
-            <div
-              className={`flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl text-xs font-bold ${
-                notification.type === 'success'
-                  ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                  : notification.type === 'error'
-                  ? 'bg-red-600 text-white shadow-red-600/30'
-                  : 'bg-slate-900 text-white shadow-slate-900/30'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">
-                {notification.type === 'success'
-                  ? 'check_circle'
-                  : notification.type === 'error'
-                  ? 'error'
-                  : 'info'}
-              </span>
-              <span>{notification.message}</span>
-              <button
-                type="button"
-                onClick={() => setNotification(null)}
-                className="ml-2 text-white/70 hover:text-white cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[14px]">close</span>
-              </button>
-            </div>
-          </div>
-        )}
+        <AdminToast notification={notification} onClose={() => setNotification(null)} />
 
         {/* Top Title & Action Hub */}
         <section className="mb-2" data-purpose="section-header">

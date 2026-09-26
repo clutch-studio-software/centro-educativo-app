@@ -46,6 +46,69 @@ const ROLES_INFO = {
   },
 };
 
+const getActiveRoleKey = (role) => {
+  if (role === 'user_admin') return 'Administrador';
+  if (role === 'Staff' || role === 'Administrativo') return 'Staff';
+  if (role === 'Padre' || role === 'Padre/Tutor') return 'Padre/Tutor';
+  return 'Estudiante';
+};
+
+const LoggedInView = ({ user, onLogout }) => {
+  const activeRoleKey = getActiveRoleKey(user.role);
+  const currentRole = ROLES_INFO[activeRoleKey];
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-body">
+      <Navbar />
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-8 md:p-16">
+        <div className="w-full max-w-2xl bg-white rounded-xl shadow-[0px_20px_40px_rgba(35,44,81,0.06)] border border-slate-100 p-8 sm:p-12 text-center transition-all duration-300 hover:shadow-[0px_25px_50px_rgba(35,44,81,0.1)]">
+          <div className="mb-6 flex justify-center">
+            <div className="h-20 w-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 animate-bounce">
+              <span
+                className="material-symbols-outlined text-4xl"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                {currentRole?.icon || 'verified_user'}
+              </span>
+            </div>
+          </div>
+
+          <h1 className="font-headline font-bold text-2xl sm:text-3xl text-slate-800 tracking-tight mb-4">
+            HOLA {currentRole?.displayLabel || user.role.toUpperCase()},
+            TIENES ESTOS PERMISOS:
+          </h1>
+
+          <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 sm:p-8 my-6 text-left max-w-md mx-auto">
+            <ul className="space-y-4">
+              {currentRole?.permissions.map((permission) => (
+                <li
+                  key={permission}
+                  className="flex items-center gap-3 text-slate-700 text-base font-medium"
+                >
+                  <span
+                    className="material-symbols-outlined text-orange-600 font-bold bg-orange-100 rounded-full p-1 text-sm"
+                    style={{ fontVariationSettings: "'FILL' 1" }}
+                  >
+                    check
+                  </span>
+                  {permission}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <button
+            onClick={onLogout}
+            className="mt-4 px-8 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold font-label rounded-full transition-all duration-200 border border-slate-200 hover:scale-[1.02] active:scale-95 shadow-sm cursor-pointer"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+};
+
 const Login = () => {
   const navigate = useNavigate();
   const { user, login, logout, isLoggedIn } = useAuth();
@@ -112,69 +175,7 @@ const Login = () => {
 
   // Logged-in screen (Simulated Firebase Auth View)
   if (isLoggedIn && user) {
-    // Determine the role for the logged-in user (mapping claims to ROLES_INFO)
-    let activeRoleKey = 'Estudiante';
-    if (user.role === 'user_admin') {
-      activeRoleKey = 'Administrador';
-    } else if (user.role === 'Staff' || user.role === 'Administrativo') {
-      activeRoleKey = 'Staff';
-    } else if (user.role === 'Padre' || user.role === 'Padre/Tutor') {
-      activeRoleKey = 'Padre/Tutor';
-    } else if (user.role === 'Estudiante') {
-      activeRoleKey = 'Estudiante';
-    }
-    const currentRole = ROLES_INFO[activeRoleKey];
-
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col font-body">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center p-4 sm:p-8 md:p-16">
-          <div className="w-full max-w-2xl bg-white rounded-xl shadow-[0px_20px_40px_rgba(35,44,81,0.06)] border border-slate-100 p-8 sm:p-12 text-center transition-all duration-300 hover:shadow-[0px_25px_50px_rgba(35,44,81,0.1)]">
-            <div className="mb-6 flex justify-center">
-              <div className="h-20 w-20 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 animate-bounce">
-                <span
-                  className="material-symbols-outlined text-4xl"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  {currentRole?.icon || 'verified_user'}
-                </span>
-              </div>
-            </div>
-
-            <h1 className="font-headline font-bold text-2xl sm:text-3xl text-slate-800 tracking-tight mb-4">
-              HOLA {currentRole?.displayLabel || user.role.toUpperCase()},
-              TIENES ESTOS PERMISOS:
-            </h1>
-
-            <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 sm:p-8 my-6 text-left max-w-md mx-auto">
-              <ul className="space-y-4">
-                {currentRole?.permissions.map((permission) => (
-                  <li
-                    key={permission}
-                    className="flex items-center gap-3 text-slate-700 text-base font-medium"
-                  >
-                    <span
-                      className="material-symbols-outlined text-orange-600 font-bold bg-orange-100 rounded-full p-1 text-sm"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      check
-                    </span>
-                    {permission}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="mt-4 px-8 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold font-label rounded-full transition-all duration-200 border border-slate-200 hover:scale-[1.02] active:scale-95 shadow-sm cursor-pointer"
-            >
-              Cerrar Sesión
-            </button>
-          </div>
-        </main>
-      </div>
-    );
+    return <LoggedInView user={user} onLogout={handleLogout} />;
   }
 
   // Login Form Screen (based on design mock)

@@ -1,7 +1,176 @@
 import React, { useState, useRef, useEffect, useEffectEvent } from 'react';
-import { isValidEmail, isValidPhone, isValidDni, formatDni, sanitizePhoneNumber } from '../../../utils/validators';
+import { formatDni, sanitizePhoneNumber } from '../../../utils/validators';
 
-import { TRATAMIENTOS_DOCENTE, ESTADOS_DOCENTE } from './teacherConstants';
+import { TRATAMIENTOS_DOCENTE, ESTADOS_DOCENTE, validateTeacherForm } from './teacherConstants';
+
+const NewTeacherIdentityFields = ({ formData, errors, onChange }) => (
+  <>
+    {/* Tratamiento / Prefijo */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="new-teacher-tratamiento" className="text-xs font-bold text-slate-700">
+        Tratamiento / Título
+      </label>
+      <select
+        id="new-teacher-tratamiento"
+        name="tratamiento"
+        value={formData.tratamiento}
+        onChange={onChange}
+        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500/40 cursor-pointer"
+      >
+        {TRATAMIENTOS_DOCENTE.map((t) => (
+          <option key={t.value} value={t.value}>
+            {t.label}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* Nombre */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="new-teacher-nombre" className="text-xs font-bold text-slate-700">Nombre *</label>
+      <input
+        id="new-teacher-nombre"
+        type="text"
+        name="nombre"
+        value={formData.nombre}
+        onChange={onChange}
+        placeholder="ej. Patricia"
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
+        }`}
+      />
+      {errors.nombre && <span className="text-[11px] text-red-500 font-medium px-2">{errors.nombre}</span>}
+    </div>
+
+    {/* Apellido */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="new-teacher-apellido" className="text-xs font-bold text-slate-700">Apellido *</label>
+      <input
+        id="new-teacher-apellido"
+        type="text"
+        name="apellido"
+        value={formData.apellido}
+        onChange={onChange}
+        placeholder="ej. Benítez"
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
+        }`}
+      />
+      {errors.apellido && <span className="text-[11px] text-red-500 font-medium px-2">{errors.apellido}</span>}
+    </div>
+
+    {/* DNI */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="new-teacher-dni" className="text-xs font-bold text-slate-700">Documento Nacional (DNI) *</label>
+      <input
+        id="new-teacher-dni"
+        type="text"
+        name="dni"
+        value={formData.dni}
+        onChange={onChange}
+        placeholder="ej. 34.200.119"
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
+        }`}
+      />
+      {errors.dni && <span className="text-[11px] text-red-500 font-medium px-2">{errors.dni}</span>}
+    </div>
+
+    {/* Estado */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="new-teacher-estado" className="text-xs font-bold text-slate-700">Estado de Contratación *</label>
+      <select
+        id="new-teacher-estado"
+        name="estado"
+        value={formData.estado}
+        onChange={onChange}
+        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500/40"
+      >
+        {ESTADOS_DOCENTE.map((est) => (
+          <option key={est} value={est}>
+            {est}
+          </option>
+        ))}
+      </select>
+    </div>
+  </>
+);
+
+const NewTeacherProfessionalFields = ({ formData, errors, onChange }) => (
+  <>
+    {/* Especialidad (texto libre) */}
+    <div className="flex flex-col gap-1.5 sm:col-span-2">
+      <label htmlFor="new-teacher-especialidad" className="text-xs font-bold text-slate-700">Especialidad Académica (Texto libre) *</label>
+      <input
+        id="new-teacher-especialidad"
+        type="text"
+        name="especialidad"
+        value={formData.especialidad}
+        onChange={onChange}
+        placeholder="ej. Ciencias Biológicas, Robótica Educativa, Matemática Superior"
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.especialidad ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
+        }`}
+      />
+      {errors.especialidad && <span className="text-[11px] text-red-500 font-medium px-2">{errors.especialidad}</span>}
+    </div>
+
+    {/* Título Universitario / Pedagógico */}
+    <div className="flex flex-col gap-1.5 sm:col-span-2">
+      <label htmlFor="new-teacher-titulacion" className="text-xs font-bold text-slate-700">Título Universitario / Pedagógico *</label>
+      <input
+        id="new-teacher-titulacion"
+        type="text"
+        name="titulacion"
+        value={formData.titulacion}
+        onChange={onChange}
+        placeholder="ej. Licenciada en Ciencias Biológicas & Máster en Docencia"
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.titulacion ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
+        }`}
+      />
+      {errors.titulacion && <span className="text-[11px] text-red-500 font-medium px-2">{errors.titulacion}</span>}
+    </div>
+  </>
+);
+
+const NewTeacherContactFields = ({ formData, errors, onChange }) => (
+  <>
+    {/* Email */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="new-teacher-email" className="text-xs font-bold text-slate-700">Correo Electrónico Institucional *</label>
+      <input
+        id="new-teacher-email"
+        type="email"
+        name="email"
+        value={formData.email}
+        onChange={onChange}
+        placeholder="p.benitez@educar.edu.ar"
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
+        }`}
+      />
+      {errors.email && <span className="text-[11px] text-red-500 font-medium px-2">{errors.email}</span>}
+    </div>
+
+    {/* Teléfono */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="new-teacher-telefono" className="text-xs font-bold text-slate-700">Teléfono de Contacto *</label>
+      <input
+        id="new-teacher-telefono"
+        type="tel"
+        name="telefono"
+        value={formData.telefono}
+        onChange={onChange}
+        placeholder="3624891120 (10 u 11 dígitos)"
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.telefono ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
+        }`}
+      />
+      {errors.telefono && <span className="text-[11px] text-red-500 font-medium px-2">{errors.telefono}</span>}
+    </div>
+  </>
+);
 
 const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -55,36 +224,7 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
   };
 
   const validate = () => {
-    const newErrors = {};
-    if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es obligatorio.';
-    if (!formData.apellido.trim()) newErrors.apellido = 'El apellido es obligatorio.';
-
-    if (!formData.dni.trim()) {
-      newErrors.dni = 'El DNI es obligatorio.';
-    } else if (!isValidDni(formData.dni)) {
-      newErrors.dni = 'El DNI debe tener entre 7 y 9 dígitos.';
-    }
-
-    if (!formData.titulacion.trim()) {
-      newErrors.titulacion = 'El título universitario / pedagógico es obligatorio.';
-    }
-
-    if (!formData.especialidad.trim()) {
-      newErrors.especialidad = 'La especialidad es obligatoria.';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'El correo electrónico es obligatorio.';
-    } else if (!isValidEmail(formData.email)) {
-      newErrors.email = 'Ingresa un correo electrónico válido.';
-    }
-
-    if (!formData.telefono.trim()) {
-      newErrors.telefono = 'El teléfono es obligatorio.';
-    } else if (!isValidPhone(formData.telefono)) {
-      newErrors.telefono = 'El teléfono debe contener entre 10 y 11 dígitos numéricos.';
-    }
-
+    const newErrors = validateTeacherForm(formData, 'El teléfono debe contener entre 10 y 11 dígitos numéricos.');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -170,162 +310,9 @@ const NewTeacherModal = ({ isOpen, onClose, onSubmit }) => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Tratamiento / Prefijo */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-teacher-tratamiento" className="text-xs font-bold text-slate-700">
-                  Tratamiento / Título
-                </label>
-                <select
-                  id="new-teacher-tratamiento"
-                  name="tratamiento"
-                  value={formData.tratamiento}
-                  onChange={handleChange}
-                  className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500/40 cursor-pointer"
-                >
-                  {TRATAMIENTOS_DOCENTE.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Nombre */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-teacher-nombre" className="text-xs font-bold text-slate-700">Nombre *</label>
-                <input
-                  id="new-teacher-nombre"
-                  type="text"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleChange}
-                  placeholder="ej. Patricia"
-                  className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                    errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
-                  }`}
-                />
-                {errors.nombre && <span className="text-[11px] text-red-500 font-medium px-2">{errors.nombre}</span>}
-              </div>
-
-              {/* Apellido */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-teacher-apellido" className="text-xs font-bold text-slate-700">Apellido *</label>
-                <input
-                  id="new-teacher-apellido"
-                  type="text"
-                  name="apellido"
-                  value={formData.apellido}
-                  onChange={handleChange}
-                  placeholder="ej. Benítez"
-                  className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                    errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
-                  }`}
-                />
-                {errors.apellido && <span className="text-[11px] text-red-500 font-medium px-2">{errors.apellido}</span>}
-              </div>
-
-              {/* DNI */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-teacher-dni" className="text-xs font-bold text-slate-700">Documento Nacional (DNI) *</label>
-                <input
-                  id="new-teacher-dni"
-                  type="text"
-                  name="dni"
-                  value={formData.dni}
-                  onChange={handleChange}
-                  placeholder="ej. 34.200.119"
-                  className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                    errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
-                  }`}
-                />
-                {errors.dni && <span className="text-[11px] text-red-500 font-medium px-2">{errors.dni}</span>}
-              </div>
-
-              {/* Estado */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-teacher-estado" className="text-xs font-bold text-slate-700">Estado de Contratación *</label>
-                <select
-                  id="new-teacher-estado"
-                  name="estado"
-                  value={formData.estado}
-                  onChange={handleChange}
-                  className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500/40"
-                >
-                  {ESTADOS_DOCENTE.map((est) => (
-                    <option key={est} value={est}>
-                      {est}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Especialidad (texto libre) */}
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label htmlFor="new-teacher-especialidad" className="text-xs font-bold text-slate-700">Especialidad Académica (Texto libre) *</label>
-                <input
-                  id="new-teacher-especialidad"
-                  type="text"
-                  name="especialidad"
-                  value={formData.especialidad}
-                  onChange={handleChange}
-                  placeholder="ej. Ciencias Biológicas, Robótica Educativa, Matemática Superior"
-                  className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                    errors.especialidad ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
-                  }`}
-                />
-                {errors.especialidad && <span className="text-[11px] text-red-500 font-medium px-2">{errors.especialidad}</span>}
-              </div>
-
-              {/* Título Universitario / Pedagógico */}
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label htmlFor="new-teacher-titulacion" className="text-xs font-bold text-slate-700">Título Universitario / Pedagógico *</label>
-                <input
-                  id="new-teacher-titulacion"
-                  type="text"
-                  name="titulacion"
-                  value={formData.titulacion}
-                  onChange={handleChange}
-                  placeholder="ej. Licenciada en Ciencias Biológicas & Máster en Docencia"
-                  className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                    errors.titulacion ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
-                  }`}
-                />
-                {errors.titulacion && <span className="text-[11px] text-red-500 font-medium px-2">{errors.titulacion}</span>}
-              </div>
-
-              {/* Email */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-teacher-email" className="text-xs font-bold text-slate-700">Correo Electrónico Institucional *</label>
-                <input
-                  id="new-teacher-email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="p.benitez@educar.edu.ar"
-                  className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                    errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
-                  }`}
-                />
-                {errors.email && <span className="text-[11px] text-red-500 font-medium px-2">{errors.email}</span>}
-              </div>
-
-              {/* Teléfono */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-teacher-telefono" className="text-xs font-bold text-slate-700">Teléfono de Contacto *</label>
-                <input
-                  id="new-teacher-telefono"
-                  type="tel"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleChange}
-                  placeholder="3624000000 (10 u 11 dígitos)"
-                  className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                    errors.telefono ? 'border-red-500' : 'border-slate-200 focus:border-blue-500/40'
-                  }`}
-                />
-                {errors.telefono && <span className="text-[11px] text-red-500 font-medium px-2">{errors.telefono}</span>}
-              </div>
+              <NewTeacherIdentityFields formData={formData} errors={errors} onChange={handleChange} />
+              <NewTeacherProfessionalFields formData={formData} errors={errors} onChange={handleChange} />
+              <NewTeacherContactFields formData={formData} errors={errors} onChange={handleChange} />
             </div>
 
             {/* Footer Buttons */}
