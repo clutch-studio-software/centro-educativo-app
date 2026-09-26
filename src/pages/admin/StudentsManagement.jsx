@@ -241,7 +241,7 @@ const useAdminAuthCheck = (navigate) => {
   }, [navigate]);
 };
 
-const StudentsMetricsGrid = ({ institutionMetrics }) => (
+const StudentsMetricsGrid = ({ institutionMetrics, isLoading = false }) => (
   <div data-testid="students-metrics-grid" className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
     <AdminStatCard
       testId="stat-card-matricula-total"
@@ -254,6 +254,7 @@ const StudentsMetricsGrid = ({ institutionMetrics }) => (
       borderColor="border-lime-100"
       iconGradient="from-lime-100 to-emerald-100"
       iconColor="text-emerald-700"
+      isLoading={isLoading}
     />
     <AdminStatCard
       testId="stat-card-nivel-inicial"
@@ -265,6 +266,7 @@ const StudentsMetricsGrid = ({ institutionMetrics }) => (
       borderColor="border-orange-100"
       iconGradient="from-amber-100 to-orange-100"
       iconColor="text-orange-600"
+      isLoading={isLoading}
     />
     <AdminStatCard
       testId="stat-card-nivel-primario"
@@ -276,6 +278,7 @@ const StudentsMetricsGrid = ({ institutionMetrics }) => (
       borderColor="border-blue-100"
       iconGradient="from-sky-100 to-blue-100"
       iconColor="text-blue-600"
+      isLoading={isLoading}
     />
     <AdminStatCard
       testId="stat-card-nivel-secundario"
@@ -287,6 +290,7 @@ const StudentsMetricsGrid = ({ institutionMetrics }) => (
       borderColor="border-purple-100"
       iconGradient="from-purple-100 to-indigo-100"
       iconColor="text-purple-600"
+      isLoading={isLoading}
     />
     <AdminStatCard
       testId="stat-card-regulares-activos"
@@ -298,6 +302,7 @@ const StudentsMetricsGrid = ({ institutionMetrics }) => (
       borderColor="border-lime-100"
       iconGradient="from-emerald-100 to-lime-200"
       iconColor="text-emerald-700"
+      isLoading={isLoading}
     />
   </div>
 );
@@ -306,6 +311,7 @@ const StudentsManagementHeader = ({
   onExportPadron,
   onOpenNewStudentModal,
   institutionMetrics,
+  isLoading = false,
 }) => (
   <section data-testid="students-management-header" className="flex flex-col gap-4">
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -340,7 +346,7 @@ const StudentsManagementHeader = ({
       </div>
     </div>
 
-    <StudentsMetricsGrid institutionMetrics={institutionMetrics} />
+    <StudentsMetricsGrid institutionMetrics={institutionMetrics} isLoading={isLoading} />
   </section>
 );
 
@@ -799,6 +805,7 @@ const StudentsManagement = () => {
           onExportPadron={handleExportPadron}
           onOpenNewStudentModal={() => setIsNewStudentModalOpen(true)}
           institutionMetrics={institutionMetrics}
+          isLoading={isLoading}
         />
 
         {/* Filtros Dinámicos Estilo Prisma Alegría */}
