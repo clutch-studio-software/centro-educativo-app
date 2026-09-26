@@ -48,6 +48,199 @@ const NAV_ITEMS = [
   },
 ];
 
+// Helper to extract initials
+const getInitials = (name) => {
+  if (!name) return 'MV';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
+
+const checkIsItemActive = (item, pathname, activeItem) => {
+  if (item.path === '/admin') {
+    return pathname === '/admin' || pathname === '/admin/alumnos';
+  }
+  if (pathname === item.path) {
+    return true;
+  }
+  if (activeItem && item.name) {
+    return item.name.toLowerCase().includes(activeItem.toLowerCase());
+  }
+  return false;
+};
+
+const getNavItemClassName = (isCollapsed, isItemActive) => {
+  const layout = isCollapsed ? 'justify-center w-11 h-11 p-0' : 'justify-between px-3.5 py-2.5 w-full';
+  const state = isItemActive
+    ? 'bg-gradient-to-r from-emerald-500 to-lime-500 text-white font-semibold shadow-md shadow-lime-500/20'
+    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium';
+  return `flex items-center ${layout} rounded-2xl text-sm transition-all group relative ${state}`;
+};
+
+const SidebarNavItem = ({ item, isCollapsed, location, activeItem, onCloseMobile }) => {
+  const isItemActive = checkIsItemActive(item, location.pathname, activeItem);
+  const itemSlug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const handleClick = () => {
+    if (onCloseMobile) onCloseMobile();
+  };
+
+  return (
+    <NavLink
+      to={item.path}
+      data-testid={`admin-nav-${itemSlug}`}
+      data-active={isItemActive ? 'true' : 'false'}
+      title={isCollapsed ? item.name : undefined}
+      onClick={handleClick}
+      className={getNavItemClassName(isCollapsed, isItemActive)}
+    >
+      <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 min-w-0'}`}>
+        <span
+          className={`material-symbols-outlined text-[20px] shrink-0 transition-colors ${
+            isItemActive
+              ? 'text-white'
+              : 'text-slate-400 group-hover:text-slate-600'
+          }`}
+        >
+          {item.icon}
+        </span>
+        {!isCollapsed && <span className="truncate">{item.name}</span>}
+      </div>
+      {!isCollapsed && isItemActive && (
+        <span className="w-2 h-2 rounded-full bg-white shadow-sm shrink-0"></span>
+      )}
+    </NavLink>
+  );
+};
+
+const SidebarUserProfile = ({ isCollapsed, userName, userRoleDisplay, initials, onLogout }) => (
+  <div
+    data-testid="admin-user-profile-card"
+    className={`${
+      isCollapsed ? 'p-2 m-2 items-center' : 'p-3 m-3'
+    } bg-gradient-to-br from-slate-50 via-lime-50/30 to-amber-50/20 border border-slate-100 rounded-3xl flex flex-col gap-2 shadow-sm transition-all duration-300`}
+  >
+    <div
+      className={`flex items-center ${
+        isCollapsed ? 'flex-col gap-2 justify-center w-full' : 'justify-between w-full'
+      }`}
+    >
+      <div
+        className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5 min-w-0'}`}
+        title={isCollapsed ? `${userName} (${userRoleDisplay})` : undefined}
+      >
+        <div className="relative shrink-0">
+          <div
+            data-testid="admin-user-avatar"
+            className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-inner"
+          >
+            {initials}
+          </div>
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-lime-500 rounded-full ring-2 ring-white"></span>
+        </div>
+        {!isCollapsed && (
+          <div className="flex flex-col min-w-0">
+            <span
+              data-testid="admin-user-name"
+              className="text-xs font-bold text-slate-800 truncate"
+              title={userName}
+            >
+              {userName}
+            </span>
+            <span
+              data-testid="admin-user-role"
+              className="text-[10px] text-slate-400 font-medium truncate"
+            >
+              {userRoleDisplay}
+            </span>
+          </div>
+        )}
+      </div>
+      <button
+        data-testid="admin-logout-button"
+        onClick={onLogout}
+        type="button"
+        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+        title="Cerrar Sesión"
+        aria-label="Cerrar Sesión"
+      >
+        <span className="material-symbols-outlined text-[18px]">logout</span>
+      </button>
+    </div>
+  </div>
+);
+
+const SidebarBrandHeader = ({ isCollapsed, onToggleCollapse, onCloseMobile }) => (
+  <div
+    data-testid="admin-sidebar-brand"
+    className={`px-4 py-4 flex items-center ${
+      isCollapsed ? 'lg:justify-center' : 'justify-between'
+    } border-b border-slate-50 transition-all duration-300`}
+  >
+    <div className={`flex items-center ${isCollapsed ? 'lg:justify-center' : 'gap-3'} min-w-0`}>
+      <div
+        className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-100 via-amber-50 to-blue-50 p-1 flex items-center justify-center shadow-sm shrink-0 ring-2 ring-lime-400/20 cursor-pointer"
+        onClick={isCollapsed ? onToggleCollapse : undefined}
+        onKeyDown={
+          isCollapsed
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggleCollapse();
+                }
+              }
+            : undefined
+        }
+        role={isCollapsed ? 'button' : undefined}
+        tabIndex={isCollapsed ? 0 : undefined}
+        title={isCollapsed ? 'Expandir menú lateral' : 'Educar para Transformar'}
+      >
+        <img
+          data-testid="admin-sidebar-logo"
+          alt="Logo Educar para Transformar"
+          className="h-8 w-auto object-contain shrink-0"
+          src={images.logo}
+          onError={(e) => {
+            e.target.src =
+              'https://lh3.googleusercontent.com/aida/AEtjO1WVCjH9RKWhV5IdoM4AeJ1AK6BLtlST3Xtz8TJi7qxVkE9SEdRbR4FLue_xW5vRKejhIwOJyfVqvFA98Cu6gBF7a-CxIVrsZCweo-Sp3fQvg48n1Lhh7MS0tohp7j7FMDR43e8kbefpBfdNj_CTAvypjHHNcQQwC52MOYajM-0fPZXxMLsrwzQLJ5vslrW0mOp0Vm_xkkeGUmWDrEMnXnMcyPvVeQzDigU-LOQzdM9Oht4kUS8ryRwjDGI';
+          }}
+        />
+      </div>
+      {!isCollapsed && (
+        <div className="flex flex-col min-w-0 animate-in fade-in duration-200">
+          <span
+            data-testid="admin-sidebar-title"
+            className="font-bold text-slate-900 text-sm tracking-tight truncate"
+          >
+            Educar para Transformar
+          </span>
+          <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-lime-500 inline-block"></span>
+            Gestión Académica
+          </span>
+        </div>
+      )}
+    </div>
+
+    {/* Mobile close button */}
+    <button
+      data-testid="admin-sidebar-close-button"
+      onClick={onCloseMobile}
+      className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl cursor-pointer border-none bg-transparent"
+      aria-label="Cerrar menú"
+    >
+      <span className="material-symbols-outlined text-[20px]">close</span>
+    </button>
+  </div>
+);
+
+const resolveUserProfile = (user) => {
+  const userName = user?.nombre || user?.email?.split('@')[0] || 'Lic. Martín Valdez';
+  const userRoleDisplay = user?.role === 'user_admin' ? 'Superadmin Dirección' : 'Personal Directivo';
+  return { userName, userRoleDisplay };
+};
+
 const AdminSidebar = ({
   isMobileOpen,
   onCloseMobile,
@@ -68,18 +261,7 @@ const AdminSidebar = ({
     }
   };
 
-  // Helper to extract initials
-  const getInitials = (name) => {
-    if (!name) return 'MV';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
-
-  const userName = user?.nombre || user?.email?.split('@')[0] || 'Lic. Martín Valdez';
-  const userRoleDisplay = user?.role === 'user_admin' ? 'Superadmin Dirección' : 'Personal Directivo';
+  const { userName, userRoleDisplay } = resolveUserProfile(user);
   const initials = getInitials(userName);
 
   return (
@@ -118,68 +300,11 @@ const AdminSidebar = ({
 
         <div className="flex flex-col">
           {/* Brand Header */}
-          <div
-            data-testid="admin-sidebar-brand"
-            className={`px-4 py-4 flex items-center ${
-              isCollapsed ? 'lg:justify-center' : 'justify-between'
-            } border-b border-slate-50 transition-all duration-300`}
-          >
-            <div className={`flex items-center ${isCollapsed ? 'lg:justify-center' : 'gap-3'} min-w-0`}>
-              <div
-                className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-100 via-amber-50 to-blue-50 p-1 flex items-center justify-center shadow-sm shrink-0 ring-2 ring-lime-400/20 cursor-pointer"
-                onClick={isCollapsed ? onToggleCollapse : undefined}
-                onKeyDown={
-                  isCollapsed
-                    ? (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onToggleCollapse();
-                        }
-                      }
-                    : undefined
-                }
-                role={isCollapsed ? 'button' : undefined}
-                tabIndex={isCollapsed ? 0 : undefined}
-                title={isCollapsed ? 'Expandir menú lateral' : 'Educar para Transformar'}
-              >
-                <img
-                  data-testid="admin-sidebar-logo"
-                  alt="Logo Educar para Transformar"
-                  className="h-8 w-auto object-contain shrink-0"
-                  src={images.logo}
-                  onError={(e) => {
-                    e.target.src =
-                      'https://lh3.googleusercontent.com/aida/AEtjO1WVCjH9RKWhV5IdoM4AeJ1AK6BLtlST3Xtz8TJi7qxVkE9SEdRbR4FLue_xW5vRKejhIwOJyfVqvFA98Cu6gBF7a-CxIVrsZCweo-Sp3fQvg48n1Lhh7MS0tohp7j7FMDR43e8kbefpBfdNj_CTAvypjHHNcQQwC52MOYajM-0fPZXxMLsrwzQLJ5vslrW0mOp0Vm_xkkeGUmWDrEMnXnMcyPvVeQzDigU-LOQzdM9Oht4kUS8ryRwjDGI';
-                  }}
-                />
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col min-w-0 animate-in fade-in duration-200">
-                  <span
-                    data-testid="admin-sidebar-title"
-                    className="font-bold text-slate-900 text-sm tracking-tight truncate"
-                  >
-                    Educar para Transformar
-                  </span>
-                  <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-lime-500 inline-block"></span>
-                    Gestión Académica
-                  </span>
-                </div>
-              )}
-            </div>
-
-
-            {/* Mobile close button */}
-            <button
-              data-testid="admin-sidebar-close-button"
-              onClick={onCloseMobile}
-              className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl cursor-pointer border-none bg-transparent"
-              aria-label="Cerrar menú"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
-          </div>
+          <SidebarBrandHeader
+            isCollapsed={isCollapsed}
+            onToggleCollapse={onToggleCollapse}
+            onCloseMobile={onCloseMobile}
+          />
 
           {/* Section Label */}
           {!isCollapsed ? (
@@ -197,107 +322,27 @@ const AdminSidebar = ({
             data-testid="admin-sidebar-nav"
             className={`px-2 flex flex-col gap-1.5 ${isCollapsed ? 'items-center' : ''}`}
           >
-            {NAV_ITEMS.map((item) => {
-              const isItemActive =
-                (item.path === '/admin' && (location.pathname === '/admin' || location.pathname === '/admin/alumnos')) ||
-                (item.path !== '/admin' && location.pathname === item.path) ||
-                (activeItem && item.name.toLowerCase().includes(activeItem.toLowerCase()));
-              const itemSlug = item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-              return (
-                <NavLink
-                  key={item.name}
-                  to={item.path}
-                  data-testid={`admin-nav-${itemSlug}`}
-                  data-active={isItemActive ? 'true' : 'false'}
-                  title={isCollapsed ? item.name : undefined}
-                  onClick={() => {
-                    if (onCloseMobile) onCloseMobile();
-                  }}
-                  className={`flex items-center ${
-                    isCollapsed ? 'justify-center w-11 h-11 p-0' : 'justify-between px-3.5 py-2.5 w-full'
-                  } rounded-2xl text-sm transition-all group relative ${
-                    isItemActive
-                      ? 'bg-gradient-to-r from-emerald-500 to-lime-500 text-white font-semibold shadow-md shadow-lime-500/20'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
-                  }`}
-                >
-                  <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 min-w-0'}`}>
-                    <span
-                      className={`material-symbols-outlined text-[20px] shrink-0 transition-colors ${
-                        isItemActive
-                          ? 'text-white'
-                          : 'text-slate-400 group-hover:text-slate-600'
-                      }`}
-                    >
-                      {item.icon}
-                    </span>
-                    {!isCollapsed && <span className="truncate">{item.name}</span>}
-                  </div>
-                  {!isCollapsed && isItemActive && (
-                    <span className="w-2 h-2 rounded-full bg-white shadow-sm shrink-0"></span>
-                  )}
-                </NavLink>
-              );
-            })}
+            {NAV_ITEMS.map((item) => (
+              <SidebarNavItem
+                key={item.name}
+                item={item}
+                isCollapsed={isCollapsed}
+                location={location}
+                activeItem={activeItem}
+                onCloseMobile={onCloseMobile}
+              />
+            ))}
           </nav>
         </div>
 
         {/* User Profile Card in Sidebar */}
-        <div
-          data-testid="admin-user-profile-card"
-          className={`${
-            isCollapsed ? 'p-2 m-2 items-center' : 'p-3 m-3'
-          } bg-gradient-to-br from-slate-50 via-lime-50/30 to-amber-50/20 border border-slate-100 rounded-3xl flex flex-col gap-2 shadow-sm transition-all duration-300`}
-        >
-          <div
-            className={`flex items-center ${
-              isCollapsed ? 'flex-col gap-2 justify-center w-full' : 'justify-between w-full'
-            }`}
-          >
-            <div
-              className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5 min-w-0'}`}
-              title={isCollapsed ? `${userName} (${userRoleDisplay})` : undefined}
-            >
-              <div className="relative shrink-0">
-                <div
-                  data-testid="admin-user-avatar"
-                  className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-inner"
-                >
-                  {initials}
-                </div>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-lime-500 rounded-full ring-2 ring-white"></span>
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col min-w-0">
-                  <span
-                    data-testid="admin-user-name"
-                    className="text-xs font-bold text-slate-800 truncate"
-                    title={userName}
-                  >
-                    {userName}
-                  </span>
-                  <span
-                    data-testid="admin-user-role"
-                    className="text-[10px] text-slate-400 font-medium truncate"
-                  >
-                    {userRoleDisplay}
-                  </span>
-                </div>
-              )}
-            </div>
-            <button
-              data-testid="admin-logout-button"
-              onClick={handleLogout}
-              type="button"
-              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-full transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
-              title="Cerrar Sesión"
-              aria-label="Cerrar Sesión"
-            >
-              <span className="material-symbols-outlined text-[18px]">logout</span>
-            </button>
-          </div>
-        </div>
+        <SidebarUserProfile
+          isCollapsed={isCollapsed}
+          userName={userName}
+          userRoleDisplay={userRoleDisplay}
+          initials={initials}
+          onLogout={handleLogout}
+        />
       </aside>
     </>
   );

@@ -8,6 +8,216 @@ import VisitDateAndLevelFields from '../components/molecules/VisitDateAndLevelFi
 import LevelsHero from '../components/organisms/LevelsHero';
 import LevelsCTA from '../components/organisms/LevelsCTA';
 
+// Lists of pilars for each Level (Mapeado dinámico)
+const inicialFeatures = [
+  {
+    title: 'Desarrollo Socio-Emocional',
+    desc: 'Acompañamiento afectivo y rutinas seguras.',
+    icon: 'check_circle',
+    iconBgClass: 'bg-secondary-container/20',
+    iconClass: 'text-secondary'
+  },
+  {
+    title: 'Arte y Expresión',
+    desc: 'Talleres creativos y estimulación sensorial.',
+    icon: 'palette',
+    iconBgClass: 'bg-secondary-container/20',
+    iconClass: 'text-secondary'
+  },
+  {
+    title: 'Aprendizaje Basado en Juego',
+    desc: 'Metodologías activas para el descubrimiento.',
+    icon: 'sports_esports',
+    iconBgClass: 'bg-secondary-container/20',
+    iconClass: 'text-secondary'
+  }
+];
+
+const primarioFeatures = [
+  {
+    title: 'Bilingüismo Integrado',
+    desc: 'Inmersión diaria en el idioma inglés.',
+    icon: 'language',
+    iconBgClass: 'bg-primary-container/20',
+    iconClass: 'text-primary'
+  },
+  {
+    title: 'Razonamiento Lógico',
+    desc: 'Matemática aplicada a problemas reales.',
+    icon: 'calculate',
+    iconBgClass: 'bg-primary-container/20',
+    iconClass: 'text-primary'
+  },
+  {
+    title: 'Apoyo Psicopedagógico',
+    desc: 'Seguimiento personalizado del aprendizaje.',
+    icon: 'psychology_alt',
+    iconBgClass: 'bg-primary-container/20',
+    iconClass: 'text-primary'
+  }
+];
+
+const secundarioFeatures = [
+  {
+    title: 'Robótica y Tecnología',
+    desc: 'Programación y habilidades digitales avanzadas.',
+    icon: 'memory',
+    iconBgClass: 'bg-tertiary-container/20',
+    iconClass: 'text-tertiary-container'
+  },
+  {
+    title: 'Proyectos de Impacto',
+    desc: 'Aprendizaje servicio y ciudadanía global.',
+    icon: 'public',
+    iconBgClass: 'bg-tertiary-container/20',
+    iconClass: 'text-tertiary-container'
+  },
+  {
+    title: 'Orientación Vocacional',
+    desc: 'Talleres y vínculos con universidades.',
+    icon: 'explore',
+    iconBgClass: 'bg-tertiary-container/20',
+    iconClass: 'text-tertiary-container'
+  }
+];
+
+// List of transversal values (Mapeado dinámico)
+const transversalValues = [
+  {
+    title: 'Bienestar Integral',
+    description: 'Promovemos un clima escolar positivo, donde cada alumno se siente seguro, valorado y escuchado por la comunidad.',
+    icon: 'favorite',
+    iconBgClass: 'bg-primary-container/20',
+    iconColorClass: 'text-primary',
+    shadowClass: 'ambient-shadow-primary'
+  },
+  {
+    title: 'Pensamiento Crítico',
+    description: 'Enseñamos a cuestionar, investigar y construir conocimiento, no solo a memorizar información pasivamente.',
+    icon: 'psychology',
+    iconBgClass: 'bg-secondary-container/20',
+    iconColorClass: 'text-secondary-dim',
+    shadowClass: 'ambient-shadow-secondary'
+  },
+  {
+    title: 'Ciudadanía Responsable',
+    description: 'Inculcamos el respeto por el otro y el entorno, fomentando acciones que impacten positivamente en la sociedad.',
+    icon: 'handshake',
+    iconBgClass: 'bg-tertiary-container/20',
+    iconColorClass: 'text-tertiary-dim',
+    shadowClass: 'ambient-shadow-tertiary'
+  }
+];
+
+const LevelsBookingModal = ({
+  isOpen,
+  onClose,
+  formData,
+  errors,
+  isSubmitting,
+  handleInputChange,
+  handleBookingSubmit,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
+      <div className="bg-white/95 dark:bg-slate-900/95 max-w-md w-full rounded-[2.5rem] p-8 border border-slate-200 shadow-2xl relative text-left animate-in zoom-in-95 duration-300">
+        <button 
+          type="button"
+          aria-label="Cerrar modal"
+          onClick={onClose}
+          className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer border-none outline-none"
+        >
+          <Icon name="close" className="text-xl" />
+        </button>
+
+        <div className="mb-6 flex flex-col gap-2">
+          <h3 className="font-headline text-2xl font-bold text-slate-800 dark:text-slate-100">Agendar Visita</h3>
+          <p className="font-body text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            Completa tus datos y selecciona la fecha para tu visita guiada al campus de Resistencia.
+          </p>
+        </div>
+
+        <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="level-booking-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
+            <input 
+              id="level-booking-name"
+              type="text" 
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.name ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
+              placeholder="Ej. Carlos Mendoza"
+            />
+            {errors.name && <span className="text-xs text-red-500 font-semibold">{errors.name}</span>}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="level-booking-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
+            <input 
+              id="level-booking-email"
+              type="email" 
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.email ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
+              placeholder="carlos@ejemplo.com"
+            />
+            {errors.email && <span className="text-xs text-red-500 font-semibold">{errors.email}</span>}
+          </div>
+
+          <VisitDateAndLevelFields
+            date={formData.date}
+            level={formData.level}
+            onChange={handleInputChange}
+            errors={errors}
+            idPrefix="level-booking"
+          />
+
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="mt-4 bg-gradient-to-br from-secondary to-secondary-dim text-white py-4 rounded-full font-bold text-base hover:shadow-xl hover:shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 border-none"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Agendando...</span>
+              </>
+            ) : (
+              <>
+                <Icon name="event" className="text-lg flex items-center justify-center" />
+                <span>Confirmar Visita</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const LevelsDownloadToast = ({ show }) => {
+  if (!show) return null;
+
+  return (
+    <div className="fixed bottom-8 right-8 z-50 bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-8 duration-300 max-w-sm">
+      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0">
+        <Icon name="download" className="text-base font-bold animate-bounce" />
+      </div>
+      <div className="text-left">
+        <p className="font-bold text-sm">Proyecto Educativo (PEI)</p>
+        <p className="text-xs text-slate-300 dark:text-slate-600">Descarga simulada completada con éxito.</p>
+      </div>
+    </div>
+  );
+};
+
 const Levels = () => {
   // Modal states for visit scheduling
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,107 +233,6 @@ const Levels = () => {
 
   // PEI Download Toast simulation state
   const [showDownloadToast, setShowDownloadToast] = useState(false);
-
-  // Lists of pilars for each Level (Mapeado dinámico)
-  const inicialFeatures = [
-    {
-      title: 'Desarrollo Socio-Emocional',
-      desc: 'Acompañamiento afectivo y rutinas seguras.',
-      icon: 'check_circle',
-      iconBgClass: 'bg-secondary-container/20',
-      iconClass: 'text-secondary'
-    },
-    {
-      title: 'Arte y Expresión',
-      desc: 'Talleres creativos y estimulación sensorial.',
-      icon: 'palette',
-      iconBgClass: 'bg-secondary-container/20',
-      iconClass: 'text-secondary'
-    },
-    {
-      title: 'Aprendizaje Basado en Juego',
-      desc: 'Metodologías activas para el descubrimiento.',
-      icon: 'sports_esports',
-      iconBgClass: 'bg-secondary-container/20',
-      iconClass: 'text-secondary'
-    }
-  ];
-
-  const primarioFeatures = [
-    {
-      title: 'Bilingüismo Integrado',
-      desc: 'Inmersión diaria en el idioma inglés.',
-      icon: 'language',
-      iconBgClass: 'bg-primary-container/20',
-      iconClass: 'text-primary'
-    },
-    {
-      title: 'Razonamiento Lógico',
-      desc: 'Matemática aplicada a problemas reales.',
-      icon: 'calculate',
-      iconBgClass: 'bg-primary-container/20',
-      iconClass: 'text-primary'
-    },
-    {
-      title: 'Apoyo Psicopedagógico',
-      desc: 'Seguimiento personalizado del aprendizaje.',
-      icon: 'psychology_alt',
-      iconBgClass: 'bg-primary-container/20',
-      iconClass: 'text-primary'
-    }
-  ];
-
-  const secundarioFeatures = [
-    {
-      title: 'Robótica y Tecnología',
-      desc: 'Programación y habilidades digitales avanzadas.',
-      icon: 'memory',
-      iconBgClass: 'bg-tertiary-container/20',
-      iconClass: 'text-tertiary-container'
-    },
-    {
-      title: 'Proyectos de Impacto',
-      desc: 'Aprendizaje servicio y ciudadanía global.',
-      icon: 'public',
-      iconBgClass: 'bg-tertiary-container/20',
-      iconClass: 'text-tertiary-container'
-    },
-    {
-      title: 'Orientación Vocacional',
-      desc: 'Talleres y vínculos con universidades.',
-      icon: 'explore',
-      iconBgClass: 'bg-tertiary-container/20',
-      iconClass: 'text-tertiary-container'
-    }
-  ];
-
-  // List of transversal values (Mapeado dinámico)
-  const transversalValues = [
-    {
-      title: 'Bienestar Integral',
-      description: 'Promovemos un clima escolar positivo, donde cada alumno se siente seguro, valorado y escuchado por la comunidad.',
-      icon: 'favorite',
-      iconBgClass: 'bg-primary-container/20',
-      iconColorClass: 'text-primary',
-      shadowClass: 'ambient-shadow-primary'
-    },
-    {
-      title: 'Pensamiento Crítico',
-      description: 'Enseñamos a cuestionar, investigar y construir conocimiento, no solo a memorizar información pasivamente.',
-      icon: 'psychology',
-      iconBgClass: 'bg-secondary-container/20',
-      iconColorClass: 'text-secondary-dim',
-      shadowClass: 'ambient-shadow-secondary'
-    },
-    {
-      title: 'Ciudadanía Responsable',
-      description: 'Inculcamos el respeto por el otro y el entorno, fomentando acciones que impacten positivamente en la sociedad.',
-      icon: 'handshake',
-      iconBgClass: 'bg-tertiary-container/20',
-      iconColorClass: 'text-tertiary-dim',
-      shadowClass: 'ambient-shadow-tertiary'
-    }
-  ];
 
   // Input changes
   const handleInputChange = (e) => {
@@ -280,85 +389,15 @@ const Levels = () => {
       </main>
 
       {/* 5. Booking Modal (Shared high-fidelity overlay) */}
-      {isModalOpen && !submitSuccess && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white/95 dark:bg-slate-900/95 max-w-md w-full rounded-[2.5rem] p-8 border border-slate-200 shadow-2xl relative text-left animate-in zoom-in-95 duration-300">
-            
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer border-none outline-none"
-            >
-              <Icon name="close" className="text-xl" />
-            </button>
-
-            <div className="mb-6 flex flex-col gap-2">
-              <h3 className="font-headline text-2xl font-bold text-slate-800 dark:text-slate-100">Agendar Visita</h3>
-              <p className="font-body text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Completa tus datos y selecciona la fecha para tu visita guiada al campus de Resistencia.
-              </p>
-            </div>
-
-            <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="level-booking-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
-                <input 
-                  id="level-booking-name"
-                  type="text" 
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.name ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  placeholder="Ej. Carlos Mendoza"
-                />
-                {errors.name && <span className="text-xs text-red-500 font-semibold">{errors.name}</span>}
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="level-booking-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
-                <input 
-                  id="level-booking-email"
-                  type="email" 
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.email ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  placeholder="carlos@ejemplo.com"
-                />
-                {errors.email && <span className="text-xs text-red-500 font-semibold">{errors.email}</span>}
-              </div>
-
-              <VisitDateAndLevelFields
-                date={formData.date}
-                level={formData.level}
-                onChange={handleInputChange}
-                errors={errors}
-                idPrefix="level-booking"
-              />
-
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="mt-4 bg-gradient-to-br from-secondary to-secondary-dim text-white py-4 rounded-full font-bold text-base hover:shadow-xl hover:shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 border-none"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Agendando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon name="event" className="text-lg flex items-center justify-center" />
-                    <span>Confirmar Visita</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <LevelsBookingModal
+        isOpen={isModalOpen && !submitSuccess}
+        onClose={() => setIsModalOpen(false)}
+        formData={formData}
+        errors={errors}
+        isSubmitting={isSubmitting}
+        handleInputChange={handleInputChange}
+        handleBookingSubmit={handleBookingSubmit}
+      />
 
       {/* 6. Success Modal for Visit */}
       <SuccessModal 
@@ -375,17 +414,7 @@ const Levels = () => {
       />
 
       {/* 7. PEI Download Toast simulation */}
-      {showDownloadToast && (
-        <div className="fixed bottom-8 right-8 z-50 bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-8 duration-300 max-w-sm">
-          <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0">
-            <Icon name="download" className="text-base font-bold animate-bounce" />
-          </div>
-          <div className="text-left">
-            <p className="font-bold text-sm">Proyecto Educativo (PEI)</p>
-            <p className="text-xs text-slate-300 dark:text-slate-600">Descarga simulada completada con éxito.</p>
-          </div>
-        </div>
-      )}
+      <LevelsDownloadToast show={showDownloadToast} />
 
     </div>
   );

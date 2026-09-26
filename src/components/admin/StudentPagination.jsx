@@ -64,8 +64,10 @@ const StudentPagination = ({
         <div className="h-5 w-px bg-slate-200 hidden sm:block"></div>
 
         <div className="flex items-center gap-2 text-slate-500 text-xs font-medium">
-          <span>Filas por página:</span>
+          <label htmlFor="pagination-rows-select">Filas por página:</label>
           <select
+            id="pagination-rows-select"
+            aria-label="Filas por página"
             data-testid="pagination-rows-select"
             value={itemsPerPage}
             onChange={(e) => onItemsPerPageChange(Number(e.target.value))}

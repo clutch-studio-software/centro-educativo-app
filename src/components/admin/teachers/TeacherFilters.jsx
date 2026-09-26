@@ -34,7 +34,12 @@ const TeacherFilters = ({
           {/* Filtros Dropdown Estado */}
           <div className="flex items-center gap-2.5 shrink-0">
             <div className="relative">
+              <label htmlFor="filtro-docente-estado" className="sr-only">
+                Filtrar por estado
+              </label>
               <select
+                id="filtro-docente-estado"
+                aria-label="Filtrar por estado"
                 value={selectedEstado}
                 onChange={(e) => onEstadoChange(e.target.value)}
                 className="appearance-none bg-slate-100/80 text-slate-700 font-semibold text-xs pl-3.5 pr-8 py-2.5 rounded-full focus:outline-none focus:bg-white border border-transparent focus:border-blue-500/40 cursor-pointer"

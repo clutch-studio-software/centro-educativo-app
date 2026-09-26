@@ -105,10 +105,11 @@ const StudentFilters = ({
 
         {/* Nivel Educativo */}
         <div className="flex flex-col gap-1 w-full md:w-64 shrink-0">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <label htmlFor="filter-student-level" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             Nivel Educativo
           </label>
           <select
+            id="filter-student-level"
             data-testid="student-level-select"
             value={levelFilter}
             onChange={(e) => onLevelChange(e.target.value)}
@@ -127,10 +128,11 @@ const StudentFilters = ({
         <div className="flex flex-wrap items-end gap-3 flex-1 min-w-0">
           {/* Curso (Filtrado según nivel seleccionado) */}
           <div className="flex flex-col gap-1 min-w-[170px]">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label htmlFor="filter-student-course" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Curso {levelFilter !== 'todos' ? `(${levelFilter})` : ''}
             </label>
             <select
+              id="filter-student-course"
               data-testid="student-course-select"
               value={courseFilter}
               onChange={(e) => onCourseChange(e.target.value)}
@@ -162,10 +164,11 @@ const StudentFilters = ({
 
           {/* División / Sala (Dependiente del curso) */}
           <div className="flex flex-col gap-1 min-w-[150px]">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label htmlFor="filter-student-division" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               División / Sala
             </label>
             <select
+              id="filter-student-division"
               data-testid="student-division-select"
               value={divisionFilter}
               onChange={(e) => onDivisionChange(e.target.value)}
@@ -191,10 +194,11 @@ const StudentFilters = ({
 
           {/* Estado Administrativo */}
           <div className="flex flex-col gap-1 min-w-[170px]">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label htmlFor="filter-student-status" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Estado Alumno
             </label>
             <select
+              id="filter-student-status"
               data-testid="student-status-select"
               value={statusFilter}
               onChange={(e) => onStatusChange(e.target.value)}
@@ -210,10 +214,11 @@ const StudentFilters = ({
 
           {/* Servicios Asignados */}
           <div className="flex flex-col gap-1 min-w-[180px]">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <label htmlFor="filter-student-service" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Servicios Asignados
             </label>
             <select
+              id="filter-student-service"
               data-testid="student-service-select"
               value={serviceFilter}
               onChange={(e) => onServiceChange(e.target.value)}

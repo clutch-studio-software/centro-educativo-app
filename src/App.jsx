@@ -16,6 +16,7 @@ import Privacy from './pages/Privacy';
 
 import AdminPlaceholder from './pages/admin/AdminPlaceholder';
 import TeachersManagement from './pages/admin/TeachersManagement';
+import AcademicOfferManagement from './pages/admin/AcademicOfferManagement';
 
 function App() {
   const location = useLocation();
@@ -39,7 +40,7 @@ function App() {
         <Route path="/admin/legacy" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
         <Route path="/admin/docentes" element={<TeachersManagement />} />
-        <Route path="/admin/oferta-academica" element={<AdminPlaceholder />} />
+        <Route path="/admin/oferta-academica" element={<AcademicOfferManagement />} />
         <Route path="/admin/servicios" element={<AdminPlaceholder />} />
         <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
         <Route path="/admin/usuarios" element={<AdminPlaceholder />} />

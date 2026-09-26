@@ -36,6 +36,200 @@ const NIVELES = [
 
 const PASOS = ['Nivel', 'Tutor', 'Alumno'];
 
+const validarPasoRegistro = (pasoActual, datosFormulario) => {
+  const erroresValidacion = {};
+  if (pasoActual === 1 && !datosFormulario.nivel) {
+    erroresValidacion.nivel = 'Selecciona un nivel para continuar.';
+  }
+  if (pasoActual === 2) {
+    if (!datosFormulario.nombreTutor.trim()) {
+      erroresValidacion.nombreTutor = 'El campo es obligatorio';
+    }
+    
+    if (!datosFormulario.dniTutor.trim()) {
+      erroresValidacion.dniTutor = 'El campo es obligatorio';
+    } else if (!isValidDni(datosFormulario.dniTutor)) {
+      erroresValidacion.dniTutor = 'El DNI debe tener entre 7 y 9 números';
+    }
+
+    if (!datosFormulario.correo.trim()) {
+      erroresValidacion.correo = 'El campo es obligatorio';
+    } else if (!isValidEmail(datosFormulario.correo)) {
+      erroresValidacion.correo = 'Ingresa un correo electrónico válido';
+    }
+
+    if (!datosFormulario.telefono.trim()) {
+      erroresValidacion.telefono = 'El campo es obligatorio';
+    } else if (!isValidPhone(datosFormulario.telefono)) {
+      erroresValidacion.telefono = 'El teléfono debe tener 10 u 11 dígitos numéricos';
+    }
+  }
+  if (pasoActual === 3) {
+    if (!datosFormulario.nombreAlumno.trim()) {
+      erroresValidacion.nombreAlumno = 'El campo es obligatorio';
+    }
+    if (!datosFormulario.fechaNacimiento) {
+      erroresValidacion.fechaNacimiento = 'El campo es obligatorio';
+    } else {
+      const checkEdad = validarEdadPorNivel(
+        datosFormulario.fechaNacimiento,
+        datosFormulario.nivel
+      );
+      if (!checkEdad.esValido) {
+        erroresValidacion.fechaNacimiento = checkEdad.error;
+      }
+    }
+    if (!datosFormulario.dniAlumno.trim()) {
+      erroresValidacion.dniAlumno = 'El campo es obligatorio';
+    } else if (!isValidDni(datosFormulario.dniAlumno)) {
+      erroresValidacion.dniAlumno = 'El DNI debe tener entre 7 y 9 números';
+    }
+  }
+  return erroresValidacion;
+};
+
+const PasoNivelSection = ({ datosFormulario, errores, onChange }) => (
+  <section className="paso" data-testid="reg-step-1">
+    <h2 className="paso-titulo">Paso 1: Selección de Nivel</h2>
+    <div className="niveles-grid">
+      {NIVELES.map((nivel) => (
+        <button
+          key={nivel.id}
+          data-testid={`reg-level-${nivel.id}`}
+          type="button"
+          className={`nivel-card ${datosFormulario.nivel === nivel.id ? 'seleccionado' : ''}`}
+          onClick={() => onChange('nivel', nivel.id)}
+        >
+          <span className="nivel-icon">{nivel.icon}</span>
+          <strong className="nivel-nombre">{nivel.nombre}</strong>
+          <p className="nivel-desc">{nivel.descripcion}</p>
+        </button>
+      ))}
+    </div>
+    {errores.nivel && <p className="form-error" data-testid="reg-error-nivel">{errores.nivel}</p>}
+  </section>
+);
+
+const PasoTutorSection = ({ datosFormulario, errores, onChange }) => (
+  <section className="paso" data-testid="reg-step-2">
+    <h2 className="paso-titulo">Paso 2: Datos del Tutor</h2>
+    <div className="form-grid">
+      <div className="form-grupo">
+        <label htmlFor="reg-tutor-name" className="form-label">NOMBRE COMPLETO</label>
+        <input
+          id="reg-tutor-name"
+          data-testid="reg-tutor-name"
+          className={`form-input ${errores.nombreTutor ? 'form-input--error' : ''}`}
+          type="text"
+          placeholder="Ej. Juan Pérez"
+          value={datosFormulario.nombreTutor}
+          onChange={(e) => onChange('nombreTutor', e.target.value)}
+        />
+        {errores.nombreTutor && <p className="form-error" data-testid="reg-error-tutor-name">{errores.nombreTutor}</p>}
+      </div>
+      <div className="form-grupo">
+        <label htmlFor="reg-tutor-dni" className="form-label">DNI</label>
+        <input
+          id="reg-tutor-dni"
+          data-testid="reg-tutor-dni"
+          className={`form-input ${errores.dniTutor ? 'form-input--error' : ''}`}
+          type="text"
+          placeholder="Número de documento"
+          value={datosFormulario.dniTutor}
+          onChange={(e) => onChange('dniTutor', e.target.value)}
+        />
+        {errores.dniTutor && <p className="form-error" data-testid="reg-error-tutor-dni">{errores.dniTutor}</p>}
+      </div>
+      <div className="form-grupo">
+        <label htmlFor="reg-tutor-email" className="form-label">CORREO ELECTRÓNICO</label>
+        <input
+          id="reg-tutor-email"
+          data-testid="reg-tutor-email"
+          className={`form-input ${errores.correo ? 'form-input--error' : ''}`}
+          type="email"
+          placeholder="correo@ejemplo.com"
+          value={datosFormulario.correo}
+          onChange={(e) => onChange('correo', e.target.value)}
+        />
+        {errores.correo && <p className="form-error" data-testid="reg-error-tutor-email">{errores.correo}</p>}
+      </div>
+      <div className="form-grupo">
+        <label htmlFor="reg-tutor-phone" className="form-label">TELÉFONO DE CONTACTO</label>
+        <input
+          id="reg-tutor-phone"
+          data-testid="reg-tutor-phone"
+          className={`form-input ${errores.telefono ? 'form-input--error' : ''}`}
+          type="tel"
+          maxLength={11}
+          placeholder="Ej: 1123456789 (10 u 11 dígitos)"
+          value={datosFormulario.telefono}
+          onChange={(e) => onChange('telefono', e.target.value)}
+        />
+        {errores.telefono && <p className="form-error" data-testid="reg-error-tutor-phone">{errores.telefono}</p>}
+      </div>
+    </div>
+  </section>
+);
+
+const PasoAlumnoSection = ({ datosFormulario, errores, onChange }) => (
+  <section className="paso" data-testid="reg-step-3">
+    <h2 className="paso-titulo">Paso 3: Datos del Alumno</h2>
+    <div className="form-grid">
+      <div className="form-grupo">
+        <label htmlFor="reg-student-name" className="form-label">NOMBRE COMPLETO DEL ALUMNO</label>
+        <input
+          id="reg-student-name"
+          data-testid="reg-student-name"
+          className={`form-input ${errores.nombreAlumno ? 'form-input--error' : ''}`}
+          type="text"
+          placeholder="Nombre y apellido"
+          value={datosFormulario.nombreAlumno}
+          onChange={(e) => onChange('nombreAlumno', e.target.value)}
+        />
+        {errores.nombreAlumno && <p className="form-error" data-testid="reg-error-student-name">{errores.nombreAlumno}</p>}
+      </div>
+      <div className="form-grupo">
+        <label htmlFor="reg-student-dni" className="form-label">DNI DEL ALUMNO</label>
+        <input
+          id="reg-student-dni"
+          data-testid="reg-student-dni"
+          className={`form-input ${errores.dniAlumno ? 'form-input--error' : ''}`}
+          type="text"
+          placeholder="Número de documento"
+          value={datosFormulario.dniAlumno}
+          onChange={(e) => onChange('dniAlumno', e.target.value)}
+        />
+        {errores.dniAlumno && <p className="form-error" data-testid="reg-error-student-dni">{errores.dniAlumno}</p>}
+      </div>
+      <div className="form-grupo form-grupo--full">
+        <label htmlFor="reg-student-birthdate" className="form-label">FECHA DE NACIMIENTO</label>
+        <input
+          id="reg-student-birthdate"
+          data-testid="reg-student-birthdate"
+          className={`form-input ${errores.fechaNacimiento ? 'form-input--error' : ''}`}
+          type="date"
+          min={obtenerLimitesFechaPorNivel(datosFormulario.nivel).min}
+          max={obtenerLimitesFechaPorNivel(datosFormulario.nivel).max}
+          value={datosFormulario.fechaNacimiento}
+          onChange={(e) => onChange('fechaNacimiento', e.target.value)}
+        />
+        {errores.fechaNacimiento && <p className="form-error" data-testid="reg-error-student-birthdate">{errores.fechaNacimiento}</p>}
+      </div>
+      <div className="form-grupo form-grupo--full">
+        <label htmlFor="reg-student-observations" className="form-label">OBSERVACIONES / NECESIDADES ESPECIALES</label>
+        <textarea
+          id="reg-student-observations"
+          data-testid="reg-student-observations"
+          className="form-input form-textarea"
+          placeholder="Indicá cualquier información relevante..."
+          value={datosFormulario.observaciones}
+          onChange={(e) => onChange('observaciones', e.target.value)}
+        />
+      </div>
+    </div>
+  </section>
+);
+
 const Registration = () => {
   const navigate = useNavigate();
   const [pasoActual, setPasoActual] = useState(1);
@@ -54,6 +248,12 @@ const Registration = () => {
   });
   const [errores, setErrores] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validarPaso = () => {
+    const errs = validarPasoRegistro(pasoActual, datosFormulario);
+    setErrores(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const siguientePaso = () => {
     if (validarPaso()) setPasoActual(pasoActual + 1);
@@ -84,59 +284,6 @@ const Registration = () => {
 
     setDatosFormulario({ ...datosFormulario, [campo]: nuevoValor });
     if (errores[campo]) setErrores({ ...errores, [campo]: undefined });
-  };
-
-  const validarPaso = () => {
-    const erroresValidacion = {};
-    if (pasoActual === 1 && !datosFormulario.nivel) {
-      erroresValidacion.nivel = 'Selecciona un nivel para continuar.';
-    }
-    if (pasoActual === 2) {
-      if (!datosFormulario.nombreTutor.trim()) {
-        erroresValidacion.nombreTutor = 'El campo es obligatorio';
-      }
-      
-      if (!datosFormulario.dniTutor.trim()) {
-        erroresValidacion.dniTutor = 'El campo es obligatorio';
-      } else if (!isValidDni(datosFormulario.dniTutor)) {
-        erroresValidacion.dniTutor = 'El DNI debe tener entre 7 y 9 números';
-      }
-
-      if (!datosFormulario.correo.trim()) {
-        erroresValidacion.correo = 'El campo es obligatorio';
-      } else if (!isValidEmail(datosFormulario.correo)) {
-        erroresValidacion.correo = 'Ingresa un correo electrónico válido';
-      }
-
-      if (!datosFormulario.telefono.trim()) {
-        erroresValidacion.telefono = 'El campo es obligatorio';
-      } else if (!isValidPhone(datosFormulario.telefono)) {
-        erroresValidacion.telefono = 'El teléfono debe tener 10 u 11 dígitos numéricos';
-      }
-    }
-    if (pasoActual === 3) {
-      if (!datosFormulario.nombreAlumno.trim()) {
-        erroresValidacion.nombreAlumno = 'El campo es obligatorio';
-      }
-      if (!datosFormulario.fechaNacimiento) {
-        erroresValidacion.fechaNacimiento = 'El campo es obligatorio';
-      } else {
-        const checkEdad = validarEdadPorNivel(
-          datosFormulario.fechaNacimiento,
-          datosFormulario.nivel
-        );
-        if (!checkEdad.esValido) {
-          erroresValidacion.fechaNacimiento = checkEdad.error;
-        }
-      }
-      if (!datosFormulario.dniAlumno.trim()) {
-        erroresValidacion.dniAlumno = 'El campo es obligatorio';
-      } else if (!isValidDni(datosFormulario.dniAlumno)) {
-        erroresValidacion.dniAlumno = 'El DNI debe tener entre 7 y 9 números';
-      }
-    }
-    setErrores(erroresValidacion);
-    return Object.keys(erroresValidacion).length === 0;
   };
 
   return (
@@ -177,150 +324,28 @@ const Registration = () => {
 
 
         <div className="registro-card">
-
-
           {pasoActual === 1 && (
-            <section className="paso" data-testid="reg-step-1">
-              <h2 className="paso-titulo">Paso 1: Selección de Nivel</h2>
-              <div className="niveles-grid">
-                {NIVELES.map((nivel) => (
-                  <button
-                    key={nivel.id}
-                    data-testid={`reg-level-${nivel.id}`}
-                    type="button"
-                    className={`nivel-card ${datosFormulario.nivel === nivel.id ? 'seleccionado' : ''}`}
-                    onClick={() => handleChange('nivel', nivel.id)}
-                  >
-                    <span className="nivel-icon">{nivel.icon}</span>
-                    <strong className="nivel-nombre">{nivel.nombre}</strong>
-                    <p className="nivel-desc">{nivel.descripcion}</p>
-                  </button>
-                ))}
-              </div>
-              {errores.nivel && <p className="form-error" data-testid="reg-error-nivel">{errores.nivel}</p>}
-            </section>
+            <PasoNivelSection
+              datosFormulario={datosFormulario}
+              errores={errores}
+              onChange={handleChange}
+            />
           )}
-
 
           {pasoActual === 2 && (
-            <section className="paso" data-testid="reg-step-2">
-              <h2 className="paso-titulo">Paso 2: Datos del Tutor</h2>
-              <div className="form-grid">
-                <div className="form-grupo">
-                  <label htmlFor="reg-tutor-name" className="form-label">NOMBRE COMPLETO</label>
-                  <input
-                    id="reg-tutor-name"
-                    data-testid="reg-tutor-name"
-                    className={`form-input ${errores.nombreTutor ? 'form-input--error' : ''}`}
-                    type="text"
-                    placeholder="Ej. Juan Pérez"
-                    value={datosFormulario.nombreTutor}
-                    onChange={(e) => handleChange('nombreTutor', e.target.value)}
-                  />
-                  {errores.nombreTutor && <p className="form-error" data-testid="reg-error-tutor-name">{errores.nombreTutor}</p>}
-                </div>
-                <div className="form-grupo">
-                  <label htmlFor="reg-tutor-dni" className="form-label">DNI</label>
-                  <input
-                    id="reg-tutor-dni"
-                    data-testid="reg-tutor-dni"
-                    className={`form-input ${errores.dniTutor ? 'form-input--error' : ''}`}
-                    type="text"
-                    placeholder="Número de documento"
-                    value={datosFormulario.dniTutor}
-                    onChange={(e) => handleChange('dniTutor', e.target.value)}
-                  />
-                  {errores.dniTutor && <p className="form-error" data-testid="reg-error-tutor-dni">{errores.dniTutor}</p>}
-                </div>
-                <div className="form-grupo">
-                  <label htmlFor="reg-tutor-email" className="form-label">CORREO ELECTRÓNICO</label>
-                  <input
-                    id="reg-tutor-email"
-                    data-testid="reg-tutor-email"
-                    className={`form-input ${errores.correo ? 'form-input--error' : ''}`}
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    value={datosFormulario.correo}
-                    onChange={(e) => handleChange('correo', e.target.value)}
-                  />
-                  {errores.correo && <p className="form-error" data-testid="reg-error-tutor-email">{errores.correo}</p>}
-                </div>
-                <div className="form-grupo">
-                  <label htmlFor="reg-tutor-phone" className="form-label">TELÉFONO DE CONTACTO</label>
-                  <input
-                    id="reg-tutor-phone"
-                    data-testid="reg-tutor-phone"
-                    className={`form-input ${errores.telefono ? 'form-input--error' : ''}`}
-                    type="tel"
-                    maxLength={11}
-                    placeholder="Ej: 1123456789 (10 u 11 dígitos)"
-                    value={datosFormulario.telefono}
-                    onChange={(e) => handleChange('telefono', e.target.value)}
-                  />
-                  {errores.telefono && <p className="form-error" data-testid="reg-error-tutor-phone">{errores.telefono}</p>}
-                </div>
-              </div>
-            </section>
+            <PasoTutorSection
+              datosFormulario={datosFormulario}
+              errores={errores}
+              onChange={handleChange}
+            />
           )}
 
-
           {pasoActual === 3 && (
-            <section className="paso" data-testid="reg-step-3">
-              <h2 className="paso-titulo">Paso 3: Datos del Alumno</h2>
-              <div className="form-grid">
-                <div className="form-grupo">
-                  <label htmlFor="reg-student-name" className="form-label">NOMBRE COMPLETO DEL ALUMNO</label>
-                  <input
-                    id="reg-student-name"
-                    data-testid="reg-student-name"
-                    className={`form-input ${errores.nombreAlumno ? 'form-input--error' : ''}`}
-                    type="text"
-                    placeholder="Nombre y apellido"
-                    value={datosFormulario.nombreAlumno}
-                    onChange={(e) => handleChange('nombreAlumno', e.target.value)}
-                  />
-                  {errores.nombreAlumno && <p className="form-error" data-testid="reg-error-student-name">{errores.nombreAlumno}</p>}
-                </div>
-                <div className="form-grupo">
-                  <label htmlFor="reg-student-dni" className="form-label">DNI DEL ALUMNO</label>
-                  <input
-                    id="reg-student-dni"
-                    data-testid="reg-student-dni"
-                    className={`form-input ${errores.dniAlumno ? 'form-input--error' : ''}`}
-                    type="text"
-                    placeholder="Número de documento"
-                    value={datosFormulario.dniAlumno}
-                    onChange={(e) => handleChange('dniAlumno', e.target.value)}
-                  />
-                  {errores.dniAlumno && <p className="form-error" data-testid="reg-error-student-dni">{errores.dniAlumno}</p>}
-                </div>
-                <div className="form-grupo form-grupo--full">
-                  <label htmlFor="reg-student-birthdate" className="form-label">FECHA DE NACIMIENTO</label>
-                  <input
-                    id="reg-student-birthdate"
-                    data-testid="reg-student-birthdate"
-                    className={`form-input ${errores.fechaNacimiento ? 'form-input--error' : ''}`}
-                    type="date"
-                    min={obtenerLimitesFechaPorNivel(datosFormulario.nivel).min}
-                    max={obtenerLimitesFechaPorNivel(datosFormulario.nivel).max}
-                    value={datosFormulario.fechaNacimiento}
-                    onChange={(e) => handleChange('fechaNacimiento', e.target.value)}
-                  />
-                  {errores.fechaNacimiento && <p className="form-error" data-testid="reg-error-student-birthdate">{errores.fechaNacimiento}</p>}
-                </div>
-                <div className="form-grupo form-grupo--full">
-                  <label htmlFor="reg-student-observations" className="form-label">OBSERVACIONES / NECESIDADES ESPECIALES</label>
-                  <textarea
-                    id="reg-student-observations"
-                    data-testid="reg-student-observations"
-                    className="form-input form-textarea"
-                    placeholder="Indicá cualquier información relevante..."
-                    value={datosFormulario.observaciones}
-                    onChange={(e) => handleChange('observaciones', e.target.value)}
-                  />
-                </div>
-              </div>
-            </section>
+            <PasoAlumnoSection
+              datosFormulario={datosFormulario}
+              errores={errores}
+              onChange={handleChange}
+            />
           )}
 
 

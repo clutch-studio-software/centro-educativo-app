@@ -21,6 +21,204 @@ const carouselImages = [
   { url: images.secundaria, title: 'Aulas de Secundaria', description: 'Mobiliario flexible para el trabajo colaborativo en equipo.' },
 ];
 
+const GalleryBookingModal = ({
+  isOpen,
+  onClose,
+  formData,
+  errors,
+  isSubmitting,
+  handleInputChange,
+  handleBookingSubmit,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
+      <div className="bg-white/95 dark:bg-slate-900/95 max-w-md w-full rounded-[2.5rem] p-8 border border-slate-200 shadow-2xl relative text-left animate-in zoom-in-95 duration-300">
+        {/* Botón cerrar */}
+        <button 
+          type="button"
+          aria-label="Cerrar modal"
+          onClick={onClose}
+          className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer"
+        >
+          <Icon name="close" className="text-xl" />
+        </button>
+
+        <div className="mb-6 flex flex-col gap-2">
+          <h3 className="font-headline text-2xl font-bold text-slate-800 dark:text-slate-100">Agendar Visita</h3>
+          <p className="font-body text-sm text-slate-500 dark:text-slate-400">
+            Completa tus datos y selecciona la fecha para tu visita guiada al campus de Resistencia.
+          </p>
+        </div>
+
+        <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
+          {/* Nombre */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="gallery-booking-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
+            <input 
+              id="gallery-booking-name"
+              type="text" 
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.name ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
+              placeholder="Ej. Carlos Mendoza"
+            />
+            {errors.name && <span className="text-xs text-red-500 font-semibold">{errors.name}</span>}
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="gallery-booking-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
+            <input 
+              id="gallery-booking-email"
+              type="email" 
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.email ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
+              placeholder="carlos@ejemplo.com"
+            />
+            {errors.email && <span className="text-xs text-red-500 font-semibold">{errors.email}</span>}
+          </div>
+
+          <VisitDateAndLevelFields
+            date={formData.date}
+            level={formData.level}
+            onChange={handleInputChange}
+            errors={errors}
+            idPrefix="gallery-booking"
+          />
+
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="mt-4 bg-gradient-to-br from-secondary to-secondary-dim text-white py-4 rounded-full font-bold text-base hover:shadow-xl hover:shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Agendando...</span>
+              </>
+            ) : (
+              <>
+                <Icon name="event" className="text-lg" />
+                <span>Confirmar Visita</span>
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const GalleryLightboxModal = ({
+  isOpen,
+  onClose,
+  carouselIndex,
+  setCarouselIndex,
+  handleNext,
+  handlePrev,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-slate-950/95 backdrop-blur-lg flex flex-col justify-between p-4 md:p-8 animate-in fade-in duration-300 select-none"
+      style={{ zIndex: 3000 }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Botón de cerrar flotante */}
+      <button 
+        type="button"
+        onClick={onClose}
+        className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer border border-slate-700/80 shadow-2xl active:scale-95"
+        title="Cerrar (Esc)"
+      >
+        <Icon name="close" className="text-2xl" />
+      </button>
+
+      {/* Barra superior del modal */}
+      <div className="flex items-center justify-between w-full text-white z-10 px-4">
+        <span className="font-label text-xs uppercase tracking-widest font-bold opacity-75">
+          Instalaciones ({carouselIndex + 1} de {carouselImages.length})
+        </span>
+      </div>
+
+      {/* Area principal (Imagen y Botones laterales) */}
+      <div className="flex-1 flex items-center justify-between relative max-w-6xl w-full mx-auto my-4">
+        {/* Botón Izquierda */}
+        <button
+          type="button"
+          onClick={handlePrev}
+          className="absolute left-2 md:left-6 z-10 w-14 h-14 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer border border-slate-700/80 shadow-xl active:scale-95"
+          title="Anterior (←)"
+        >
+          <span className="material-symbols-outlined text-3xl">chevron_left</span>
+        </button>
+
+        {/* Contenedor de la Imagen con fade-in suave */}
+        <div className="w-full flex items-center justify-center p-2 md:p-8 select-none">
+          <img
+            src={carouselImages[carouselIndex].url}
+            alt={carouselImages[carouselIndex].title}
+            className="max-h-[60vh] max-w-full rounded-2xl object-contain shadow-2xl animate-in fade-in zoom-in-95 duration-500"
+          />
+        </div>
+
+        {/* Botón Derecha */}
+        <button
+          type="button"
+          onClick={handleNext}
+          className="absolute right-2 md:right-6 z-10 w-14 h-14 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer border border-slate-700/80 shadow-xl active:scale-95"
+          title="Siguiente (→)"
+        >
+          <span className="material-symbols-outlined text-3xl">chevron_right</span>
+        </button>
+      </div>
+
+      {/* Barra inferior (Descripción y Miniaturas) */}
+      <div className="w-full text-center text-white z-10 flex flex-col gap-6 max-w-4xl mx-auto pb-4">
+        <div className="flex flex-col gap-1.5 px-4 animate-in slide-in-from-bottom-2 duration-300">
+          <h3 className="font-headline text-xl md:text-2xl font-bold text-white">
+            {carouselImages[carouselIndex].title}
+          </h3>
+          <p className="font-body text-sm md:text-base text-slate-300 max-w-2xl mx-auto">
+            {carouselImages[carouselIndex].description}
+          </p>
+        </div>
+
+        {/* Fila de Miniaturas */}
+        <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 px-4 scrollbar-none md:scrollbar-thin scrollbar-thumb-white/20 max-w-full">
+          {carouselImages.map((img, i) => (
+            <button
+              key={img.id || img.url}
+              type="button"
+              aria-label={img.title ? `Ver imagen ${i + 1}: ${img.title}` : `Ver imagen ${i + 1}`}
+              onClick={() => setCarouselIndex(i)}
+              className={`relative flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                i === carouselIndex ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent opacity-40 hover:opacity-75'
+              }`}
+            >
+              <img src={img.url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Gallery = () => {
   // Modal state for booking a visit
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,8 +237,6 @@ const Gallery = () => {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const touchStartRef = useRef(0);
   const touchEndRef = useRef(0);
-
-
 
   const handleNext = useCallback(() => {
     setCarouselIndex((prev) => (prev + 1) % carouselImages.length);
@@ -163,88 +359,15 @@ const Gallery = () => {
       </main>
 
       {/* 1. Modal de Reserva de Visita (Glassmorphism booking overlay) */}
-      {isModalOpen && !submitSuccess && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white/95 dark:bg-slate-900/95 max-w-md w-full rounded-[2.5rem] p-8 border border-slate-200 shadow-2xl relative text-left animate-in zoom-in-95 duration-300">
-            
-            {/* Botón cerrar */}
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <Icon name="close" className="text-xl" />
-            </button>
-
-            <div className="mb-6 flex flex-col gap-2">
-              <h3 className="font-headline text-2xl font-bold text-slate-800 dark:text-slate-100">Agendar Visita</h3>
-              <p className="font-body text-sm text-slate-500 dark:text-slate-400">
-                Completa tus datos y selecciona la fecha para tu visita guiada al campus de Resistencia.
-              </p>
-            </div>
-
-            <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
-              {/* Nombre */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="gallery-booking-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo</label>
-                <input 
-                  id="gallery-booking-name"
-                  type="text" 
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.name ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  placeholder="Ej. Carlos Mendoza"
-                />
-                {errors.name && <span className="text-xs text-red-500 font-semibold">{errors.name}</span>}
-              </div>
-
-              {/* Email */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="gallery-booking-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo de Contacto</label>
-                <input 
-                  id="gallery-booking-email"
-                  type="email" 
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full bg-surface-container focus:bg-surface-container-lowest border border-transparent ${errors.email ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface text-sm transition-all outline-none`} 
-                  placeholder="carlos@ejemplo.com"
-                />
-                {errors.email && <span className="text-xs text-red-500 font-semibold">{errors.email}</span>}
-              </div>
-
-              <VisitDateAndLevelFields
-                date={formData.date}
-                level={formData.level}
-                onChange={handleInputChange}
-                errors={errors}
-                idPrefix="gallery-booking"
-              />
-
-              <button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="mt-4 bg-gradient-to-br from-secondary to-secondary-dim text-white py-4 rounded-full font-bold text-base hover:shadow-xl hover:shadow-secondary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Agendando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon name="event" className="text-lg" />
-                    <span>Confirmar Visita</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <GalleryBookingModal
+        isOpen={isModalOpen && !submitSuccess}
+        onClose={() => setIsModalOpen(false)}
+        formData={formData}
+        errors={errors}
+        isSubmitting={isSubmitting}
+        handleInputChange={handleInputChange}
+        handleBookingSubmit={handleBookingSubmit}
+      />
 
       {/* 2. Modal de Éxito al Agendar */}
       <SuccessModal 
@@ -258,93 +381,17 @@ const Gallery = () => {
       />
 
       {/* 3. Modal de Carrusel / Lightbox (Premium visual overlay) */}
-      {isCarouselOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-950/95 backdrop-blur-lg flex flex-col justify-between p-4 md:p-8 animate-in fade-in duration-300 select-none"
-          style={{ zIndex: 3000 }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          {/* Botón de cerrar flotante (Fijo en la esquina superior derecha para accesibilidad en mobile) */}
-          <button 
-            type="button"
-            onClick={() => setIsCarouselOpen(false)}
-            className="fixed top-4 right-4 z-50 w-12 h-12 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer border border-slate-700/80 shadow-2xl active:scale-95"
-            title="Cerrar (Esc)"
-          >
-            <Icon name="close" className="text-2xl" />
-          </button>
-
-          {/* Barra superior del modal */}
-          <div className="flex items-center justify-between w-full text-white z-10 px-4">
-            <span className="font-label text-xs uppercase tracking-widest font-bold opacity-75">
-              Instalaciones ({carouselIndex + 1} de {carouselImages.length})
-            </span>
-          </div>
-
-          {/* Area principal (Imagen y Botones laterales) */}
-          <div className="flex-1 flex items-center justify-between relative max-w-6xl w-full mx-auto my-4">
-            
-            {/* Botón Izquierda */}
-            <button
-              type="button"
-              onClick={handlePrev}
-              className="absolute left-2 md:left-6 z-10 w-14 h-14 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer border border-slate-700/80 shadow-xl active:scale-95"
-              title="Anterior (←)"
-            >
-              <span className="material-symbols-outlined text-3xl">chevron_left</span>
-            </button>
-
-            {/* Contenedor de la Imagen con fade-in suave */}
-            <div className="w-full flex items-center justify-center p-2 md:p-8 select-none">
-              <img
-                src={carouselImages[carouselIndex].url}
-                alt={carouselImages[carouselIndex].title}
-                className="max-h-[60vh] max-w-full rounded-2xl object-contain shadow-2xl animate-in fade-in zoom-in-95 duration-500"
-              />
-            </div>
-
-            {/* Botón Derecha */}
-            <button
-              type="button"
-              onClick={handleNext}
-              className="absolute right-2 md:right-6 z-10 w-14 h-14 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center transition-all cursor-pointer border border-slate-700/80 shadow-xl active:scale-95"
-              title="Siguiente (→)"
-            >
-              <span className="material-symbols-outlined text-3xl">chevron_right</span>
-            </button>
-          </div>
-
-          {/* Barra inferior (Descripción y Miniaturas) */}
-          <div className="w-full text-center text-white z-10 flex flex-col gap-6 max-w-4xl mx-auto pb-4">
-            <div className="flex flex-col gap-1.5 px-4 animate-in slide-in-from-bottom-2 duration-300">
-              <h3 className="font-headline text-xl md:text-2xl font-bold text-white">
-                {carouselImages[carouselIndex].title}
-              </h3>
-              <p className="font-body text-sm md:text-base text-slate-300 max-w-2xl mx-auto">
-                {carouselImages[carouselIndex].description}
-              </p>
-            </div>
-
-            {/* Fila de Miniaturas */}
-            <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 px-4 scrollbar-none md:scrollbar-thin scrollbar-thumb-white/20 max-w-full">
-              {carouselImages.map((img, i) => (
-                <button
-                  key={img.id || img.url}
-                  onClick={() => setCarouselIndex(i)}
-                  className={`relative flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                    i === carouselIndex ? 'border-primary scale-110 shadow-lg shadow-primary/20' : 'border-transparent opacity-40 hover:opacity-75'
-                  }`}
-                >
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
+      <GalleryLightboxModal
+        isOpen={isCarouselOpen}
+        onClose={() => setIsCarouselOpen(false)}
+        carouselIndex={carouselIndex}
+        setCarouselIndex={setCarouselIndex}
+        handleNext={handleNext}
+        handlePrev={handlePrev}
+        handleTouchStart={handleTouchStart}
+        handleTouchMove={handleTouchMove}
+        handleTouchEnd={handleTouchEnd}
+      />
     </div>
   );
 };

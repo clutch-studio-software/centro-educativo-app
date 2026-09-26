@@ -68,6 +68,268 @@ const getInitials = (nombre = '', apellido = '') => {
   return (parts[0] || 'DO').slice(0, 2).toUpperCase();
 };
 
+const TeacherFloatingMenu = ({
+  activeTeacher,
+  menuRef,
+  menuPosition,
+  setActiveMenuTeacherId,
+  onEditTeacher,
+  onResetPassword,
+  onToggleStatus,
+  onDeleteTeacher,
+}) => {
+  if (!activeTeacher) return null;
+
+  return (
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        top: `${menuPosition.top}px`,
+        right: `${menuPosition.right}px`,
+        zIndex: 9999,
+      }}
+      className="w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
+    >
+      {/* Opción C: Modificar datos */}
+      <div className="py-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const target = activeTeacher;
+            setActiveMenuTeacherId(null);
+            onEditTeacher(target);
+          }}
+          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+        >
+          <span className="material-symbols-outlined text-[18px] text-blue-600">
+            edit
+          </span>
+          <div className="flex flex-col items-start leading-tight">
+            <span>Modificar datos</span>
+            <span className="text-[10px] font-normal text-slate-400">
+              Editar legajo y contacto
+            </span>
+          </div>
+        </button>
+
+        {/* Opción D: Restablecer contraseña */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const target = activeTeacher;
+            setActiveMenuTeacherId(null);
+            onResetPassword(target);
+          }}
+          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+        >
+          <span className="material-symbols-outlined text-[18px] text-amber-500">
+            lock_reset
+          </span>
+          <div className="flex flex-col items-start leading-tight">
+            <span>Restablecer contraseña</span>
+            <span className="text-[10px] font-normal text-slate-400">
+              Volver al DNI por defecto
+            </span>
+          </div>
+        </button>
+
+        {/* Opción A: Deshabilitar / Habilitar usuario */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const target = activeTeacher;
+            setActiveMenuTeacherId(null);
+            onToggleStatus(target);
+          }}
+          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
+            String(activeTeacher.estado).toLowerCase() === 'suspendido'
+              ? 'text-emerald-700 hover:bg-emerald-50'
+              : 'text-amber-700 hover:bg-amber-50'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            {String(activeTeacher.estado).toLowerCase() === 'suspendido'
+              ? 'check_circle'
+              : 'person_off'}
+          </span>
+          <div className="flex flex-col items-start leading-tight">
+            <span>
+              {String(activeTeacher.estado).toLowerCase() === 'suspendido'
+                ? 'Habilitar usuario'
+                : 'Deshabilitar usuario'}
+            </span>
+            <span className="text-[10px] font-normal text-slate-400">
+              {String(activeTeacher.estado).toLowerCase() === 'suspendido'
+                ? 'Restaurar a estado activo'
+                : 'Pasa a estado Suspendido'}
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {/* Opción B: Borrar usuario */}
+      <div className="py-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            const target = activeTeacher;
+            setActiveMenuTeacherId(null);
+            onDeleteTeacher(target);
+          }}
+          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
+        >
+          <span className="material-symbols-outlined text-[18px] text-red-500">
+            delete_forever
+          </span>
+          <div className="flex flex-col items-start leading-tight">
+            <span>Borrar usuario</span>
+            <span className="text-[10px] font-normal text-red-400">
+              Eliminar legajo definitivamente
+            </span>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const TeacherTableRow = ({
+  teacher,
+  activeMenuTeacherId,
+  setActiveMenuTeacherId,
+  setMenuPosition,
+}) => {
+  const status = getStatusBadge(teacher.estado);
+  const displayName =
+    teacher.nombreCompleto ||
+    (teacher.apellido
+      ? `${teacher.nombre} ${teacher.apellido}`
+      : teacher.nombre);
+  const initials = getInitials(teacher.nombre, teacher.apellido);
+  const isSuspended = String(teacher.estado).toLowerCase() === 'suspendido';
+
+  return (
+    <tr
+      data-testid={`teacher-row-${teacher.id}`}
+      className={`transition-colors group ${
+        isSuspended ? 'bg-rose-50/20 hover:bg-rose-50/30' : 'hover:bg-blue-50/30'
+      }`}
+    >
+      {/* Legajo */}
+      <td className="py-4 px-6 font-mono font-bold text-xs text-blue-600 whitespace-nowrap">
+        {teacher.legajo}
+      </td>
+
+      {/* Docente & Titulación */}
+      <td className="py-4 px-6">
+        <div className="flex items-center gap-3">
+          <div className="relative shrink-0">
+            {isSuspended ? (
+              <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 text-xs flex items-center justify-center font-bold shadow-xs">
+                {initials}
+              </div>
+            ) : (
+              <div
+                className={`w-10 h-10 rounded-full bg-gradient-to-tr ${getAvatarGradient(
+                  teacher.id
+                )} text-white font-bold text-xs flex items-center justify-center shadow-sm`}
+              >
+                {initials}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span
+              className={`font-bold text-xs truncate transition-colors ${
+                isSuspended
+                  ? 'text-slate-400 line-through'
+                  : 'text-slate-900 group-hover:text-blue-600'
+              }`}
+            >
+              {displayName}
+            </span>
+            <span className="text-[11px] text-slate-500 truncate" title={teacher.titulacion}>
+              {teacher.titulacion}
+            </span>
+            <span className="text-[10px] font-mono text-slate-400">
+              DNI: {teacher.dni}
+            </span>
+          </div>
+        </div>
+      </td>
+
+      {/* Especialidad (texto libre con badge limpio) */}
+      <td className="py-4 px-6">
+        <span className="inline-flex items-center px-2.5 py-1 rounded-md font-bold text-[11px] border bg-slate-50 text-slate-700 border-slate-200">
+          {teacher.especialidad}
+        </span>
+      </td>
+
+      {/* Estado (Titular, Suplente, Interino, Suspendido) */}
+      <td className="py-4 px-6 whitespace-nowrap">
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-[11px] border ${status.badgeClass}`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`}></span>
+          <span>{status.label}</span>
+        </span>
+      </td>
+
+      {/* Contacto Institucional */}
+      <td className="py-4 px-6">
+        <div className="flex flex-col">
+          <span className="text-xs font-semibold text-slate-800 truncate">
+            {teacher.email}
+          </span>
+          <span className="text-[11px] text-slate-500 truncate">
+            {teacher.telefono}
+          </span>
+        </div>
+      </td>
+
+      {/* Botón de 3 Puntos Más Opciones */}
+      <td className="py-4 px-6 text-right">
+        <div className="relative inline-block text-left">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (activeMenuTeacherId === teacher.id) {
+                setActiveMenuTeacherId(null);
+              } else {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const menuHeight = 180;
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
+                setMenuPosition({
+                  top: openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6,
+                  right: window.innerWidth - rect.right,
+                });
+                setActiveMenuTeacherId(teacher.id);
+              }
+            }}
+            className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${
+              activeMenuTeacherId === teacher.id
+                ? 'bg-slate-200 text-slate-800 shadow-xs'
+                : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100 bg-transparent'
+            }`}
+            title="Más opciones"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              more_vert
+            </span>
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 const TeacherTable = ({
   teachers = [],
   isLoading = false,
@@ -173,253 +435,31 @@ const TeacherTable = ({
                 </td>
               </tr>
             ) : (
-              teachers.map((teacher) => {
-              const status = getStatusBadge(teacher.estado);
-              const displayName =
-                teacher.nombreCompleto ||
-                (teacher.apellido
-                  ? `${teacher.nombre} ${teacher.apellido}`
-                  : teacher.nombre);
-              const initials = getInitials(teacher.nombre, teacher.apellido);
-              const isSuspended = String(teacher.estado).toLowerCase() === 'suspendido';
-
-              return (
-                <tr
+              teachers.map((teacher) => (
+                <TeacherTableRow
                   key={teacher.id}
-                  className={`transition-colors group ${
-                    isSuspended ? 'bg-rose-50/20 hover:bg-rose-50/30' : 'hover:bg-blue-50/30'
-                  }`}
-                >
-                  {/* Legajo */}
-                  <td className="py-4 px-6 font-mono font-bold text-xs text-blue-600 whitespace-nowrap">
-                    {teacher.legajo}
-                  </td>
-
-                  {/* Docente & Titulación */}
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="relative shrink-0">
-                        {isSuspended ? (
-                          <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 text-xs flex items-center justify-center font-bold shadow-xs">
-                            {initials}
-                          </div>
-                        ) : (
-                          <div
-                            className={`w-10 h-10 rounded-full bg-gradient-to-tr ${getAvatarGradient(
-                              teacher.id
-                            )} text-white font-bold text-xs flex items-center justify-center shadow-sm`}
-                          >
-                            {initials}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span
-                          className={`font-bold text-xs truncate transition-colors ${
-                            isSuspended
-                              ? 'text-slate-400 line-through'
-                              : 'text-slate-900 group-hover:text-blue-600'
-                          }`}
-                        >
-                          {displayName}
-                        </span>
-                        <span className="text-[11px] text-slate-500 truncate" title={teacher.titulacion}>
-                          {teacher.titulacion}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400">
-                          DNI: {teacher.dni}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Especialidad (texto libre con badge limpio) */}
-                  <td className="py-4 px-6">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-md font-bold text-[11px] border bg-slate-50 text-slate-700 border-slate-200">
-                      {teacher.especialidad}
-                    </span>
-                  </td>
-
-                  {/* Estado (Titular, Suplente, Interino, Suspendido) */}
-                  <td className="py-4 px-6 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-[11px] border ${status.badgeClass}`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`}></span>
-                      <span>{status.label}</span>
-                    </span>
-                  </td>
-
-                  {/* Contacto Institucional */}
-                  <td className="py-4 px-6">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-slate-800 truncate">
-                        {teacher.email}
-                      </span>
-                      <span className="text-[11px] text-slate-500 truncate">
-                        {teacher.telefono}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Botón de 3 Puntos Más Opciones */}
-                  <td className="py-4 px-6 text-right">
-                    <div className="relative inline-block text-left">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (activeMenuTeacherId === teacher.id) {
-                            setActiveMenuTeacherId(null);
-                          } else {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const menuHeight = 180;
-                            const spaceBelow = window.innerHeight - rect.bottom;
-                            const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
-                            setMenuPosition({
-                              top: openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6,
-                              right: window.innerWidth - rect.right,
-                            });
-                            setActiveMenuTeacherId(teacher.id);
-                          }
-                        }}
-                        className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${
-                          activeMenuTeacherId === teacher.id
-                            ? 'bg-slate-200 text-slate-800 shadow-xs'
-                            : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100 bg-transparent'
-                        }`}
-                        title="Más opciones"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">
-                          more_vert
-                        </span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            }))}
+                  teacher={teacher}
+                  activeMenuTeacherId={activeMenuTeacherId}
+                  setActiveMenuTeacherId={setActiveMenuTeacherId}
+                  setMenuPosition={setMenuPosition}
+                />
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Menú Flotante con Posicionamiento Fijo (Evita clipping por overflow) */}
-      {activeTeacher && (
-        <div
-          ref={menuRef}
-          style={{
-            position: 'fixed',
-            top: `${menuPosition.top}px`,
-            right: `${menuPosition.right}px`,
-            zIndex: 9999,
-          }}
-          className="w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
-        >
-          {/* Opción C: Modificar datos */}
-          <div className="py-1">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const target = activeTeacher;
-                setActiveMenuTeacherId(null);
-                onEditTeacher(target);
-              }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
-            >
-              <span className="material-symbols-outlined text-[18px] text-blue-600">
-                edit
-              </span>
-              <div className="flex flex-col items-start leading-tight">
-                <span>Modificar datos</span>
-                <span className="text-[10px] font-normal text-slate-400">
-                  Editar legajo y contacto
-                </span>
-              </div>
-            </button>
-
-            {/* Opción D: Restablecer contraseña */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const target = activeTeacher;
-                setActiveMenuTeacherId(null);
-                onResetPassword(target);
-              }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
-            >
-              <span className="material-symbols-outlined text-[18px] text-amber-500">
-                lock_reset
-              </span>
-              <div className="flex flex-col items-start leading-tight">
-                <span>Restablecer contraseña</span>
-                <span className="text-[10px] font-normal text-slate-400">
-                  Volver al DNI por defecto
-                </span>
-              </div>
-            </button>
-
-            {/* Opción A: Deshabilitar / Habilitar usuario */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const target = activeTeacher;
-                setActiveMenuTeacherId(null);
-                onToggleStatus(target);
-              }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
-                String(activeTeacher.estado).toLowerCase() === 'suspendido'
-                  ? 'text-emerald-700 hover:bg-emerald-50'
-                  : 'text-amber-700 hover:bg-amber-50'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">
-                {String(activeTeacher.estado).toLowerCase() === 'suspendido'
-                  ? 'check_circle'
-                  : 'person_off'}
-              </span>
-              <div className="flex flex-col items-start leading-tight">
-                <span>
-                  {String(activeTeacher.estado).toLowerCase() === 'suspendido'
-                    ? 'Habilitar usuario'
-                    : 'Deshabilitar usuario'}
-                </span>
-                <span className="text-[10px] font-normal text-slate-400">
-                  {String(activeTeacher.estado).toLowerCase() === 'suspendido'
-                    ? 'Restaurar a estado activo'
-                    : 'Pasa a estado Suspendido'}
-                </span>
-              </div>
-            </button>
-          </div>
-
-          {/* Opción B: Borrar usuario */}
-          <div className="py-1">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                const target = activeTeacher;
-                setActiveMenuTeacherId(null);
-                onDeleteTeacher(target);
-              }}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
-            >
-              <span className="material-symbols-outlined text-[18px] text-red-500">
-                delete_forever
-              </span>
-              <div className="flex flex-col items-start leading-tight">
-                <span>Borrar usuario</span>
-                <span className="text-[10px] font-normal text-red-400">
-                  Eliminar legajo definitivamente
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
+      <TeacherFloatingMenu
+        activeTeacher={activeTeacher}
+        menuRef={menuRef}
+        menuPosition={menuPosition}
+        setActiveMenuStudentId={setActiveMenuTeacherId}
+        onEditTeacher={onEditTeacher}
+        onResetPassword={onResetPassword}
+        onToggleStatus={onToggleStatus}
+        onDeleteTeacher={onDeleteTeacher}
+      />
     </section>
   );
 };

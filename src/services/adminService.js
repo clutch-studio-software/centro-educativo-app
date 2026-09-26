@@ -141,17 +141,72 @@ export const fetchAdminDashboardData = async () => {
  * Se procesa en el entorno seguro del servidor mediante Cloud Function,
  * donde se asignan roles, credenciales y relaciones de forma autorizada.
  */
-export const createParentAndStudentsApi = async ({ parentEmail, parentName, parentDni, students }) => {
+export const createParentAndStudentsApi = async ({
+  parentEmail,
+  parentName,
+  parentDni,
+  parentTelefono,
+  parentDomicilio,
+  students,
+}) => {
   const cleanEmail = String(parentEmail || '').trim().toLowerCase();
   const cleanDni = String(parentDni || '').trim().replace(/\./g, '');
   const cleanName = String(parentName || '').trim();
+  const cleanTelefono = String(parentTelefono || '').trim();
+  const cleanDomicilio = String(parentDomicilio || '').trim();
 
-  return await callAdminFunction('cf_createParentAndStudents', {
+  const result = await callAdminFunction('cf_createParentAndStudents', {
     parentEmail: cleanEmail,
     parentName: cleanName,
     parentDni: cleanDni,
+    parentTelefono: cleanTelefono,
+    parentDomicilio: cleanDomicilio,
     students,
   });
+
+  // Asegurar persistencia directa en Firestore de datos complementarios del tutor y alumnos
+  try {
+    if (result?.parentUid) {
+      const parentDocRef = doc(db, 'users', result.parentUid);
+      const parentUpdates = {};
+      if (cleanTelefono) parentUpdates.telefono = cleanTelefono;
+      if (cleanDomicilio) parentUpdates.domicilio = cleanDomicilio;
+      if (Object.keys(parentUpdates).length > 0) {
+        parentUpdates.updatedAt = serverTimestamp();
+        await updateDoc(parentDocRef, parentUpdates);
+      }
+    }
+
+    if (Array.isArray(result?.students) && Array.isArray(students)) {
+      const studentUpdatePromises = result.students.map((createdStudent, i) => {
+        const originalStudent = students[i];
+        if (!createdStudent?.id) return null;
+
+        const studentUpdates = {};
+        if (originalStudent?.domicilio) {
+          studentUpdates.domicilio = originalStudent.domicilio.trim();
+        }
+        if (originalStudent?.apellido) {
+          studentUpdates.apellido = originalStudent.apellido.trim();
+        }
+
+        if (Object.keys(studentUpdates).length > 0) {
+          studentUpdates.updatedAt = serverTimestamp();
+          const studentDocRef = doc(db, 'students', createdStudent.id);
+          return updateDoc(studentDocRef, studentUpdates);
+        }
+        return null;
+      }).filter(Boolean);
+
+      if (studentUpdatePromises.length > 0) {
+        await Promise.all(studentUpdatePromises);
+      }
+    }
+  } catch (directUpdateErr) {
+    console.warn('Advertencia al complementar datos en Firestore tras crear alumno/tutor:', directUpdateErr);
+  }
+
+  return result;
 };
 
 /**
@@ -227,6 +282,10 @@ export const updateStudentAndTutorApi = async ({
 
   if (studentData.servicios) {
     studentUpdates.servicios = studentData.servicios;
+  }
+
+  if (studentData.apellido !== undefined) {
+    studentUpdates.apellido = studentData.apellido.trim();
   }
 
   // Si se reasignó a otro tutor registrado
