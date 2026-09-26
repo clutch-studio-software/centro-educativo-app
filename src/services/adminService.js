@@ -178,23 +178,28 @@ export const createParentAndStudentsApi = async ({
     }
 
     if (Array.isArray(result?.students) && Array.isArray(students)) {
-      for (let i = 0; i < result.students.length; i++) {
-        const createdStudent = result.students[i];
+      const studentUpdatePromises = result.students.map((createdStudent, i) => {
         const originalStudent = students[i];
-        if (createdStudent?.id) {
-          const studentDocRef = doc(db, 'students', createdStudent.id);
-          const studentUpdates = {};
-          if (originalStudent?.domicilio) {
-            studentUpdates.domicilio = originalStudent.domicilio.trim();
-          }
-          if (originalStudent?.apellido) {
-            studentUpdates.apellido = originalStudent.apellido.trim();
-          }
-          if (Object.keys(studentUpdates).length > 0) {
-            studentUpdates.updatedAt = serverTimestamp();
-            await updateDoc(studentDocRef, studentUpdates);
-          }
+        if (!createdStudent?.id) return null;
+
+        const studentUpdates = {};
+        if (originalStudent?.domicilio) {
+          studentUpdates.domicilio = originalStudent.domicilio.trim();
         }
+        if (originalStudent?.apellido) {
+          studentUpdates.apellido = originalStudent.apellido.trim();
+        }
+
+        if (Object.keys(studentUpdates).length > 0) {
+          studentUpdates.updatedAt = serverTimestamp();
+          const studentDocRef = doc(db, 'students', createdStudent.id);
+          return updateDoc(studentDocRef, studentUpdates);
+        }
+        return null;
+      }).filter(Boolean);
+
+      if (studentUpdatePromises.length > 0) {
+        await Promise.all(studentUpdatePromises);
       }
     }
   } catch (directUpdateErr) {
