@@ -98,8 +98,8 @@ const TeacherFloatingMenu = ({
           onClick={(e) => {
             e.stopPropagation();
             const target = activeTeacher;
-            setActiveMenuTeacherId(null);
-            onEditTeacher(target);
+            setActiveMenuTeacherId?.(null);
+            onEditTeacher?.(target);
           }}
           className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
         >
@@ -120,8 +120,8 @@ const TeacherFloatingMenu = ({
           onClick={(e) => {
             e.stopPropagation();
             const target = activeTeacher;
-            setActiveMenuTeacherId(null);
-            onResetPassword(target);
+            setActiveMenuTeacherId?.(null);
+            onResetPassword?.(target);
           }}
           className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
         >
@@ -142,8 +142,8 @@ const TeacherFloatingMenu = ({
           onClick={(e) => {
             e.stopPropagation();
             const target = activeTeacher;
-            setActiveMenuTeacherId(null);
-            onToggleStatus(target);
+            setActiveMenuTeacherId?.(null);
+            onToggleStatus?.(target);
           }}
           className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
             String(activeTeacher.estado).toLowerCase() === 'suspendido'
@@ -178,8 +178,8 @@ const TeacherFloatingMenu = ({
           onClick={(e) => {
             e.stopPropagation();
             const target = activeTeacher;
-            setActiveMenuTeacherId(null);
-            onDeleteTeacher(target);
+            setActiveMenuTeacherId?.(null);
+            onDeleteTeacher?.(target);
           }}
           className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
         >
@@ -454,7 +454,7 @@ const TeacherTable = ({
         activeTeacher={activeTeacher}
         menuRef={menuRef}
         menuPosition={menuPosition}
-        setActiveMenuStudentId={setActiveMenuTeacherId}
+        setActiveMenuTeacherId={setActiveMenuTeacherId}
         onEditTeacher={onEditTeacher}
         onResetPassword={onResetPassword}
         onToggleStatus={onToggleStatus}
