@@ -13,6 +13,7 @@ import {
   INITIAL_SUBJECTS,
 } from '../../data/mockAcademicOffer';
 import { MOCK_TEACHERS } from '../../data/mockTeachers';
+import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 
 const AcademicOfferManagement = () => {
   // State for Academic Offer Data
@@ -133,17 +134,11 @@ const AcademicOfferManagement = () => {
         {/* Top Title & Action Hub */}
         <section className="mb-2" data-purpose="section-header">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-amber-50 text-amber-600 border border-amber-200/50 mb-2">
-                Área Académica
-              </span>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Gestión de la Oferta Académica
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
-                Administración de niveles pedagógicos, divisiones de cursos y asignación de materias curriculares.
-              </p>
-            </div>
+            <AdminSectionTitle
+              icon="menu_book"
+              title="Gestión del Plantel Docente y Académico"
+              subtitle="Administración centralizada de legajos docentes, designaciones y estado de personal."
+            />
 
             {/* Section Primary CTA Buttons */}
             <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">

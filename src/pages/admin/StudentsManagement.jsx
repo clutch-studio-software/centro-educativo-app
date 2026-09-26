@@ -23,13 +23,176 @@ import {
 } from '../../services/adminService';
 import { formatDni } from '../../utils/validators';
 
-const StudentsManagement = () => {
-  const navigate = useNavigate();
+const normalizeStudent = (s, parents) => {
+  const rawNivel = String(s.nivel || '').toLowerCase();
+  const nivel =
+    rawNivel === 'inicial'
+      ? 'Inicial'
+      : rawNivel === 'primaria' || rawNivel === 'primario'
+        ? 'Primario'
+        : rawNivel === 'secundaria' || rawNivel === 'secundario'
+          ? 'Secundario'
+          : 'Primario';
 
-  // Authentication check for admin panel
+  const badgeVariant =
+    nivel === 'Inicial' ? 'lime' : nivel === 'Primario' ? 'sky' : 'indigo';
+  const avatarGradient =
+    nivel === 'Inicial'
+      ? 'from-orange-400 to-amber-500'
+      : nivel === 'Primario'
+        ? 'from-blue-500 to-indigo-500'
+        : 'from-emerald-400 to-lime-500';
+
+  const parent =
+    (parents || []).find((p) => p.id && s.parentId && p.id === s.parentId) ||
+    (parents || []).find((p) => Array.isArray(p.studentIds) && p.studentIds.includes(s.id)) ||
+    (parents || []).find(
+      (p) =>
+        p.email &&
+        s.emailPadre &&
+        p.email.trim().toLowerCase() === s.emailPadre.trim().toLowerCase()
+    ) ||
+    null;
+
+  const tutorNombre = parent
+    ? parent.nombre
+    : s.tutorNombre
+      ? s.tutorNombre.replace(' (Tutor)', '')
+      : s.emailPadre
+        ? `Tutor (${s.emailPadre})`
+        : 'Tutor';
+  const tutorDni = parent?.dni || s.tutorDni || s.dniPadre || s.dniTutor || '';
+  const tutorTelefono = parent?.telefono || s.tutorTelefono || s.telefonoPadre || '';
+  const tutorEmail = parent?.email || s.tutorEmail || s.emailPadre || '';
+  const tutorDomicilio = parent?.domicilio || s.tutorDomicilio || '';
+
+  const initials =
+    (s.nombre || '')
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'AL';
+
+  const curso = s.curso || 'sin asignar';
+  const division = s.division || 'sin asignar';
+
+  const cursoDisplay =
+    curso === 'sin asignar' && division === 'sin asignar'
+      ? 'Sin asignar'
+      : curso !== 'sin asignar' && division !== 'sin asignar'
+        ? `${curso} "${division}"`
+        : curso !== 'sin asignar'
+          ? curso
+          : `División ${division}`;
+
+  return {
+    id: s.id,
+    parentId: s.parentId || parent?.id || null,
+    legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
+    dni: formatDni(s.dni || ''),
+    nombre: s.nombre || 'Sin Nombre',
+    tutorNombre,
+    tutorDni,
+    tutorTelefono,
+    tutorEmail,
+    tutorDomicilio,
+    domicilio: s.domicilio || parent?.domicilio || 'Sin domicilio registrado',
+    nivel,
+    curso,
+    division,
+    cursoDisplay,
+    estado: s.status === 'active' ? 'Activo - Regular' : s.status || 'Activo - Regular',
+    servicios: s.servicios || ['Comedor Escolar'],
+    initials,
+    avatarGradient,
+    badgeVariant,
+    fechaNacimiento: s.fechaNacimiento || '',
+  };
+};
+
+const computeInstitutionMetrics = (students) => {
+  const total = students.length;
+  const inicial = students.filter((s) => s.nivel === 'Inicial').length;
+  const primario = students.filter((s) => s.nivel === 'Primario').length;
+  const secundario = students.filter((s) => s.nivel === 'Secundario').length;
+  const regulares = students.filter((s) => s.estado === 'Activo - Regular').length;
+  const regularPct = total > 0 ? `${((regulares / total) * 100).toFixed(1)}%` : '0%';
+
+  return {
+    totalStudents: total,
+    totalAssignedPct: `${total} alumnos en padrón`,
+    inicialStudents: inicial,
+    inicialSubtitle: 'Salas de 2 a 5 Años',
+    primarioStudents: primario,
+    primarioSubtitle: '1º a 7º Grados',
+    secundarioStudents: secundario,
+    secundarioSubtitle: '1º a 6º Años',
+    regularStudentsPct: regularPct,
+    conditionalCount: total - regulares,
+  };
+};
+
+const filterStudentsList = (students, { searchQuery, levelFilter, courseFilter, divisionFilter, statusFilter, serviceFilter }) => {
+  const normalize = (str) =>
+    String(str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+  return students.filter((student) => {
+    if (searchQuery.trim()) {
+      const query = normalize(searchQuery);
+      const cleanDigitsQuery = searchQuery.replace(/\D/g, '');
+
+      const matchesName = normalize(student.nombre).includes(query);
+      const matchesLegajo = normalize(student.legajo).includes(query);
+      const matchesDni =
+        cleanDigitsQuery.length >= 3 &&
+        String(student.dni || '').replace(/\D/g, '').includes(cleanDigitsQuery);
+      const matchesTutor = normalize(student.tutorNombre).includes(query);
+      const matchesTutorEmail = normalize(student.tutorEmail).includes(query);
+      const matchesTutorPhone =
+        cleanDigitsQuery.length >= 3 &&
+        String(student.tutorTelefono || '').replace(/\D/g, '').includes(cleanDigitsQuery);
+
+      if (!matchesName && !matchesLegajo && !matchesDni && !matchesTutor && !matchesTutorEmail && !matchesTutorPhone) {
+        return false;
+      }
+    }
+
+    if (levelFilter !== 'todos' && student.nivel !== levelFilter) {
+      return false;
+    }
+
+    if (courseFilter !== 'todos') {
+      if (courseFilter === 'sin asignar') {
+        if (student.curso !== 'sin asignar') return false;
+      } else if (student.curso !== courseFilter && !student.curso?.toLowerCase().includes(courseFilter.toLowerCase())) {
+        return false;
+      }
+    }
+
+    if (divisionFilter !== 'todos' && student.division !== divisionFilter) {
+      return false;
+    }
+
+    if (statusFilter !== 'todos' && student.estado !== statusFilter) {
+      return false;
+    }
+
+    if (serviceFilter !== 'todos' && !student.servicios?.includes(serviceFilter)) {
+      return false;
+    }
+
+    return true;
+  });
+};
+
+const useAdminAuthCheck = (navigate) => {
   useEffect(() => {
     const checkAdminAuth = async () => {
-      // 1. Check local storage / auth context
       const savedUser = localStorage.getItem('school_user');
       const currentUser = savedUser ? JSON.parse(savedUser) : null;
 
@@ -40,7 +203,6 @@ const StudentsManagement = () => {
         return;
       }
 
-      // 2. Check Firebase user claims if available
       const firebaseUser = auth.currentUser;
       if (firebaseUser) {
         try {
@@ -56,8 +218,6 @@ const StudentsManagement = () => {
         }
       }
 
-      // In development mode, auto-authenticate with user_admin credentials in Firebase Auth
-      // so that real Firestore reads, writes and token validations work with 100% authorization
       if (import.meta.env.DEV && !auth.currentUser) {
         try {
           await signInWithEmailAndPassword(
@@ -71,7 +231,6 @@ const StudentsManagement = () => {
         }
       }
 
-      // In production without admin credentials, redirect to login
       if (!auth.currentUser && (!currentUser || currentUser.role !== 'user_admin')) {
         console.warn('Acceso denegado: Se requiere rol user_admin.');
         navigate('/login');
@@ -80,251 +239,173 @@ const StudentsManagement = () => {
 
     checkAdminAuth();
   }, [navigate]);
+};
 
-  // Students Data State (solo alumnos reales provenientes de Firebase Firestore)
-  const [students, setStudents] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [parentsList, setParentsList] = useState([]);
-  const [academicOffer, setAcademicOffer] = useState(DEFAULT_ACADEMIC_OFFER);
+const StudentsMetricsGrid = ({ institutionMetrics }) => (
+  <div data-testid="students-metrics-grid" className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+    <AdminStatCard
+      testId="stat-card-matricula-total"
+      title="Matrícula Total"
+      value={institutionMetrics.totalStudents.toLocaleString()}
+      subtitle={institutionMetrics.totalAssignedPct}
+      hasDot={true}
+      subtitleColor="text-emerald-600"
+      icon="groups"
+      borderColor="border-lime-100"
+      iconGradient="from-lime-100 to-emerald-100"
+      iconColor="text-emerald-700"
+    />
+    <AdminStatCard
+      testId="stat-card-nivel-inicial"
+      title="Nivel Inicial"
+      value={institutionMetrics.inicialStudents}
+      subtitle={institutionMetrics.inicialSubtitle}
+      subtitleColor="text-orange-600"
+      icon="child_care"
+      borderColor="border-orange-100"
+      iconGradient="from-amber-100 to-orange-100"
+      iconColor="text-orange-600"
+    />
+    <AdminStatCard
+      testId="stat-card-nivel-primario"
+      title="Nivel Primario"
+      value={institutionMetrics.primarioStudents}
+      subtitle={institutionMetrics.primarioSubtitle}
+      subtitleColor="text-blue-600"
+      icon="history_edu"
+      borderColor="border-blue-100"
+      iconGradient="from-sky-100 to-blue-100"
+      iconColor="text-blue-600"
+    />
+    <AdminStatCard
+      testId="stat-card-nivel-secundario"
+      title="Nivel Secundario"
+      value={institutionMetrics.secundarioStudents}
+      subtitle={institutionMetrics.secundarioSubtitle}
+      subtitleColor="text-purple-600"
+      icon="auto_stories"
+      borderColor="border-purple-100"
+      iconGradient="from-purple-100 to-indigo-100"
+      iconColor="text-purple-600"
+    />
+    <AdminStatCard
+      testId="stat-card-regulares-activos"
+      title="Regulares Activos"
+      value={institutionMetrics.regularStudentsPct}
+      badge={`${institutionMetrics.conditionalCount} condicionales`}
+      valueColor="text-emerald-600"
+      icon="verified"
+      borderColor="border-lime-100"
+      iconGradient="from-emerald-100 to-lime-200"
+      iconColor="text-emerald-700"
+    />
+  </div>
+);
 
-  // Cargar oferta académica desde Firebase
-  useEffect(() => {
-    fetchAcademicOfferApi()
-      .then((data) => {
-        if (data) setAcademicOffer(data);
-      })
-      .catch(() => { });
-  }, []);
+const StudentsManagementHeader = ({
+  onExportPadron,
+  onOpenNewStudentModal,
+  institutionMetrics,
+}) => (
+  <section data-testid="students-management-header" className="flex flex-col gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <AdminSectionTitle
+        icon="school"
+        title="Gestión de Alumnos y Legajos Académicos"
+        subtitle="Padrón general, legajos digitales, servicios asignados y regularidad académica."
+      />
 
-  // Fetch from Firebase Firestore on Mount
-  const loadStudentsData = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const { parents, students: rawStudents } = await fetchAdminDashboardData();
-      const parentsOnly = (parents || [])
-        .filter((u) => String(u.role || '').trim().toLowerCase() === 'padre')
-        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
-      setParentsList(parentsOnly);
+      <div className="flex items-center gap-3">
+        <button
+          data-testid="export-padron-button"
+          type="button"
+          onClick={onExportPadron}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80 rounded-full shadow-sm text-xs font-bold transition-all hover:shadow cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-orange-500 text-[18px]">
+            file_download
+          </span>
+          <span>Exportar Padrón (Excel/PDF)</span>
+        </button>
 
-      if (rawStudents && rawStudents.length > 0) {
-        const normalized = rawStudents.map((s) => {
-          const rawNivel = String(s.nivel || '').toLowerCase();
-          const nivel =
-            rawNivel === 'inicial'
-              ? 'Inicial'
-              : rawNivel === 'primaria' || rawNivel === 'primario'
-                ? 'Primario'
-                : rawNivel === 'secundaria' || rawNivel === 'secundario'
-                  ? 'Secundario'
-                  : 'Primario';
+        <button
+          data-testid="open-new-student-modal-button"
+          type="button"
+          onClick={onOpenNewStudentModal}
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 cursor-pointer border-none"
+        >
+          <span className="material-symbols-outlined text-[18px]">person_add</span>
+          <span>Nuevo Alumno</span>
+        </button>
+      </div>
+    </div>
 
-          const badgeVariant =
-            nivel === 'Inicial' ? 'lime' : nivel === 'Primario' ? 'sky' : 'indigo';
-          const avatarGradient =
-            nivel === 'Inicial'
-              ? 'from-orange-400 to-amber-500'
-              : nivel === 'Primario'
-                ? 'from-blue-500 to-indigo-500'
-                : 'from-emerald-400 to-lime-500';
+    <StudentsMetricsGrid institutionMetrics={institutionMetrics} />
+  </section>
+);
 
-          const parent =
-            (parents || []).find((p) => p.id && s.parentId && p.id === s.parentId) ||
-            (parents || []).find((p) => Array.isArray(p.studentIds) && p.studentIds.includes(s.id)) ||
-            (parents || []).find(
-              (p) =>
-                p.email &&
-                s.emailPadre &&
-                p.email.trim().toLowerCase() === s.emailPadre.trim().toLowerCase()
-            ) ||
-            null;
+const StudentsTableSection = ({
+  students,
+  isLoading,
+  onEditStudent,
+  onViewStudent,
+  onGenerateCertificate,
+  onDeleteStudent,
+  onToggleStatusStudent,
+  onResetFilters,
+  safeCurrentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange,
+}) => (
+  <section data-testid="students-table-section" className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col">
+    <StudentTable
+      students={students}
+      isLoading={isLoading}
+      onEditStudent={onEditStudent}
+      onViewStudent={onViewStudent}
+      onGenerateCertificate={onGenerateCertificate}
+      onDeleteStudent={onDeleteStudent}
+      onToggleStatusStudent={onToggleStatusStudent}
+      onResetFilters={onResetFilters}
+    />
 
-          const tutorNombre = parent
-            ? parent.nombre
-            : s.tutorNombre
-              ? s.tutorNombre.replace(' (Tutor)', '')
-              : s.emailPadre
-                ? `Tutor (${s.emailPadre})`
-                : 'Tutor';
-          const tutorDni = parent?.dni || s.tutorDni || s.dniPadre || s.dniTutor || '';
-          const tutorTelefono = parent?.telefono || s.tutorTelefono || s.telefonoPadre || '';
-          const tutorEmail = parent?.email || s.tutorEmail || s.emailPadre || '';
-          const tutorDomicilio = parent?.domicilio || s.tutorDomicilio || '';
+    <StudentPagination
+      currentPage={safeCurrentPage}
+      totalPages={totalPages}
+      totalItems={totalItems}
+      itemsPerPage={itemsPerPage}
+      onPageChange={onPageChange}
+      onItemsPerPageChange={onItemsPerPageChange}
+    />
+  </section>
+);
 
-          const initials =
-            (s.nombre || '')
-              .split(' ')
-              .map((n) => n[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase() || 'AL';
-
-          const curso = s.curso || 'sin asignar';
-          const division = s.division || 'sin asignar';
-
-          const cursoDisplay =
-            curso === 'sin asignar' && division === 'sin asignar'
-              ? 'Sin asignar'
-              : curso !== 'sin asignar' && division !== 'sin asignar'
-                ? `${curso} "${division}"`
-                : curso !== 'sin asignar'
-                  ? curso
-                  : `División ${division}`;
-
-          return {
-            id: s.id,
-            parentId: s.parentId || parent?.id || null,
-            legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
-            dni: formatDni(s.dni || ''),
-            nombre: s.nombre || 'Sin Nombre',
-            tutorNombre,
-            tutorDni,
-            tutorTelefono,
-            tutorEmail,
-            tutorDomicilio,
-            domicilio: s.domicilio || parent?.domicilio || 'Sin domicilio registrado',
-            nivel,
-            curso,
-            division,
-            cursoDisplay,
-            estado: s.status === 'active' ? 'Activo - Regular' : s.status || 'Activo - Regular',
-            servicios: s.servicios || ['Comedor Escolar'],
-            initials,
-            avatarGradient,
-            badgeVariant,
-            fechaNacimiento: s.fechaNacimiento || '',
-          };
-        });
-
-        setStudents(normalized);
-      } else {
-        setStudents([]);
-      }
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setStudents([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadStudentsData();
-  }, [loadStudentsData]);
-
-  // Compute Dynamic Institutional Metrics from live students
-  const institutionMetrics = useMemo(() => {
-    const total = students.length;
-    const inicial = students.filter((s) => s.nivel === 'Inicial').length;
-    const primario = students.filter((s) => s.nivel === 'Primario').length;
-    const secundario = students.filter((s) => s.nivel === 'Secundario').length;
-    const regulares = students.filter((s) => s.estado === 'Activo - Regular').length;
-    const regularPct = total > 0 ? `${((regulares / total) * 100).toFixed(1)}%` : '0%';
-
-    return {
-      totalStudents: total,
-      totalAssignedPct: `${total} alumnos en padrón`,
-      inicialStudents: inicial,
-      inicialSubtitle: 'Salas de 2 a 5 Años',
-      primarioStudents: primario,
-      primarioSubtitle: '1º a 7º Grados',
-      secundarioStudents: secundario,
-      secundarioSubtitle: '1º a 6º Años',
-      regularStudentsPct: regularPct,
-      conditionalCount: total - regulares,
-    };
-  }, [students]);
-
-  // Filters State
+const useStudentsFilterState = (students) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('todos');
   const [courseFilter, setCourseFilter] = useState('todos');
   const [divisionFilter, setDivisionFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [serviceFilter, setServiceFilter] = useState('todos');
-
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Modal State
-  const [isNewStudentModalOpen, setIsNewStudentModalOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [viewingStudent, setViewingStudent] = useState(null);
-  const [notification, setNotification] = useState(null);
+  const filteredStudents = useMemo(
+    () =>
+      filterStudentsList(students, {
+        searchQuery,
+        levelFilter,
+        courseFilter,
+        divisionFilter,
+        statusFilter,
+        serviceFilter,
+      }),
+    [students, searchQuery, levelFilter, courseFilter, divisionFilter, statusFilter, serviceFilter]
+  );
 
-  // Toast auto-clear
-  useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => setNotification(null), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [notification]);
-
-  // Filtered Students
-  const filteredStudents = useMemo(() => {
-    const normalize = (str) =>
-      String(str || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .trim();
-
-    return students.filter((student) => {
-      // Search filter (nombre, legajo, dni, tutor, tutorEmail, etc.)
-      if (searchQuery.trim()) {
-        const query = normalize(searchQuery);
-        const cleanDigitsQuery = searchQuery.replace(/\D/g, '');
-
-        const matchesName = normalize(student.nombre).includes(query);
-        const matchesLegajo = normalize(student.legajo).includes(query);
-        const matchesDni =
-          cleanDigitsQuery.length >= 3 &&
-          String(student.dni || '').replace(/\D/g, '').includes(cleanDigitsQuery);
-        const matchesTutor = normalize(student.tutorNombre).includes(query);
-        const matchesTutorEmail = normalize(student.tutorEmail).includes(query);
-        const matchesTutorPhone =
-          cleanDigitsQuery.length >= 3 &&
-          String(student.tutorTelefono || '').replace(/\D/g, '').includes(cleanDigitsQuery);
-
-        if (!matchesName && !matchesLegajo && !matchesDni && !matchesTutor && !matchesTutorEmail && !matchesTutorPhone) {
-          return false;
-        }
-      }
-
-      // Level filter
-      if (levelFilter !== 'todos' && student.nivel !== levelFilter) {
-        return false;
-      }
-
-      // Course filter
-      if (courseFilter !== 'todos') {
-        if (courseFilter === 'sin asignar') {
-          if (student.curso !== 'sin asignar') return false;
-        } else if (student.curso !== courseFilter && !student.curso?.toLowerCase().includes(courseFilter.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // Division filter (dependiente del curso)
-      if (divisionFilter !== 'todos' && student.division !== divisionFilter) {
-        return false;
-      }
-
-      // Status filter
-      if (statusFilter !== 'todos' && student.estado !== statusFilter) {
-        return false;
-      }
-
-      // Service filter
-      if (serviceFilter !== 'todos' && !student.servicios?.includes(serviceFilter)) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [students, searchQuery, levelFilter, courseFilter, divisionFilter, statusFilter, serviceFilter]);
-
-  // Paginated Students Slice
   const totalItems = filteredStudents.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -334,7 +415,6 @@ const StudentsManagement = () => {
     return filteredStudents.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredStudents, safeCurrentPage, itemsPerPage]);
 
-  // Filter Handlers with automatic page reset
   const handleSearchChange = (val) => {
     setSearchQuery(val);
     setCurrentPage(1);
@@ -378,7 +458,79 @@ const StudentsManagement = () => {
     setCurrentPage(1);
   };
 
-  // Add new student handler
+  return {
+    searchQuery,
+    levelFilter,
+    courseFilter,
+    divisionFilter,
+    statusFilter,
+    serviceFilter,
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedStudents,
+    totalItems,
+    totalPages,
+    safeCurrentPage,
+    handleSearchChange,
+    handleLevelChange,
+    handleCourseChange,
+    handleDivisionChange,
+    handleStatusChange,
+    handleServiceChange,
+    handleResetFilters,
+  };
+};
+
+const StudentsModals = ({
+  isNewStudentModalOpen,
+  setIsNewStudentModalOpen,
+  handleAddStudent,
+  editingStudent,
+  setEditingStudent,
+  handleSaveEditStudent,
+  viewingStudent,
+  setViewingStudent,
+  parentsList,
+  academicOffer,
+}) => (
+  <>
+    <NewStudentModal
+      isOpen={isNewStudentModalOpen}
+      onClose={() => setIsNewStudentModalOpen(false)}
+      onAddStudent={handleAddStudent}
+      tutors={parentsList}
+    />
+    <EditStudentModal
+      isOpen={!!editingStudent}
+      student={editingStudent}
+      tutors={parentsList}
+      academicOffer={academicOffer}
+      onClose={() => setEditingStudent(null)}
+      onSaveStudent={handleSaveEditStudent}
+    />
+    <StudentDetailsModal
+      isOpen={!!viewingStudent}
+      student={viewingStudent}
+      tutors={parentsList}
+      onClose={() => setViewingStudent(null)}
+      onEditStudent={(student) => {
+        setViewingStudent(null);
+        setEditingStudent(student);
+      }}
+    />
+  </>
+);
+
+const useStudentActions = ({
+  loadStudentsData,
+  setCurrentPage,
+  setStudents,
+  students,
+  setNotification,
+  setIsLoading,
+}) => {
   const handleAddStudent = async (newStudent) => {
     setIsLoading(true);
     try {
@@ -399,7 +551,6 @@ const StudentsManagement = () => {
         ],
       });
 
-      // Recargar padrón directamente desde Firestore para garantizar que los datos provienen de la BD real
       await loadStudentsData();
       setCurrentPage(1);
       setNotification({
@@ -416,6 +567,203 @@ const StudentsManagement = () => {
       setIsLoading(false);
     }
   };
+
+  const handleToggleStatusStudent = async (student) => {
+    const isCurrentlyInactive =
+      student.estado === 'Baja Administrativa' ||
+      student.status === 'inactive' ||
+      student.status === 'baja';
+
+    const newStatus = isCurrentlyInactive ? 'Activo - Regular' : 'Baja Administrativa';
+    const actionLabel = isCurrentlyInactive ? 'reactivado con regularidad activa' : 'deshabilitado (baja administrativa)';
+
+    const previousStudents = [...students];
+    setStudents((prev) =>
+      prev.map((s) => (s.id === student.id ? { ...s, estado: newStatus, status: newStatus } : s))
+    );
+
+    try {
+      await updateUserProfileApi({
+        targetId: student.id,
+        targetType: 'student',
+        fields: {
+          status: newStatus,
+        },
+      });
+
+      setNotification({
+        type: 'info',
+        message: `El alumno ${student.nombre} fue ${actionLabel}.`,
+      });
+    } catch (err) {
+      console.error('Error al actualizar estado del alumno en backend:', err);
+      setStudents(previousStudents);
+      setNotification({
+        type: 'error',
+        message: `No se pudo actualizar el estado: ${err.message || 'Error en la conexión con el servidor.'}`,
+      });
+    }
+  };
+
+  const handleDeleteStudent = async (student) => {
+    const confirmed = window.confirm(
+      `¿Confirmas la baja y eliminación definitiva del legajo de ${student.nombre} (#${student.legajo})?\n\nEsta acción eliminará el legajo digital del sistema.`
+    );
+    if (!confirmed) return;
+
+    const previousStudents = [...students];
+    setStudents((prev) => prev.filter((s) => s.id !== student.id));
+
+    try {
+      await deleteStudentApi({ studentId: student.id });
+
+      setNotification({
+        type: 'success',
+        message: `Legajo de ${student.nombre} eliminado definitivamente.`,
+      });
+    } catch (err) {
+      console.error('Error al eliminar alumno en backend:', err);
+      setStudents(previousStudents);
+      setNotification({
+        type: 'error',
+        message: `No se pudo eliminar el alumno: ${err.message || 'Error en la conexión con el servidor.'}`,
+      });
+    }
+  };
+
+  const handleSaveEditStudent = async (payload) => {
+    setIsLoading(true);
+    try {
+      await updateStudentAndTutorApi(payload);
+      await loadStudentsData();
+      setNotification({
+        type: 'success',
+        message: `¡Legajo de ${payload.studentData.nombre} actualizado correctamente!`,
+      });
+    } catch (err) {
+      console.error('Error al editar alumno en backend:', err);
+      setNotification({
+        type: 'error',
+        message: `No se pudieron guardar los cambios: ${err.message || 'Error en el servidor.'}`,
+      });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    handleAddStudent,
+    handleToggleStatusStudent,
+    handleDeleteStudent,
+    handleSaveEditStudent,
+  };
+};
+
+const StudentsManagement = () => {
+  const navigate = useNavigate();
+
+  // Authentication check for admin panel
+  useAdminAuthCheck(navigate);
+
+  // Students Data State (solo alumnos reales provenientes de Firebase Firestore)
+  const [students, setStudents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [parentsList, setParentsList] = useState([]);
+  const [academicOffer, setAcademicOffer] = useState(DEFAULT_ACADEMIC_OFFER);
+
+  // Cargar oferta académica desde Firebase
+  useEffect(() => {
+    fetchAcademicOfferApi()
+      .then((data) => {
+        if (data) setAcademicOffer(data);
+      })
+      .catch(() => { });
+  }, []);
+
+  // Fetch from Firebase Firestore on Mount
+  const loadStudentsData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { parents, students: rawStudents } = await fetchAdminDashboardData();
+      const parentsOnly = (parents || [])
+        .filter((u) => String(u.role || '').trim().toLowerCase() === 'padre')
+        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+      setParentsList(parentsOnly);
+
+      if (rawStudents && rawStudents.length > 0) {
+        const normalized = rawStudents.map((s) => normalizeStudent(s, parents));
+        setStudents(normalized);
+      } else {
+        setStudents([]);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setStudents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStudentsData();
+  }, [loadStudentsData]);
+
+  // Compute Dynamic Institutional Metrics from live students
+  const institutionMetrics = useMemo(() => computeInstitutionMetrics(students), [students]);
+
+  // Modal & Notification State
+  const [isNewStudentModalOpen, setIsNewStudentModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [viewingStudent, setViewingStudent] = useState(null);
+  const [notification, setNotification] = useState(null);
+
+  // Toast auto-clear
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  // Filters and Pagination State via Hook
+  const {
+    searchQuery,
+    levelFilter,
+    courseFilter,
+    divisionFilter,
+    statusFilter,
+    serviceFilter,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    paginatedStudents,
+    totalItems,
+    totalPages,
+    safeCurrentPage,
+    handleSearchChange,
+    handleLevelChange,
+    handleCourseChange,
+    handleDivisionChange,
+    handleStatusChange,
+    handleServiceChange,
+    handleResetFilters,
+  } = useStudentsFilterState(students);
+
+  // Student action mutations via hook
+  const {
+    handleAddStudent,
+    handleToggleStatusStudent,
+    handleDeleteStudent,
+    handleSaveEditStudent,
+  } = useStudentActions({
+    loadStudentsData,
+    setCurrentPage,
+    setStudents,
+    students,
+    setNotification,
+    setIsLoading,
+  });
 
   // Mock Action Handlers
   const handleExportPadron = () => {
@@ -440,100 +788,6 @@ const StudentsManagement = () => {
     setViewingStudent(student);
   };
 
-  const handleSaveEditStudent = async (payload) => {
-    setIsLoading(true);
-    try {
-      await updateStudentAndTutorApi(payload);
-      await loadStudentsData();
-      setNotification({
-        type: 'success',
-        message: `¡Legajo de ${payload.studentData.nombre} actualizado correctamente!`,
-      });
-    } catch (err) {
-      console.error('Error al editar alumno en backend:', err);
-      setNotification({
-        type: 'error',
-        message: `No se pudieron guardar los cambios: ${err.message || 'Error en el servidor.'}`,
-      });
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleStatusStudent = async (student) => {
-    const isCurrentlyInactive =
-      student.estado === 'Baja Administrativa' ||
-      student.status === 'inactive' ||
-      student.status === 'baja';
-
-    const newStatus = isCurrentlyInactive ? 'Activo - Regular' : 'Baja Administrativa';
-    const actionLabel = isCurrentlyInactive ? 'reactivado con regularidad activa' : 'deshabilitado (baja administrativa)';
-
-    // 1. Snapshot previous state for rollback
-    const previousStudents = [...students];
-
-    // 2. Optimistic UI update
-    setStudents((prev) =>
-      prev.map((s) => (s.id === student.id ? { ...s, estado: newStatus, status: newStatus } : s))
-    );
-
-    // 3. Persist to Firestore via updateUserProfileApi
-    try {
-      await updateUserProfileApi({
-        targetId: student.id,
-        targetType: 'student',
-        fields: {
-          status: newStatus,
-        },
-      });
-
-      setNotification({
-        type: 'info',
-        message: `El alumno ${student.nombre} fue ${actionLabel}.`,
-      });
-    } catch (err) {
-      console.error('Error al actualizar estado del alumno en backend:', err);
-      // Rollback to previous state
-      setStudents(previousStudents);
-      setNotification({
-        type: 'error',
-        message: `No se pudo actualizar el estado: ${err.message || 'Error en la conexión con el servidor.'}`,
-      });
-    }
-  };
-
-  const handleDeleteStudent = async (student) => {
-    const confirmed = window.confirm(
-      `¿Confirmas la baja y eliminación definitiva del legajo de ${student.nombre} (#${student.legajo})?\n\nEsta acción eliminará el legajo digital del sistema.`
-    );
-    if (!confirmed) return;
-
-    // 1. Snapshot previous state for rollback
-    const previousStudents = [...students];
-
-    // 2. Optimistic delete from UI
-    setStudents((prev) => prev.filter((s) => s.id !== student.id));
-
-    // 3. Persist delete via deleteStudentApi
-    try {
-      await deleteStudentApi({ studentId: student.id });
-
-      setNotification({
-        type: 'success',
-        message: `Legajo de ${student.nombre} eliminado definitivamente.`,
-      });
-    } catch (err) {
-      console.error('Error al eliminar alumno en backend:', err);
-      // Rollback to previous state
-      setStudents(previousStudents);
-      setNotification({
-        type: 'error',
-        message: `No se pudo eliminar el alumno: ${err.message || 'Error en la conexión con el servidor.'}`,
-      });
-    }
-  };
-
   return (
     <AdminLayout activeItem="alumnos" breadcrumbs={['Alumnos & Legajos']}>
       <div data-testid="students-management-page" className="flex flex-col w-full gap-6">
@@ -541,109 +795,11 @@ const StudentsManagement = () => {
         <AdminToast notification={notification} onClose={() => setNotification(null)} />
 
         {/* Encabezado de Sección y Acciones Principales */}
-        <section data-testid="students-management-header" className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <AdminSectionTitle
-              icon="school"
-              title="Gestión de Alumnos y Legajos Académicos"
-              subtitle="Padrón general, legajos digitales, servicios asignados y regularidad académica."
-            />
-
-            {/* Acciones Principales */}
-            <div className="flex items-center gap-3">
-              <button
-                data-testid="export-padron-button"
-                type="button"
-                onClick={handleExportPadron}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/80 rounded-full shadow-sm text-xs font-bold transition-all hover:shadow cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-orange-500 text-[18px]">
-                  file_download
-                </span>
-                <span>Exportar Padrón (Excel/PDF)</span>
-              </button>
-
-              <button
-                data-testid="open-new-student-modal-button"
-                type="button"
-                onClick={() => setIsNewStudentModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 cursor-pointer border-none"
-              >
-                <span className="material-symbols-outlined text-[18px]">person_add</span>
-                <span>Nuevo Alumno</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Métricas Institucionales (KPIs Prisma Alegría: Lima, Naranja, Azul y Celeste) */}
-          <div data-testid="students-metrics-grid" className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-            {/* Card 1: Matrícula Total */}
-            <AdminStatCard
-              testId="stat-card-matricula-total"
-              title="Matrícula Total"
-              value={institutionMetrics.totalStudents.toLocaleString()}
-              subtitle={institutionMetrics.totalAssignedPct}
-              hasDot={true}
-              subtitleColor="text-emerald-600"
-              icon="groups"
-              borderColor="border-lime-100"
-              iconGradient="from-lime-100 to-emerald-100"
-              iconColor="text-emerald-700"
-            />
-
-            {/* Card 2: Nivel Inicial */}
-            <AdminStatCard
-              testId="stat-card-nivel-inicial"
-              title="Nivel Inicial"
-              value={institutionMetrics.inicialStudents}
-              subtitle={institutionMetrics.inicialSubtitle}
-              subtitleColor="text-orange-600"
-              icon="child_care"
-              borderColor="border-orange-100"
-              iconGradient="from-amber-100 to-orange-100"
-              iconColor="text-orange-600"
-            />
-
-            {/* Card 3: Nivel Primario */}
-            <AdminStatCard
-              testId="stat-card-nivel-primario"
-              title="Nivel Primario"
-              value={institutionMetrics.primarioStudents}
-              subtitle={institutionMetrics.primarioSubtitle}
-              subtitleColor="text-blue-600"
-              icon="history_edu"
-              borderColor="border-blue-100"
-              iconGradient="from-sky-100 to-blue-100"
-              iconColor="text-blue-600"
-            />
-
-            {/* Card 4: Nivel Secundario */}
-            <AdminStatCard
-              testId="stat-card-nivel-secundario"
-              title="Nivel Secundario"
-              value={institutionMetrics.secundarioStudents}
-              subtitle={institutionMetrics.secundarioSubtitle}
-              subtitleColor="text-purple-600"
-              icon="auto_stories"
-              borderColor="border-purple-100"
-              iconGradient="from-purple-100 to-indigo-100"
-              iconColor="text-purple-600"
-            />
-
-            {/* Card 5: Regulares Activos */}
-            <AdminStatCard
-              testId="stat-card-regulares-activos"
-              title="Regulares Activos"
-              value={institutionMetrics.regularStudentsPct}
-              badge={`${institutionMetrics.conditionalCount} condicionales`}
-              valueColor="text-emerald-600"
-              icon="verified"
-              borderColor="border-lime-100"
-              iconGradient="from-emerald-100 to-lime-200"
-              iconColor="text-emerald-700"
-            />
-          </div>
-        </section>
+        <StudentsManagementHeader
+          onExportPadron={handleExportPadron}
+          onOpenNewStudentModal={() => setIsNewStudentModalOpen(true)}
+          institutionMetrics={institutionMetrics}
+        />
 
         {/* Filtros Dinámicos Estilo Prisma Alegría */}
         <StudentFilters
@@ -672,61 +828,39 @@ const StudentsManagement = () => {
         )}
 
         {/* Tabla Principal de Alumnos con Estilo Prisma */}
-        <section data-testid="students-table-section" className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col">
-          <StudentTable
-            students={paginatedStudents}
-            isLoading={isLoading}
-            onEditStudent={handleEditStudent}
-            onViewStudent={handleViewStudent}
-            onGenerateCertificate={handleGenerateCertificate}
-            onDeleteStudent={handleDeleteStudent}
-            onToggleStatusStudent={handleToggleStatusStudent}
-            onResetFilters={handleResetFilters}
-          />
-
-          {/* Paginación y Resumen Inferior Prisma */}
-          <StudentPagination
-            currentPage={safeCurrentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={(val) => {
-              setItemsPerPage(val);
-              setCurrentPage(1);
-            }}
-          />
-        </section>
+        <StudentsTableSection
+          students={paginatedStudents}
+          isLoading={isLoading}
+          onEditStudent={handleEditStudent}
+          onViewStudent={handleViewStudent}
+          onGenerateCertificate={handleGenerateCertificate}
+          onDeleteStudent={handleDeleteStudent}
+          onToggleStatusStudent={handleToggleStatusStudent}
+          onResetFilters={handleResetFilters}
+          safeCurrentPage={safeCurrentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(val) => {
+            setItemsPerPage(val);
+            setCurrentPage(1);
+          }}
+        />
       </div>
 
-      {/* Modal de Nuevo Alumno */}
-      <NewStudentModal
-        isOpen={isNewStudentModalOpen}
-        onClose={() => setIsNewStudentModalOpen(false)}
-        onAddStudent={handleAddStudent}
-        tutors={parentsList}
-      />
-
-      {/* Modal de Edición de Alumno y Tutor */}
-      <EditStudentModal
-        isOpen={!!editingStudent}
-        student={editingStudent}
-        tutors={parentsList}
+      {/* Modales de Gestión de Alumnos */}
+      <StudentsModals
+        isNewStudentModalOpen={isNewStudentModalOpen}
+        setIsNewStudentModalOpen={setIsNewStudentModalOpen}
+        handleAddStudent={handleAddStudent}
+        editingStudent={editingStudent}
+        setEditingStudent={setEditingStudent}
+        handleSaveEditStudent={handleSaveEditStudent}
+        viewingStudent={viewingStudent}
+        setViewingStudent={setViewingStudent}
+        parentsList={parentsList}
         academicOffer={academicOffer}
-        onClose={() => setEditingStudent(null)}
-        onSaveStudent={handleSaveEditStudent}
-      />
-
-      {/* Modal de Ver Detalles del Alumno */}
-      <StudentDetailsModal
-        isOpen={!!viewingStudent}
-        student={viewingStudent}
-        tutors={parentsList}
-        onClose={() => setViewingStudent(null)}
-        onEditStudent={(student) => {
-          setViewingStudent(null);
-          setEditingStudent(student);
-        }}
       />
     </AdminLayout>
   );

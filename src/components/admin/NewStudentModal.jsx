@@ -331,6 +331,333 @@ const NewStudentTutorSection = ({
   </div>
 );
 
+const StudentPersonalInputs = ({
+  studentDni,
+  setStudentDni,
+  studentFechaNacimiento,
+  setStudentFechaNacimiento,
+  studentNombre,
+  setStudentNombre,
+  studentApellido,
+  setStudentApellido,
+  sameAddressAsTutor,
+  tutorDomicilio,
+  studentDomicilio,
+  setStudentDomicilio,
+  handleSameAddressToggle,
+  studentNivel,
+}) => {
+  const check = studentFechaNacimiento
+    ? validarEdadPorNivel(studentFechaNacimiento, studentNivel)
+    : null;
+
+  return (
+    <>
+      <div>
+        <label htmlFor="student-dni-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          DNI del Alumno *
+        </label>
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+            badge
+          </span>
+          <input
+            id="student-dni-input"
+            data-testid="student-dni-input"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white font-mono"
+            placeholder="Ej: 49.821.305"
+            type="text"
+            value={studentDni}
+            onChange={(e) => setStudentDni(formatDni(e.target.value))}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="student-birthdate-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          Fecha de Nacimiento *
+        </label>
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+            calendar_month
+          </span>
+          <input
+            id="student-birthdate-input"
+            data-testid="student-birthdate-input"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
+            type="date"
+            value={studentFechaNacimiento}
+            onChange={(e) => setStudentFechaNacimiento(e.target.value)}
+          />
+        </div>
+        {check && (
+          <p
+            data-testid="student-birthdate-feedback"
+            className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
+              check.esValido ? 'text-emerald-600' : 'text-red-600'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[13px]">
+              {check.esValido ? 'check_circle' : 'warning'}
+            </span>
+            {check.esValido
+              ? `Edad: ${check.edad} años (válida para ${studentNivel})`
+              : check.error}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="student-firstname-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          Nombre *
+        </label>
+        <input
+          id="student-firstname-input"
+          data-testid="student-firstname-input"
+          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white"
+          placeholder="Ej: Lucas Valentín"
+          type="text"
+          value={studentNombre}
+          onChange={(e) => setStudentNombre(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="student-lastname-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          Apellido *
+        </label>
+        <input
+          id="student-lastname-input"
+          data-testid="student-lastname-input"
+          className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white"
+          placeholder="Ej: Gómez"
+          type="text"
+          value={studentApellido}
+          onChange={(e) => setStudentApellido(e.target.value)}
+        />
+      </div>
+
+      {/* Domicilio del alumno */}
+      <div className="sm:col-span-2 flex flex-col gap-1.5">
+        <div>
+          <label htmlFor="student-address-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+            Domicilio del Alumno
+          </label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+              location_on
+            </span>
+            <input
+              id="student-address-input"
+              data-testid="student-address-input"
+              disabled={sameAddressAsTutor}
+              className={`w-full h-9 pl-9 pr-3 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 ${
+                sameAddressAsTutor
+                  ? 'bg-slate-100/70 text-slate-500 cursor-not-allowed'
+                  : 'bg-slate-50 focus:bg-white'
+              }`}
+              placeholder="Calle y número"
+              type="text"
+              value={sameAddressAsTutor ? tutorDomicilio : studentDomicilio}
+              onChange={(e) => setStudentDomicilio(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer mt-0.5">
+          <input
+            data-testid="student-same-address-checkbox"
+            checked={sameAddressAsTutor}
+            onChange={handleSameAddressToggle}
+            className="w-4 h-4 rounded text-blue-600 focus:ring-lime-400 border-slate-300 cursor-pointer"
+            type="checkbox"
+          />
+          <span className="text-xs text-slate-600 font-medium select-none">
+            Mismo domicilio que el tutor responsable
+          </span>
+        </label>
+      </div>
+    </>
+  );
+};
+
+const StudentAcademicFields = ({
+  studentNivel,
+  handleNivelChange,
+  studentCurso,
+  handleCursoChange,
+  availableCursos,
+  studentDivision,
+  setStudentDivision,
+  availableDivisiones,
+  studentEstado,
+  setStudentEstado,
+}) => (
+  <>
+    {/* Nivel Educativo, Curso y División */}
+    <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+      <div>
+        <label htmlFor="new-student-nivel-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          Nivel Educativo *
+        </label>
+        <select
+          id="new-student-nivel-select"
+          data-testid="student-level-select"
+          value={studentNivel}
+          onChange={(e) => handleNivelChange(e.target.value)}
+          className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
+        >
+          <option value="Inicial">Nivel Inicial</option>
+          <option value="Primario">Nivel Primario</option>
+          <option value="Secundario">Nivel Secundario</option>
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="new-student-curso-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          Curso
+        </label>
+        <select
+          id="new-student-curso-select"
+          data-testid="student-course-select"
+          value={studentCurso}
+          onChange={(e) => handleCursoChange(e.target.value)}
+          className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
+        >
+          <option value="sin asignar">Sin asignar</option>
+          {availableCursos.map((cursoName) => (
+            <option key={cursoName} value={cursoName}>
+              {cursoName}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="new-student-division-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+          División
+        </label>
+        <select
+          id="new-student-division-select"
+          data-testid="student-division-select"
+          value={studentDivision}
+          onChange={(e) => setStudentDivision(e.target.value)}
+          disabled={studentCurso === 'sin asignar'}
+          className={`w-full h-9 px-3 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 ${
+            studentCurso === 'sin asignar'
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              : 'bg-slate-50 focus:bg-white cursor-pointer'
+          }`}
+        >
+          <option value="sin asignar">Sin asignar</option>
+          {availableDivisiones.map((div) => (
+            <option key={div} value={div}>
+              División {div}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    {/* Estado Inicial del Alumno */}
+    <fieldset className="sm:col-span-2 border-0 p-0 m-0">
+      <legend className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+        Estado de Matrícula *
+      </legend>
+      <div className="flex flex-wrap items-center gap-3">
+        <label
+          data-testid="student-status-label-regular"
+          className={`flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
+            studentEstado === 'Activo - Regular'
+              ? 'text-emerald-700 bg-emerald-50 border-emerald-200 shadow-xs'
+              : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
+          }`}
+        >
+          <input
+            data-testid="student-status-radio-regular"
+            type="radio"
+            name="estado-modal"
+            checked={studentEstado === 'Activo - Regular'}
+            onChange={() => setStudentEstado('Activo - Regular')}
+            className="text-emerald-600 focus:ring-emerald-400"
+          />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          Activo Regular
+        </label>
+
+        <label
+          data-testid="student-status-label-condicional"
+          className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+            studentEstado === 'Documentación Pendiente'
+              ? 'text-blue-700 bg-blue-50 border-blue-200 font-semibold shadow-xs'
+              : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
+          }`}
+        >
+          <input
+            data-testid="student-status-radio-condicional"
+            type="radio"
+            name="estado-modal"
+            checked={studentEstado === 'Documentación Pendiente'}
+            onChange={() => setStudentEstado('Documentación Pendiente')}
+            className="text-blue-600"
+          />
+          Condicional
+        </label>
+
+        <label
+          data-testid="student-status-label-pase"
+          className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+            studentEstado === 'Baja Administrativa'
+              ? 'text-purple-700 bg-purple-50 border-purple-200 font-semibold shadow-xs'
+              : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
+          }`}
+        >
+          <input
+            data-testid="student-status-radio-pase"
+            type="radio"
+            name="estado-modal"
+            checked={studentEstado === 'Baja Administrativa'}
+            onChange={() => setStudentEstado('Baja Administrativa')}
+            className="text-purple-600"
+          />
+          Pase Pendiente
+        </label>
+      </div>
+    </fieldset>
+  </>
+);
+
+const StudentSiblingCard = ({ handleAddSibling }) => (
+  <div
+    data-testid="sibling-linking-card"
+    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-lime-50/40 border border-lime-200/80 rounded-2xl mt-2"
+  >
+    <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 rounded-full bg-lime-100 text-lime-800 flex items-center justify-center shrink-0">
+        <span className="material-symbols-outlined text-[18px]">diversity_1</span>
+      </div>
+      <div>
+        <p className="text-xs font-bold text-slate-800">¿Desea inscribir a un hermano?</p>
+        <p className="text-[11px] text-slate-500">
+          Guarda este alumno y continúa automáticamente con los mismos datos del tutor.
+        </p>
+      </div>
+    </div>
+
+    <button
+      data-testid="add-sibling-button"
+      onClick={handleAddSibling}
+      type="button"
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-lime-50 text-slate-800 hover:text-emerald-700 border border-slate-200 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+    >
+      <span className="material-symbols-outlined text-[16px] text-emerald-600">
+        add_circle
+      </span>
+      <span>＋ Vincular otro alumno a este mismo tutor</span>
+    </button>
+  </div>
+);
+
 const NewStudentDataSection = ({
   studentDni,
   setStudentDni,
@@ -356,320 +683,61 @@ const NewStudentDataSection = ({
   studentEstado,
   setStudentEstado,
   handleAddSibling,
-}) => {
-  const check = studentFechaNacimiento
-    ? validarEdadPorNivel(studentFechaNacimiento, studentNivel)
-    : null;
-
-  return (
-    <div
-      data-testid="section-student-data"
-      className="flex flex-col gap-3.5 p-5 bg-white border border-slate-200/80 rounded-2xl shadow-xs"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-extrabold">
-            2
-          </span>
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
-            Datos del Alumno
-          </h3>
-        </div>
-      </div>
-
-      {/* Inputs del Alumno */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        <div>
-          <label htmlFor="student-dni-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-            DNI del Alumno *
-          </label>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-              badge
-            </span>
-            <input
-              id="student-dni-input"
-              data-testid="student-dni-input"
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white font-mono"
-              placeholder="Ej: 49.821.305"
-              type="text"
-              value={studentDni}
-              onChange={(e) => setStudentDni(formatDni(e.target.value))}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="student-birthdate-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-            Fecha de Nacimiento *
-          </label>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-              calendar_month
-            </span>
-            <input
-              id="student-birthdate-input"
-              data-testid="student-birthdate-input"
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
-              type="date"
-              value={studentFechaNacimiento}
-              onChange={(e) => setStudentFechaNacimiento(e.target.value)}
-            />
-          </div>
-          {check && (
-            <p
-              data-testid="student-birthdate-feedback"
-              className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
-                check.esValido ? 'text-emerald-600' : 'text-red-600'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[13px]">
-                {check.esValido ? 'check_circle' : 'warning'}
-              </span>
-              {check.esValido
-                ? `Edad: ${check.edad} años (válida para ${studentNivel})`
-                : check.error}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="student-firstname-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-            Nombre *
-          </label>
-          <input
-            id="student-firstname-input"
-            data-testid="student-firstname-input"
-            className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white"
-            placeholder="Ej: Lucas Valentín"
-            type="text"
-            value={studentNombre}
-            onChange={(e) => setStudentNombre(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="student-lastname-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-            Apellido *
-          </label>
-          <input
-            id="student-lastname-input"
-            data-testid="student-lastname-input"
-            className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white"
-            placeholder="Ej: Gómez"
-            type="text"
-            value={studentApellido}
-            onChange={(e) => setStudentApellido(e.target.value)}
-          />
-        </div>
-
-        {/* Domicilio del alumno */}
-        <div className="sm:col-span-2 flex flex-col gap-1.5">
-          <div>
-            <label htmlFor="student-address-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              Domicilio del Alumno
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                location_on
-              </span>
-              <input
-                id="student-address-input"
-                data-testid="student-address-input"
-                disabled={sameAddressAsTutor}
-                className={`w-full h-9 pl-9 pr-3 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400 ${
-                  sameAddressAsTutor
-                    ? 'bg-slate-100/70 text-slate-500 cursor-not-allowed'
-                    : 'bg-slate-50 focus:bg-white'
-                }`}
-                placeholder="Calle y número"
-                type="text"
-                value={sameAddressAsTutor ? tutorDomicilio : studentDomicilio}
-                onChange={(e) => setStudentDomicilio(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 cursor-pointer mt-0.5">
-            <input
-              data-testid="student-same-address-checkbox"
-              checked={sameAddressAsTutor}
-              onChange={handleSameAddressToggle}
-              className="w-4 h-4 rounded text-blue-600 focus:ring-lime-400 border-slate-300 cursor-pointer"
-              type="checkbox"
-            />
-            <span className="text-xs text-slate-600 font-medium select-none">
-              Mismo domicilio que el tutor responsable
-            </span>
-          </label>
-        </div>
-
-        {/* Nivel Educativo, Curso y División */}
-        <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
-          <div>
-            <label htmlFor="new-student-nivel-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              Nivel Educativo *
-            </label>
-            <select
-              id="new-student-nivel-select"
-              data-testid="student-level-select"
-              value={studentNivel}
-              onChange={(e) => handleNivelChange(e.target.value)}
-              className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
-            >
-              <option value="Inicial">Nivel Inicial</option>
-              <option value="Primario">Nivel Primario</option>
-              <option value="Secundario">Nivel Secundario</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="new-student-curso-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              Curso
-            </label>
-            <select
-              id="new-student-curso-select"
-              data-testid="student-course-select"
-              value={studentCurso}
-              onChange={(e) => handleCursoChange(e.target.value)}
-              className="w-full h-9 px-3 bg-slate-50 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 focus:bg-white cursor-pointer"
-            >
-              <option value="sin asignar">Sin asignar</option>
-              {availableCursos.map((cursoName) => (
-                <option key={cursoName} value={cursoName}>
-                  {cursoName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="new-student-division-select" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-              División
-            </label>
-            <select
-              id="new-student-division-select"
-              data-testid="student-division-select"
-              value={studentDivision}
-              onChange={(e) => setStudentDivision(e.target.value)}
-              disabled={studentCurso === 'sin asignar'}
-              className={`w-full h-9 px-3 text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 ${
-                studentCurso === 'sin asignar'
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  : 'bg-slate-50 focus:bg-white cursor-pointer'
-              }`}
-            >
-              <option value="sin asignar">Sin asignar</option>
-              {availableDivisiones.map((div) => (
-                <option key={div} value={div}>
-                  División {div}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Estado Inicial del Alumno */}
-        <fieldset className="sm:col-span-2 border-0 p-0 m-0">
-          <legend className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-            Estado de Matrícula *
-          </legend>
-          <div className="flex flex-wrap items-center gap-3">
-            <label
-              data-testid="student-status-label-regular"
-              className={`flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
-                studentEstado === 'Activo - Regular'
-                  ? 'text-emerald-700 bg-emerald-50 border-emerald-200 shadow-xs'
-                  : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <input
-                data-testid="student-status-radio-regular"
-                type="radio"
-                name="estado-modal"
-                checked={studentEstado === 'Activo - Regular'}
-                onChange={() => setStudentEstado('Activo - Regular')}
-                className="text-emerald-600 focus:ring-emerald-400"
-              />
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Activo Regular
-            </label>
-
-            <label
-              data-testid="student-status-label-condicional"
-              className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
-                studentEstado === 'Documentación Pendiente'
-                  ? 'text-blue-700 bg-blue-50 border-blue-200 font-semibold shadow-xs'
-                  : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <input
-                data-testid="student-status-radio-condicional"
-                type="radio"
-                name="estado-modal"
-                checked={studentEstado === 'Documentación Pendiente'}
-                onChange={() => setStudentEstado('Documentación Pendiente')}
-                className="text-blue-600"
-              />
-              Condicional
-            </label>
-
-            <label
-              data-testid="student-status-label-pase"
-              className={`flex items-center gap-1.5 cursor-pointer text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
-                studentEstado === 'Baja Administrativa'
-                  ? 'text-purple-700 bg-purple-50 border-purple-200 font-semibold shadow-xs'
-                  : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <input
-                data-testid="student-status-radio-pase"
-                type="radio"
-                name="estado-modal"
-                checked={studentEstado === 'Baja Administrativa'}
-                onChange={() => setStudentEstado('Baja Administrativa')}
-                className="text-purple-600"
-              />
-              Pase Pendiente
-            </label>
-          </div>
-        </fieldset>
-      </div>
-
-      {/* Vincular Hermanos / Múltiples Alumnos */}
-      <div
-        data-testid="sibling-linking-card"
-        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-lime-50/40 border border-lime-200/80 rounded-2xl mt-2"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-lime-100 text-lime-800 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-[18px]">diversity_1</span>
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-800">¿Desea inscribir a un hermano?</p>
-            <p className="text-[11px] text-slate-500">
-              Guarda este alumno y continúa automáticamente con los mismos datos del tutor.
-            </p>
-          </div>
-        </div>
-
-        <button
-          data-testid="add-sibling-button"
-          onClick={handleAddSibling}
-          type="button"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-lime-50 text-slate-800 hover:text-emerald-700 border border-slate-200 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
-        >
-          <span className="material-symbols-outlined text-[16px] text-emerald-600">
-            add_circle
-          </span>
-          <span>＋ Vincular otro alumno a este mismo tutor</span>
-        </button>
+}) => (
+  <div
+    data-testid="section-student-data"
+    className="flex flex-col gap-3.5 p-5 bg-white border border-slate-200/80 rounded-2xl shadow-xs"
+  >
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-extrabold">
+          2
+        </span>
+        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+          Datos del Alumno
+        </h3>
       </div>
     </div>
-  );
-};
 
-const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
+    {/* Inputs del Alumno */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <StudentPersonalInputs
+        studentDni={studentDni}
+        setStudentDni={setStudentDni}
+        studentFechaNacimiento={studentFechaNacimiento}
+        setStudentFechaNacimiento={setStudentFechaNacimiento}
+        studentNombre={studentNombre}
+        setStudentNombre={setStudentNombre}
+        studentApellido={studentApellido}
+        setStudentApellido={setStudentApellido}
+        sameAddressAsTutor={sameAddressAsTutor}
+        tutorDomicilio={tutorDomicilio}
+        studentDomicilio={studentDomicilio}
+        setStudentDomicilio={setStudentDomicilio}
+        handleSameAddressToggle={handleSameAddressToggle}
+        studentNivel={studentNivel}
+      />
+
+      <StudentAcademicFields
+        studentNivel={studentNivel}
+        handleNivelChange={handleNivelChange}
+        studentCurso={studentCurso}
+        handleCursoChange={handleCursoChange}
+        availableCursos={availableCursos}
+        studentDivision={studentDivision}
+        setStudentDivision={setStudentDivision}
+        availableDivisiones={availableDivisiones}
+        studentEstado={studentEstado}
+        setStudentEstado={setStudentEstado}
+      />
+    </div>
+
+    {/* Vincular Hermanos / Múltiples Alumnos */}
+    <StudentSiblingCard handleAddSibling={handleAddSibling} />
+  </div>
+);
+
+const useNewStudentForm = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   // Tutor Mode ('new' | 'existing')
   const [tutorMode, setTutorMode] = useState('new');
 
@@ -696,6 +764,11 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   // Academic Offer State (Cursos fijos, divisiones dinámicas desde Firebase)
   const [academicOffer, setAcademicOffer] = useState(DEFAULT_ACADEMIC_OFFER);
 
+  // Validation / Message State
+  const [formError, setFormError] = useState('');
+  const [successNotice, setSuccessNotice] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Fetch academic offer from Firebase whenever modal opens
   useEffect(() => {
     if (!isOpen) {
@@ -711,13 +784,6 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     return () => { isMounted = false; };
   }, [isOpen]);
 
-  // Validation / Message State
-  const [formError, setFormError] = useState('');
-  const [successNotice, setSuccessNotice] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!isOpen) return null;
-
   const availableTutors = (tutors || [])
     .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
@@ -732,14 +798,9 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     );
   });
 
-  // Available courses for the selected level (fixed levels & courses)
   const availableCursos = CURSOS_POR_NIVEL[studentNivel] || [];
-
-  // Available divisions: query dynamically for the selected course
-  // Always guarantees 'A' as the minimal non-deletable division
   const availableDivisiones = getNewStudentDivisiones(academicOffer, studentNivel, studentCurso);
 
-  // Handle select existing tutor
   const handleSelectExistingTutor = (selectedVal) => {
     if (!selectedVal) return;
     const found = availableTutors.find((t) => (t.id && t.id === selectedVal) || t.nombre === selectedVal);
@@ -778,7 +839,6 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
 
   const handleCursoChange = (newCurso) => {
     setStudentCurso(newCurso);
-    // If selecting a course, verify if the current division is valid in the newly selected course
     if (newCurso === 'sin asignar') {
       setStudentDivision('sin asignar');
     } else {
@@ -816,7 +876,6 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     return student;
   };
 
-  // Submit and Close
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newStudent = validateAndBuildStudent();
@@ -833,7 +892,6 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     }
   };
 
-  // Save current student and keep tutor for sibling
   const handleAddSibling = async () => {
     const newStudent = validateAndBuildStudent();
     if (!newStudent) return;
@@ -841,7 +899,6 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     setIsSubmitting(true);
     try {
       await onAddStudent(newStudent);
-      // Reset student fields only, preserve tutor fields
       setStudentDni('');
       setStudentFechaNacimiento('');
       setStudentNombre('');
@@ -856,6 +913,58 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
       setIsSubmitting(false);
     }
   };
+
+  return {
+    tutorMode,
+    setTutorMode,
+    filteredTutors,
+    tutorFilter,
+    setTutorFilter,
+    handleSelectExistingTutor,
+    tutorNombre,
+    setTutorNombre,
+    tutorDni,
+    setTutorDni,
+    tutorTelefono,
+    setTutorTelefono,
+    tutorEmail,
+    setTutorEmail,
+    tutorDomicilio,
+    handleTutorAddressChange,
+    studentDni,
+    setStudentDni,
+    studentFechaNacimiento,
+    setStudentFechaNacimiento,
+    studentNombre,
+    setStudentNombre,
+    studentApellido,
+    setStudentApellido,
+    sameAddressAsTutor,
+    studentDomicilio,
+    setStudentDomicilio,
+    handleSameAddressToggle,
+    studentNivel,
+    handleNivelChange,
+    studentCurso,
+    handleCursoChange,
+    availableCursos,
+    studentDivision,
+    setStudentDivision,
+    availableDivisiones,
+    studentEstado,
+    setStudentEstado,
+    formError,
+    successNotice,
+    isSubmitting,
+    handleSubmit,
+    handleAddSibling,
+  };
+};
+
+const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
+  const form = useNewStudentForm({ isOpen, onClose, onAddStudent, tutors });
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -901,72 +1010,72 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
 
         {/* Cuerpo del Modal (Scrollable) */}
         <div data-testid="new-student-modal-body" className="p-6 overflow-y-auto flex flex-col gap-6">
-          {formError && (
+          {form.formError && (
             <div
               data-testid="new-student-form-error"
               className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-semibold flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-[18px]">error</span>
-              <span>{formError}</span>
+              <span>{form.formError}</span>
             </div>
           )}
 
-          {successNotice && (
+          {form.successNotice && (
             <div
               data-testid="new-student-form-success"
               className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl font-semibold flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
-              <span>{successNotice}</span>
+              <span>{form.successNotice}</span>
             </div>
           )}
 
           {/* SECCIÓN 1: DATOS DEL TUTOR / RESPONSABLE LEGAL */}
           <NewStudentTutorSection
-            tutorMode={tutorMode}
-            setTutorMode={setTutorMode}
-            filteredTutors={filteredTutors}
-            tutorFilter={tutorFilter}
-            setTutorFilter={setTutorFilter}
-            handleSelectExistingTutor={handleSelectExistingTutor}
-            tutorNombre={tutorNombre}
-            setTutorNombre={setTutorNombre}
-            tutorDni={tutorDni}
-            setTutorDni={setTutorDni}
-            tutorTelefono={tutorTelefono}
-            setTutorTelefono={setTutorTelefono}
-            tutorEmail={tutorEmail}
-            setTutorEmail={setTutorEmail}
-            tutorDomicilio={tutorDomicilio}
-            handleTutorAddressChange={handleTutorAddressChange}
+            tutorMode={form.tutorMode}
+            setTutorMode={form.setTutorMode}
+            filteredTutors={form.filteredTutors}
+            tutorFilter={form.tutorFilter}
+            setTutorFilter={form.setTutorFilter}
+            handleSelectExistingTutor={form.handleSelectExistingTutor}
+            tutorNombre={form.tutorNombre}
+            setTutorNombre={form.setTutorNombre}
+            tutorDni={form.tutorDni}
+            setTutorDni={form.setTutorDni}
+            tutorTelefono={form.tutorTelefono}
+            setTutorTelefono={form.setTutorTelefono}
+            tutorEmail={form.tutorEmail}
+            setTutorEmail={form.setTutorEmail}
+            tutorDomicilio={form.tutorDomicilio}
+            handleTutorAddressChange={form.handleTutorAddressChange}
           />
 
           {/* SECCIÓN 2: DATOS DEL ALUMNO */}
           <NewStudentDataSection
-            studentDni={studentDni}
-            setStudentDni={setStudentDni}
-            studentFechaNacimiento={studentFechaNacimiento}
-            setStudentFechaNacimiento={setStudentFechaNacimiento}
-            studentNombre={studentNombre}
-            setStudentNombre={setStudentNombre}
-            studentApellido={studentApellido}
-            setStudentApellido={setStudentApellido}
-            sameAddressAsTutor={sameAddressAsTutor}
-            tutorDomicilio={tutorDomicilio}
-            studentDomicilio={studentDomicilio}
-            setStudentDomicilio={setStudentDomicilio}
-            handleSameAddressToggle={handleSameAddressToggle}
-            studentNivel={studentNivel}
-            handleNivelChange={handleNivelChange}
-            studentCurso={studentCurso}
-            handleCursoChange={handleCursoChange}
-            availableCursos={availableCursos}
-            studentDivision={studentDivision}
-            setStudentDivision={setStudentDivision}
-            availableDivisiones={availableDivisiones}
-            studentEstado={studentEstado}
-            setStudentEstado={setStudentEstado}
-            handleAddSibling={handleAddSibling}
+            studentDni={form.studentDni}
+            setStudentDni={form.setStudentDni}
+            studentFechaNacimiento={form.studentFechaNacimiento}
+            setStudentFechaNacimiento={form.setStudentFechaNacimiento}
+            studentNombre={form.studentNombre}
+            setStudentNombre={form.setStudentNombre}
+            studentApellido={form.studentApellido}
+            setStudentApellido={form.setStudentApellido}
+            sameAddressAsTutor={form.sameAddressAsTutor}
+            tutorDomicilio={form.tutorDomicilio}
+            studentDomicilio={form.studentDomicilio}
+            setStudentDomicilio={form.setStudentDomicilio}
+            handleSameAddressToggle={form.handleSameAddressToggle}
+            studentNivel={form.studentNivel}
+            handleNivelChange={form.handleNivelChange}
+            studentCurso={form.studentCurso}
+            handleCursoChange={form.handleCursoChange}
+            availableCursos={form.availableCursos}
+            studentDivision={form.studentDivision}
+            setStudentDivision={form.setStudentDivision}
+            availableDivisiones={form.availableDivisiones}
+            studentEstado={form.studentEstado}
+            setStudentEstado={form.setStudentEstado}
+            handleAddSibling={form.handleAddSibling}
           />
         </div>
 
@@ -987,16 +1096,17 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
           <div className="flex items-center gap-2.5">
             <button
               data-testid="modal-submit-button"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className={`flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 border-none ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
-                }`}
+              onClick={form.handleSubmit}
+              disabled={form.isSubmitting}
+              className={`flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 border-none ${
+                form.isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
+              }`}
               type="button"
             >
-              <span className={`material-symbols-outlined text-[18px] ${isSubmitting ? 'animate-spin' : ''}`}>
-                {isSubmitting ? 'sync' : 'check'}
+              <span className={`material-symbols-outlined text-[18px] ${form.isSubmitting ? 'animate-spin' : ''}`}>
+                {form.isSubmitting ? 'sync' : 'check'}
               </span>
-              <span>{isSubmitting ? 'Creando alumno...' : 'Guardar y Matricular Alumno'}</span>
+              <span>{form.isSubmitting ? 'Creando alumno...' : 'Guardar y Matricular Alumno'}</span>
             </button>
           </div>
         </div>
