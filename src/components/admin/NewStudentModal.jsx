@@ -49,8 +49,18 @@ const validateAndBuildNewStudent = ({
 
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const legajo = `#LEG-2027-${randomNum}`;
-  const initials = `${studentNombre.trim()[0] || ''}${studentApellido.trim()[0] || ''}`.toUpperCase();
-  const fullName = `${studentNombre.trim()} ${studentApellido.trim()}`;
+  const cleanNombre = studentNombre.trim();
+  const cleanApellido = studentApellido.trim();
+  let baseNombre = cleanNombre;
+  if (cleanApellido) {
+    const escapedApellido = cleanApellido.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`\\s+${escapedApellido}$`, 'i');
+    if (regex.test(cleanNombre)) {
+      baseNombre = cleanNombre.replace(regex, '').trim();
+    }
+  }
+  const fullName = cleanApellido ? `${baseNombre} ${cleanApellido}`.trim() : baseNombre;
+  const initials = `${(baseNombre[0] || '').toUpperCase()}${(cleanApellido[0] || '').toUpperCase()}`;
 
   const badgeVariant =
     studentNivel === 'Inicial'

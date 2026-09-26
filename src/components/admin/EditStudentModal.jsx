@@ -92,14 +92,26 @@ const buildSavePayload = ({
   tutorDomicilio,
   reassignedTutorId,
 }) => {
-  const fullName = `${studentNombre.trim()} ${studentApellido.trim()}`.trim();
-  const initials = `${studentNombre.trim()[0] || ''}${studentApellido.trim()[0] || ''}`.toUpperCase();
+  const cleanNombre = studentNombre.trim();
+  const cleanApellido = studentApellido.trim();
+
+  let baseNombre = cleanNombre;
+  if (cleanApellido) {
+    const escapedApellido = cleanApellido.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`\\s+${escapedApellido}$`, 'i');
+    if (regex.test(cleanNombre)) {
+      baseNombre = cleanNombre.replace(regex, '').trim();
+    }
+  }
+
+  const fullName = cleanApellido ? `${baseNombre} ${cleanApellido}`.trim() : baseNombre;
+  const initials = `${(baseNombre[0] || '').toUpperCase()}${(cleanApellido[0] || '').toUpperCase()}`;
 
   return {
     studentId: student.id,
     studentData: {
       nombre: fullName,
-      apellido: studentApellido.trim(),
+      apellido: cleanApellido,
       dni: studentDni.trim(),
       fechaNacimiento: studentFechaNacimiento,
       domicilio: studentDomicilio.trim(),
@@ -693,11 +705,20 @@ const TutorFieldsTab = ({
 );
 
 const getInitialStudentFormState = (student, matchedTutor) => {
-  let initialNombre = student?.nombre || '';
-  let initialApellido = student?.apellido || '';
+  const rawNombre = (student?.nombre || '').trim();
+  let initialApellido = (student?.apellido || '').trim();
+  let initialNombre = rawNombre;
 
-  if (!initialApellido && initialNombre) {
-    const parts = initialNombre.trim().split(/\s+/);
+  if (initialApellido) {
+    // Si student.nombre contiene el apellido al final, se lo removemos para dejar únicamente el nombre
+    const escapedApellido = initialApellido.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`\\s+${escapedApellido}$`, 'i');
+    if (regex.test(rawNombre)) {
+      initialNombre = rawNombre.replace(regex, '').trim();
+    }
+  } else if (rawNombre) {
+    // Si no tiene apellido explícito, separamos la última palabra como apellido
+    const parts = rawNombre.split(/\s+/);
     if (parts.length > 1) {
       initialApellido = parts.pop();
       initialNombre = parts.join(' ');
