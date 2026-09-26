@@ -31,6 +31,7 @@ const getMatchedTutor = (tutorsList, currentStudent) => {
 
 const validateEditStudentForm = ({
   studentNombre,
+  studentApellido,
   studentDni,
   studentFechaNacimiento,
   studentNivel,
@@ -39,8 +40,8 @@ const validateEditStudentForm = ({
   tutorNombre,
   tutorTelefono,
 }) => {
-  if (!studentNombre.trim() || !studentDni.trim()) {
-    return { error: 'El nombre y el DNI del alumno son obligatorios.', tab: 'student' };
+  if (!studentNombre.trim() || !studentApellido.trim() || !studentDni.trim()) {
+    return { error: 'El nombre, apellido y DNI del alumno son obligatorios.', tab: 'student' };
   }
 
   if (studentFechaNacimiento) {
@@ -72,6 +73,7 @@ const validateEditStudentForm = ({
 const buildSavePayload = ({
   student,
   studentNombre,
+  studentApellido,
   studentDni,
   studentFechaNacimiento,
   studentDomicilio,
@@ -89,40 +91,47 @@ const buildSavePayload = ({
   tutorEmail,
   tutorDomicilio,
   reassignedTutorId,
-}) => ({
-  studentId: student.id,
-  studentData: {
-    nombre: studentNombre.trim(),
-    dni: studentDni.trim(),
-    fechaNacimiento: studentFechaNacimiento,
-    domicilio: studentDomicilio.trim(),
-    nivel: studentNivel,
-    curso: studentCurso,
-    division: studentDivision,
-    estado: studentEstado,
-    servicios: studentServicios,
-  },
-  tutorId: currentTutorId,
-  tutorData:
-    tutorMode === 'reassign' && selectedReassignedTutor
-      ? {
-          id: selectedReassignedTutor.id,
-          nombre: selectedReassignedTutor.nombre,
-          email: selectedReassignedTutor.email,
-          telefono: selectedReassignedTutor.telefono || '',
-          dni: selectedReassignedTutor.dni || '',
-          domicilio: selectedReassignedTutor.domicilio || '',
-        }
-      : {
-          id: currentTutorId,
-          nombre: tutorNombre.trim(),
-          dni: tutorDni.trim(),
-          telefono: tutorTelefono.trim(),
-          email: tutorEmail.trim(),
-          domicilio: tutorDomicilio.trim(),
-        },
-  reassignedTutorId: tutorMode === 'reassign' ? reassignedTutorId : null,
-});
+}) => {
+  const fullName = `${studentNombre.trim()} ${studentApellido.trim()}`.trim();
+  const initials = `${studentNombre.trim()[0] || ''}${studentApellido.trim()[0] || ''}`.toUpperCase();
+
+  return {
+    studentId: student.id,
+    studentData: {
+      nombre: fullName,
+      apellido: studentApellido.trim(),
+      dni: studentDni.trim(),
+      fechaNacimiento: studentFechaNacimiento,
+      domicilio: studentDomicilio.trim(),
+      nivel: studentNivel,
+      curso: studentCurso,
+      division: studentDivision,
+      estado: studentEstado,
+      servicios: studentServicios,
+      initials: initials || 'AL',
+    },
+    tutorId: currentTutorId,
+    tutorData:
+      tutorMode === 'reassign' && selectedReassignedTutor
+        ? {
+            id: selectedReassignedTutor.id,
+            nombre: selectedReassignedTutor.nombre,
+            email: selectedReassignedTutor.email,
+            telefono: selectedReassignedTutor.telefono || '',
+            dni: selectedReassignedTutor.dni || '',
+            domicilio: selectedReassignedTutor.domicilio || '',
+          }
+        : {
+            id: currentTutorId,
+            nombre: tutorNombre.trim(),
+            dni: tutorDni.trim(),
+            telefono: tutorTelefono.trim(),
+            email: tutorEmail.trim(),
+            domicilio: tutorDomicilio.trim(),
+          },
+    reassignedTutorId: tutorMode === 'reassign' ? reassignedTutorId : null,
+  };
+};
 
 const getAvailableDivisiones = (academicOffer, nivel, curso) => {
   if (curso === 'sin asignar') return ['A'];
@@ -136,6 +145,8 @@ const getAvailableDivisiones = (academicOffer, nivel, curso) => {
 const StudentFieldsTab = ({
   studentNombre,
   setStudentNombre,
+  studentApellido,
+  setStudentApellido,
   studentDni,
   setStudentDni,
   studentFechaNacimiento,
@@ -164,18 +175,34 @@ const StudentFieldsTab = ({
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        <div className="sm:col-span-2">
-          <label htmlFor="edit-student-name-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
-            Nombre Completo *
+        <div>
+          <label htmlFor="edit-student-firstname-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Nombre *
           </label>
           <input
-            id="edit-student-name-input"
-            data-testid="edit-student-name-input"
+            id="edit-student-firstname-input"
+            data-testid="edit-student-firstname-input"
             type="text"
             className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
-            placeholder="Ej: Sofía Valentina Gómez"
+            placeholder="Ej: Lucas Valentín"
             value={studentNombre}
             onChange={(e) => setStudentNombre(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-student-lastname-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Apellido *
+          </label>
+          <input
+            id="edit-student-lastname-input"
+            data-testid="edit-student-lastname-input"
+            type="text"
+            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+            placeholder="Ej: Gómez"
+            value={studentApellido}
+            onChange={(e) => setStudentApellido(e.target.value)}
             required
           />
         </div>
@@ -665,22 +692,36 @@ const TutorFieldsTab = ({
   </div>
 );
 
-const getInitialStudentFormState = (student, matchedTutor) => ({
-  studentNombre: student?.nombre || '',
-  studentDni: formatDni(student?.dni || ''),
-  studentFechaNacimiento: student?.fechaNacimiento || '',
-  studentDomicilio: student?.domicilio || '',
-  studentNivel: student?.nivel || 'Primario',
-  studentCurso: student?.curso || 'sin asignar',
-  studentDivision: student?.division || 'sin asignar',
-  studentEstado: student?.estado || 'Activo - Regular',
-  studentServicios: Array.isArray(student?.servicios) ? [...student.servicios] : ['Comedor Escolar'],
-  tutorNombre: matchedTutor?.nombre || (student?.tutorNombre || '').replace(' (Tutor)', ''),
-  tutorDni: formatDni(matchedTutor?.dni || ''),
-  tutorTelefono: matchedTutor?.telefono || student?.tutorTelefono || '',
-  tutorEmail: matchedTutor?.email || student?.tutorEmail || '',
-  tutorDomicilio: matchedTutor?.domicilio || '',
-});
+const getInitialStudentFormState = (student, matchedTutor) => {
+  let initialNombre = student?.nombre || '';
+  let initialApellido = student?.apellido || '';
+
+  if (!initialApellido && initialNombre) {
+    const parts = initialNombre.trim().split(/\s+/);
+    if (parts.length > 1) {
+      initialApellido = parts.pop();
+      initialNombre = parts.join(' ');
+    }
+  }
+
+  return {
+    studentNombre: initialNombre,
+    studentApellido: initialApellido,
+    studentDni: formatDni(student?.dni || ''),
+    studentFechaNacimiento: student?.fechaNacimiento || '',
+    studentDomicilio: student?.domicilio || '',
+    studentNivel: student?.nivel || 'Primario',
+    studentCurso: student?.curso || 'sin asignar',
+    studentDivision: student?.division || 'sin asignar',
+    studentEstado: student?.estado || 'Activo - Regular',
+    studentServicios: Array.isArray(student?.servicios) ? [...student.servicios] : ['Comedor Escolar'],
+    tutorNombre: matchedTutor?.nombre || (student?.tutorNombre || '').replace(' (Tutor)', ''),
+    tutorDni: formatDni(matchedTutor?.dni || ''),
+    tutorTelefono: matchedTutor?.telefono || student?.tutorTelefono || '',
+    tutorEmail: matchedTutor?.email || student?.tutorEmail || '',
+    tutorDomicilio: matchedTutor?.domicilio || student?.tutorDomicilio || '',
+  };
+};
 
 const filterTutorsByTerm = (tutors, term) => {
   if (!term.trim()) return tutors;
@@ -773,6 +814,7 @@ const EditStudentModalContent = ({
 
   // Student State
   const [studentNombre, setStudentNombre] = useState(init.studentNombre);
+  const [studentApellido, setStudentApellido] = useState(init.studentApellido);
   const [studentDni, setStudentDni] = useState(init.studentDni);
   const [studentFechaNacimiento, setStudentFechaNacimiento] = useState(init.studentFechaNacimiento);
   const [studentDomicilio, setStudentDomicilio] = useState(init.studentDomicilio);
@@ -846,6 +888,7 @@ const EditStudentModalContent = ({
 
     const validation = validateEditStudentForm({
       studentNombre,
+      studentApellido,
       studentDni,
       studentFechaNacimiento,
       studentNivel,
@@ -866,6 +909,7 @@ const EditStudentModalContent = ({
       const payload = buildSavePayload({
         student,
         studentNombre,
+        studentApellido,
         studentDni,
         studentFechaNacimiento,
         studentDomicilio,
@@ -931,6 +975,8 @@ const EditStudentModalContent = ({
             <StudentFieldsTab
               studentNombre={studentNombre}
               setStudentNombre={setStudentNombre}
+              studentApellido={studentApellido}
+              setStudentApellido={setStudentApellido}
               studentDni={studentDni}
               setStudentDni={setStudentDni}
               studentFechaNacimiento={studentFechaNacimiento}

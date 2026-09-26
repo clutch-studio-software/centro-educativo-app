@@ -92,6 +92,7 @@ const normalizeStudent = (s, parents) => {
     legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
     dni: formatDni(s.dni || ''),
     nombre: s.nombre || 'Sin Nombre',
+    apellido: s.apellido || '',
     tutorNombre,
     tutorDni,
     tutorTelefono,
@@ -544,15 +545,19 @@ const useStudentActions = ({
         parentEmail: newStudent.tutorEmail || 'tutor@ejemplo.com',
         parentName: (newStudent.tutorNombre || '').replace(' (Tutor)', ''),
         parentDni: (newStudent.tutorDni || '00000000').replace(/\./g, ''),
+        parentTelefono: newStudent.tutorTelefono || '',
+        parentDomicilio: newStudent.tutorDomicilio || newStudent.domicilio || '',
         students: [
           {
             nombre: newStudent.nombre,
+            apellido: newStudent.apellido || '',
             dni: newStudent.dni.replace(/\./g, ''),
             fechaNacimiento: newStudent.fechaNacimiento || '',
             nivel: newStudent.nivel.toLowerCase(),
             curso: newStudent.curso || 'sin asignar',
             division: newStudent.division || 'sin asignar',
             genero: 'No especificado',
+            domicilio: newStudent.domicilio || '',
           },
         ],
       });

@@ -97,7 +97,7 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
             res.status(403).send({ error: 'Permisos insuficientes: Requiere rol user_admin.' });
             return;
         }
-        const { parentEmail, parentName, parentDni, students } = req.body;
+        const { parentEmail, parentName, parentDni, parentTelefono, parentDomicilio, students } = req.body;
         if (!parentEmail || !parentDni || !parentName || !students || !Array.isArray(students)) {
             res.status(400).send({ error: 'Faltan parámetros requeridos (parentEmail, parentDni, parentName, students).' });
             return;
@@ -143,12 +143,14 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
                 status: 'active',
                 mustChangePassword: true,
                 nombre: student.nombre || '',
+                apellido: student.apellido || '',
                 dni: student.dni || '',
                 genero: student.genero || '',
                 fechaNacimiento: student.fechaNacimiento || '',
                 nivel: student.nivel || 'inicial',
                 curso: student.curso || 'sin asignar',
                 division: student.division || 'sin asignar',
+                domicilio: student.domicilio || '',
                 createdAt: admin.firestore.FieldValue.serverTimestamp()
             });
             return {
@@ -165,6 +167,8 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
             email: parentEmail,
             nombre: parentName || '',
             dni: parentDni.trim(),
+            telefono: parentTelefono ? String(parentTelefono).trim() : '',
+            domicilio: parentDomicilio ? String(parentDomicilio).trim() : '',
             mustChangePassword: true,
             emailInvalid: false,
             studentIds: admin.firestore.FieldValue.arrayUnion(...studentDocIds),
