@@ -17,6 +17,8 @@ import Privacy from './pages/Privacy';
 import AdminPlaceholder from './pages/admin/AdminPlaceholder';
 import TeachersManagement from './pages/admin/TeachersManagement';
 import AcademicOfferManagement from './pages/admin/AcademicOfferManagement';
+import SportsManagement from './pages/admin/SportsManagement';
+import SportsDetailManagement from './pages/admin/SportsDetailManagement';
 
 function App() {
   const location = useLocation();
@@ -41,7 +43,12 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
         <Route path="/admin/docentes" element={<TeachersManagement />} />
         <Route path="/admin/oferta-academica" element={<AcademicOfferManagement />} />
-        <Route path="/admin/servicios" element={<AdminPlaceholder />} />
+        <Route path="/admin/servicios" element={<SportsManagement />} />
+        <Route path="/admin/servicios/detalle" element={<SportsDetailManagement />} />
+        <Route path="/admin/servicios/detalle/:id" element={<SportsDetailManagement />} />
+        <Route path="/admin/deportes" element={<SportsManagement />} />
+        <Route path="/admin/deportes/detalle" element={<SportsDetailManagement />} />
+        <Route path="/admin/deportes/detalle/:id" element={<SportsDetailManagement />} />
         <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
         <Route path="/admin/usuarios" element={<AdminPlaceholder />} />
         <Route path="/admin/reportes" element={<AdminPlaceholder />} />
