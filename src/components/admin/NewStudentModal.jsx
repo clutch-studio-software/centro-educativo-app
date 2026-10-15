@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
+import { sortCourseNames, sortDivisions } from '../../utils/academicUtils';
 import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
 import { fetchAcademicOfferApi, DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
 
 const getNewStudentDivisiones = (academicOffer, studentNivel, studentCurso) => {
-  if (studentCurso === 'sin asignar') return ['A'];
+  if (!studentCurso || studentCurso === 'sin asignar') return ['A'];
   const courseDivs = academicOffer?.[studentNivel]?.[studentCurso];
   if (Array.isArray(courseDivs) && courseDivs.length > 0) {
-    return courseDivs.includes('A') ? courseDivs : ['A', ...courseDivs];
+    return sortDivisions(courseDivs);
   }
   return ['A'];
 };
@@ -810,8 +811,17 @@ const useNewStudentForm = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     );
   });
 
-  const availableCursos = CURSOS_POR_NIVEL[studentNivel] || [];
-  const availableDivisiones = getNewStudentDivisiones(academicOffer, studentNivel, studentCurso);
+  const availableCursos = useMemo(() => {
+    const offerCourses = Object.keys(academicOffer?.[studentNivel] || {});
+    if (offerCourses.length > 0) {
+      return sortCourseNames(offerCourses);
+    }
+    return sortCourseNames(CURSOS_POR_NIVEL[studentNivel] || []);
+  }, [academicOffer, studentNivel]);
+
+  const availableDivisiones = useMemo(() => {
+    return getNewStudentDivisiones(academicOffer, studentNivel, studentCurso);
+  }, [academicOffer, studentNivel, studentCurso]);
 
   const handleSelectExistingTutor = (selectedVal) => {
     if (!selectedVal) return;

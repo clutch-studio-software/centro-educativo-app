@@ -220,6 +220,125 @@ export const MOCK_STUDENTS = [
   }
 ];
 
+const FIRST_NAMES_POOL = [
+  'Sofía', 'Mateo', 'Valentina', 'Benjamín', 'Martina', 'Felipe', 'Lucía', 'Joaquín',
+  'Camila', 'Tomás', 'Catalina', 'Bautista', 'Julieta', 'Santino', 'Delfina', 'Thiago',
+  'Isabella', 'Lucas', 'Victoria', 'Juan Martín', 'Emma', 'Nicolás', 'Renata', 'Lautaro',
+  'Paula', 'Agustín', 'Florencia', 'Ignacio', 'Milagros', 'Facundo', 'Bianca', 'Santiago',
+  'Manuel', 'Alma', 'Clara', 'Ramiro', 'Constanza', 'Franco', 'Pilar', 'Emiliano'
+];
+
+const LAST_NAMES_POOL = [
+  'Gómez', 'Rodríguez', 'Fernández', 'López', 'Díaz', 'Martínez', 'Pérez', 'Romero',
+  'Sánchez', 'Álvarez', 'Torres', 'Ruíz', 'Ramírez', 'Flores', 'Benítez', 'Acosta',
+  'Medina', 'Herrera', 'Aguirre', 'Castro', 'Giménez', 'Morales', 'Domínguez', 'Blanco',
+  'Vega', 'Peralta', 'Navarro', 'Quiroga', 'Cabrera', 'Ríos', 'Godoy', 'Rossi', 'Molina'
+];
+
+const GRADIENTS_POOL = [
+  'from-blue-500 to-indigo-500',
+  'from-emerald-400 to-lime-500',
+  'from-orange-400 to-amber-500',
+  'from-sky-400 to-blue-600',
+  'from-purple-500 to-indigo-600',
+  'from-pink-500 to-rose-500',
+  'from-teal-400 to-emerald-600',
+  'from-violet-500 to-purple-600'
+];
+
+const DIVISION_STUDENT_DISTRIBUTION = [
+  // Inicial
+  { nivel: 'Inicial', curso: 'Sala 3 Años', division: 'Amarilla', count: 25 },
+  { nivel: 'Inicial', curso: 'Sala 3 Años', division: 'Roja', count: 20 },
+  { nivel: 'Inicial', curso: 'Sala 4 Años', division: 'Verde', count: 22 },
+  { nivel: 'Inicial', curso: 'Sala 4 Años', division: 'Naranja', count: 21 },
+  { nivel: 'Inicial', curso: 'Sala 5 Años', division: 'Azul', count: 24 },
+  { nivel: 'Inicial', curso: 'Sala 5 Años', division: 'Celeste', count: 23 },
+
+  // Primario
+  { nivel: 'Primario', curso: '1° Grado', division: 'A', count: 28 },
+  { nivel: 'Primario', curso: '1° Grado', division: 'B', count: 29 },
+  { nivel: 'Primario', curso: '2° Grado', division: 'A', count: 27 },
+  { nivel: 'Primario', curso: '2° Grado', division: 'B', count: 26 },
+  { nivel: 'Primario', curso: '3° Grado', division: 'A', count: 30 },
+  { nivel: 'Primario', curso: '3° Grado', division: 'B', count: 28 },
+  { nivel: 'Primario', curso: '4° Grado', division: 'A', count: 30 },
+  { nivel: 'Primario', curso: '4° Grado', division: 'B', count: 25 },
+  { nivel: 'Primario', curso: '5° Grado', division: 'A', count: 27 },
+  { nivel: 'Primario', curso: '6° Grado', division: 'A', count: 29 },
+  { nivel: 'Primario', curso: '7° Grado', division: 'A', count: 26 },
+  { nivel: 'Primario', curso: '7° Grado', division: 'B', count: 24 },
+
+  // Secundario
+  { nivel: 'Secundario', curso: '1° Año', division: 'A', count: 33 },
+  { nivel: 'Secundario', curso: '1° Año', division: 'B', count: 31 },
+  { nivel: 'Secundario', curso: '2° Año', division: 'A', count: 35 },
+  { nivel: 'Secundario', curso: '3° Año', division: 'A', count: 32 },
+  { nivel: 'Secundario', curso: '4° Año', division: 'A', count: 32 },
+  { nivel: 'Secundario', curso: '4° Año', division: 'B', count: 30 },
+  { nivel: 'Secundario', curso: '5° Año', division: 'A', count: 29 },
+  { nivel: 'Secundario', curso: '5° Año', division: 'B', count: 35 },
+  { nivel: 'Secundario', curso: '6° Año', division: 'Única', count: 31 },
+];
+
+let globalCounter = 100;
+for (const dist of DIVISION_STUDENT_DISTRIBUTION) {
+  for (let i = 0; i < dist.count; i++) {
+    globalCounter++;
+    const fn = FIRST_NAMES_POOL[(globalCounter * 3 + i) % FIRST_NAMES_POOL.length];
+    const ln = LAST_NAMES_POOL[(globalCounter * 5 + i * 2) % LAST_NAMES_POOL.length];
+    const grad = GRADIENTS_POOL[globalCounter % GRADIENTS_POOL.length];
+    const badge = dist.nivel === 'Inicial' ? 'lime' : dist.nivel === 'Primario' ? 'sky' : 'indigo';
+    const dniNum = 46000000 + (globalCounter * 137 % 8000000);
+    const dniFormatted = `${String(dniNum).slice(0, 2)}.${String(dniNum).slice(2, 5)}.${String(dniNum).slice(5)}`;
+
+    MOCK_STUDENTS.push({
+      id: `s-${globalCounter}`,
+      legajo: `#LEG-2027-${String(1000 + (globalCounter % 8999))}`,
+      dni: dniFormatted,
+      nombre: `${fn} ${ln}`,
+      tutorNombre: `${ln} (Tutor)`,
+      tutorDni: `28.${String(globalCounter * 41 % 899 + 100)}.${String(globalCounter * 67 % 899 + 100)}`,
+      tutorTelefono: `11-${String(globalCounter * 73 % 8999 + 1000)}-${String(globalCounter * 91 % 8999 + 1000)}`,
+      nivel: dist.nivel,
+      curso: dist.curso,
+      division: dist.division,
+      cursoDisplay: `${dist.nivel} - ${dist.curso} "${dist.division}"`,
+      estado: i % 14 === 0 ? 'Documentación Pendiente' : i % 20 === 0 ? 'Con Deuda Arancelaria' : 'Activo - Regular',
+      servicios: ['Comedor Escolar'],
+      initials: `${fn[0]}${ln[0]}`,
+      avatarGradient: grad,
+      badgeVariant: badge,
+    });
+  }
+}
+
+// Agregar alumnos adicionales con curso sin asignar
+for (let u = 1; u <= 5; u++) {
+  globalCounter++;
+  const fn = FIRST_NAMES_POOL[(globalCounter + u) % FIRST_NAMES_POOL.length];
+  const ln = LAST_NAMES_POOL[(globalCounter * 2 + u) % LAST_NAMES_POOL.length];
+  MOCK_STUDENTS.push({
+    id: `s-unassigned-${u}`,
+    legajo: `#LEG-2027-009${u}`,
+    dni: `50.812.30${u}`,
+    nombre: `${fn} ${ln}`,
+    tutorNombre: `${ln} (Tutor)`,
+    tutorDni: '32.110.400',
+    tutorTelefono: '11-4029-1122',
+    nivel: 'Primario',
+    curso: 'sin asignar',
+    division: 'sin asignar',
+    cursoDisplay: 'Sin asignar',
+    estado: 'Pendiente de Designación',
+    servicios: [],
+    initials: `${fn[0]}${ln[0]}`,
+    avatarGradient: 'from-slate-400 to-slate-500',
+    badgeVariant: 'slate',
+  });
+}
+
+
 export const CURSOS_POR_NIVEL = {
   Inicial: [
     'Sala de 2 Años',

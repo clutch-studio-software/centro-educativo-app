@@ -1,8 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { sortCourseObjects } from '../../../utils/academicUtils';
 
-const NewSubjectModal = ({ isOpen, onClose, onSave, courses = [], teachers = [], defaultCourseId }) => {
+const EMPTY_COURSES = [];
+const EMPTY_TEACHERS = [];
+
+const NewSubjectModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  courses = EMPTY_COURSES,
+  teachers = EMPTY_TEACHERS,
+  defaultCourseId,
+}) => {
+  const sortedCourses = useMemo(() => {
+    return sortCourseObjects(courses);
+  }, [courses]);
+
   const [formData, setFormData] = useState({
-    cursoId: defaultCourseId || courses[0]?.id || '',
+    cursoId: defaultCourseId || sortedCourses[0]?.id || courses[0]?.id || '',
     nombre: '',
     cargaHoraria: '4 hs / semana',
     profesorId: teachers[0]?.id || '',
@@ -95,9 +110,9 @@ const NewSubjectModal = ({ isOpen, onClose, onSave, courses = [], teachers = [],
               onChange={handleChange}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
             >
-              {courses.map((c) => (
+              {sortedCourses.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.nombre} {c.orientacion ? `(${c.orientacion})` : ''}
+                  {c.nombre} {c.division ? `(${c.division})` : ''} {c.orientacion ? `(${c.orientacion})` : ''}
                 </option>
               ))}
             </select>

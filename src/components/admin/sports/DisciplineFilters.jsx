@@ -53,12 +53,17 @@ const DisciplineFilters = ({
             />
           </svg>
         </span>
+        <label htmlFor="sports-filter-search" className="sr-only">
+          Buscar disciplina o profesor
+        </label>
         <input
+          id="sports-filter-search"
           data-testid="filter-sports-search"
           type="text"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar disciplina o profesor..."
+          aria-label="Buscar disciplina o profesor"
           className="w-full pl-10 pr-4 py-2 bg-slate-50 border-0 rounded-xl text-xs placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 text-slate-700 transition-all outline-none"
         />
         {searchTerm && (
@@ -77,10 +82,15 @@ const DisciplineFilters = ({
       <div className="flex items-center gap-2 flex-wrap">
         {/* Nivel */}
         <div className="relative">
+          <label htmlFor="sports-filter-level" className="sr-only">
+            Filtrar por nivel escolar
+          </label>
           <select
+            id="sports-filter-level"
             data-testid="filter-sports-level"
             value={selectedLevel}
             onChange={(e) => onLevelChange(e.target.value)}
+            aria-label="Filtrar por nivel escolar"
             className="appearance-none bg-slate-50 text-slate-700 text-xs font-medium pl-3 pr-8 py-2 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             {LEVEL_FILTER_OPTIONS.map((opt) => (
@@ -98,10 +108,15 @@ const DisciplineFilters = ({
 
         {/* Día */}
         <div className="relative">
+          <label htmlFor="sports-filter-day" className="sr-only">
+            Filtrar por día de la semana
+          </label>
           <select
+            id="sports-filter-day"
             data-testid="filter-sports-day"
             value={selectedDay}
             onChange={(e) => onDayChange(e.target.value)}
+            aria-label="Filtrar por día de la semana"
             className="appearance-none bg-slate-50 text-slate-700 text-xs font-medium pl-3 pr-8 py-2 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             {DAY_FILTER_OPTIONS.map((opt) => (
@@ -119,10 +134,15 @@ const DisciplineFilters = ({
 
         {/* Estado */}
         <div className="relative">
+          <label htmlFor="sports-filter-status" className="sr-only">
+            Filtrar por estado
+          </label>
           <select
+            id="sports-filter-status"
             data-testid="filter-sports-status"
             value={selectedStatus}
             onChange={(e) => onStatusChange(e.target.value)}
+            aria-label="Filtrar por estado"
             className="appearance-none bg-slate-50 text-slate-700 text-xs font-medium pl-3 pr-8 py-2 rounded-xl border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             {STATUS_FILTER_OPTIONS.map((opt) => (

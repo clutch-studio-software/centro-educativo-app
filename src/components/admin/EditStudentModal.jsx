@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
+import { sortCourseNames, sortDivisions } from '../../utils/academicUtils';
 import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
 import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
 
@@ -146,10 +147,10 @@ const buildSavePayload = ({
 };
 
 const getAvailableDivisiones = (academicOffer, nivel, curso) => {
-  if (curso === 'sin asignar') return ['A'];
+  if (!curso || curso === 'sin asignar') return ['A'];
   const courseDivs = academicOffer?.[nivel]?.[curso];
   if (Array.isArray(courseDivs) && courseDivs.length > 0) {
-    return courseDivs.includes('A') ? courseDivs : ['A', ...courseDivs];
+    return sortDivisions(courseDivs);
   }
   return ['A'];
 };
@@ -868,11 +869,26 @@ const EditStudentModalContent = ({
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
 
 
-  // Cursos disponibles para el nivel seleccionado
-  const availableCursos = CURSOS_POR_NIVEL[studentNivel] || [];
+  // Cursos disponibles para el nivel seleccionado según academicOffer dinámico
+  const availableCursos = useMemo(() => {
+    const offerCourses = Object.keys(academicOffer?.[studentNivel] || {});
+    if (offerCourses.length > 0) {
+      if (
+        studentCurso &&
+        studentCurso !== 'sin asignar' &&
+        !offerCourses.includes(studentCurso)
+      ) {
+        return sortCourseNames([studentCurso, ...offerCourses]);
+      }
+      return sortCourseNames(offerCourses);
+    }
+    return sortCourseNames(CURSOS_POR_NIVEL[studentNivel] || []);
+  }, [academicOffer, studentNivel, studentCurso]);
 
   // Divisiones disponibles para el curso seleccionado
-  const availableDivisiones = getAvailableDivisiones(academicOffer, studentNivel, studentCurso);
+  const availableDivisiones = useMemo(() => {
+    return getAvailableDivisiones(academicOffer, studentNivel, studentCurso);
+  }, [academicOffer, studentNivel, studentCurso]);
 
   const handleNivelChange = (newNivel) => {
     setStudentNivel(newNivel);

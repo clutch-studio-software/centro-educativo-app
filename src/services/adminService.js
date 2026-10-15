@@ -388,15 +388,13 @@ export const fetchAcademicOfferApi = async () => {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Garantizar que la división 'A' exista en cada curso
-      const sanitized = { ...DEFAULT_ACADEMIC_OFFER };
+      const sanitized = {};
       for (const nivel of ['Inicial', 'Primario', 'Secundario']) {
-        if (data[nivel]) {
-          sanitized[nivel] = { ...sanitized[nivel], ...data[nivel] };
-          for (const c of Object.keys(sanitized[nivel])) {
-            let divs = Array.isArray(sanitized[nivel][c]) ? sanitized[nivel][c] : [];
-            if (!divs.includes('A')) divs = ['A', ...divs];
-            sanitized[nivel][c] = Array.from(new Set(divs));
+        sanitized[nivel] = {};
+        if (data[nivel] && typeof data[nivel] === 'object') {
+          for (const [c, divs] of Object.entries(data[nivel])) {
+            const cleanDivs = Array.isArray(divs) && divs.length > 0 ? divs : ['A'];
+            sanitized[nivel][c] = Array.from(new Set(cleanDivs));
           }
         }
       }

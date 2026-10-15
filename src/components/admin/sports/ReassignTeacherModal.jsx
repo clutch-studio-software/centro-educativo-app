@@ -105,10 +105,11 @@ const ReassignTeacherModal = ({ isOpen, currentTeacher, onClose, onReassign }) =
                 const isSelected = selectedTeacherId === teacher.id;
                 const initials = `${teacher.nombre?.[0] || 'D'}${teacher.apellido?.[0] || 'C'}`.toUpperCase();
                 return (
-                  <div
+                  <button
                     key={teacher.id}
+                    type="button"
                     onClick={() => handleSelectPredefined(teacher)}
-                    className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                    className={`w-full text-left p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-transparent ${
                       isSelected
                         ? 'border-primary bg-primary/5 ring-1 ring-primary'
                         : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
@@ -126,40 +127,46 @@ const ReassignTeacherModal = ({ isOpen, currentTeacher, onClose, onReassign }) =
                     {isSelected && (
                       <span className="material-symbols-outlined text-primary text-base">check_circle</span>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Nombre Completo *</label>
+                <label htmlFor="reassign-custom-nombre" className="block text-slate-700 font-bold mb-1">Nombre Completo *</label>
                 <input
+                  id="reassign-custom-nombre"
                   type="text"
                   value={customTeacher.nombre}
                   onChange={(e) => setCustomTeacher({ ...customTeacher, nombre: e.target.value })}
                   placeholder="Ej: Prof. Alejandro Gómez"
+                  aria-label="Nombre Completo"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Legajo Docente</label>
+                  <label htmlFor="reassign-custom-legajo" className="block text-slate-700 font-bold mb-1">Legajo Docente</label>
                   <input
+                    id="reassign-custom-legajo"
                     type="text"
                     value={customTeacher.legajo}
                     onChange={(e) => setCustomTeacher({ ...customTeacher, legajo: e.target.value })}
                     placeholder="#DOC-1088"
+                    aria-label="Legajo Docente"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Email Institucional</label>
+                  <label htmlFor="reassign-custom-email" className="block text-slate-700 font-bold mb-1">Email Institucional</label>
                   <input
+                    id="reassign-custom-email"
                     type="email"
                     value={customTeacher.email}
                     onChange={(e) => setCustomTeacher({ ...customTeacher, email: e.target.value })}
                     placeholder="a.gomez@educar.edu.ar"
+                    aria-label="Email Institucional"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
                   />
                 </div>
