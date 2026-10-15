@@ -1,4 +1,61 @@
 import React, { useState } from 'react';
+import { EnrollStudentFormFields } from './EnrollStudentFormFields';
+
+const createNewStudentRecord = (formData) => {
+  const cleanDni = formData.dni.replace(/\D/g, '');
+  const formattedDni = cleanDni.length === 8
+    ? `${cleanDni.slice(0, 2)}.${cleanDni.slice(2, 5)}.${cleanDni.slice(5)}`
+    : cleanDni;
+
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const newLegajo = `#ALU-${randomSuffix}`;
+
+  const initials = formData.nombre
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+
+  return {
+    id: `ALU-${randomSuffix}`,
+    legajo: newLegajo,
+    nombre: formData.nombre.trim(),
+    dni: formattedDni,
+    iniciales: initials || 'AL',
+    avatarGrad: 'from-blue-600 to-indigo-600',
+    nivel: formData.nivel,
+    curso: formData.curso,
+    division: `${formData.curso} ${formData.division}`,
+    cursoCompleto: `${formData.nivel} - ${formData.curso} ${formData.division}`,
+    tutor: formData.tutor.trim(),
+    tutorTelefono: formData.tutorTelefono.trim(),
+    fechaInscripcion: new Date().toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }),
+    condicion: formData.condicion,
+    condicionTipo: formData.condicionTipo,
+    estadoCuota: formData.estadoCuota,
+    aptoMedico: formData.aptoMedico,
+  };
+};
+
+const validateEnrollForm = (formData) => {
+  const newErrors = {};
+  if (!formData.nombre.trim()) newErrors.nombre = 'El nombre completo es obligatorio';
+  if (!formData.dni.trim()) {
+    newErrors.dni = 'El DNI es obligatorio';
+  } else if (!/^\d{7,8}$/.test(formData.dni.replace(/\D/g, ''))) {
+    newErrors.dni = 'DNI inválido (debe tener 7 u 8 dígitos)';
+  }
+  if (!formData.tutor.trim()) newErrors.tutor = 'El nombre del tutor es obligatorio';
+  if (!formData.tutorTelefono.trim()) newErrors.tutorTelefono = 'El teléfono de contacto es obligatorio';
+
+  return newErrors;
+};
 
 const EnrollStudentModal = ({ isOpen, onClose, onEnroll, currentCount = 38, maxCapacity = 40 }) => {
   const [formData, setFormData] = useState({
@@ -19,65 +76,15 @@ const EnrollStudentModal = ({ isOpen, onClose, onEnroll, currentCount = 38, maxC
 
   if (!isOpen) return null;
 
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.nombre.trim()) newErrors.nombre = 'El nombre completo es obligatorio';
-    if (!formData.dni.trim()) {
-      newErrors.dni = 'El DNI es obligatorio';
-    } else if (!/^\d{7,8}$/.test(formData.dni.replace(/\D/g, ''))) {
-      newErrors.dni = 'DNI inválido (debe tener 7 u 8 dígitos)';
-    }
-    if (!formData.tutor.trim()) newErrors.tutor = 'El nombre del tutor es obligatorio';
-    if (!formData.tutorTelefono.trim()) newErrors.tutorTelefono = 'El teléfono de contacto es obligatorio';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    const newErrors = validateEnrollForm(formData);
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
-    const cleanDni = formData.dni.replace(/\D/g, '');
-    const formattedDni = cleanDni.length === 8
-      ? `${cleanDni.slice(0, 2)}.${cleanDni.slice(2, 5)}.${cleanDni.slice(5)}`
-      : cleanDni;
-
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const newLegajo = `#ALU-${randomSuffix}`;
-
-    const initials = formData.nombre
-      .trim()
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
-      .join('');
-
-    const newStudent = {
-      id: `ALU-${randomSuffix}`,
-      legajo: newLegajo,
-      nombre: formData.nombre.trim(),
-      dni: formattedDni,
-      iniciales: initials || 'AL',
-      avatarGrad: 'from-blue-600 to-indigo-600',
-      nivel: formData.nivel,
-      curso: formData.curso,
-      division: `${formData.curso} ${formData.division}`,
-      cursoCompleto: `${formData.nivel} - ${formData.curso} ${formData.division}`,
-      tutor: formData.tutor.trim(),
-      tutorTelefono: formData.tutorTelefono.trim(),
-      fechaInscripcion: new Date().toLocaleDateString('es-AR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }),
-      condicion: formData.condicion,
-      condicionTipo: formData.condicionTipo,
-      estadoCuota: formData.estadoCuota,
-      aptoMedico: formData.aptoMedico,
-    };
-
+    const newStudent = createNewStudentRecord(formData);
     onEnroll(newStudent);
     onClose();
   };
@@ -107,6 +114,7 @@ const EnrollStudentModal = ({ isOpen, onClose, onEnroll, currentCount = 38, maxC
           <button
             type="button"
             onClick={onClose}
+            aria-label="Cerrar modal de inscripción"
             className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer border-none bg-transparent"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
@@ -115,166 +123,11 @@ const EnrollStudentModal = ({ isOpen, onClose, onEnroll, currentCount = 38, maxC
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-          <div>
-            <label className="block text-slate-700 font-bold mb-1">Nombre Completo del Alumno *</label>
-            <input
-              type="text"
-              value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              placeholder="Ej: Sofía Morales Benítez"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-            />
-            {errors.nombre && <p className="text-red-500 text-[11px] mt-1">{errors.nombre}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">DNI del Alumno *</label>
-              <input
-                type="text"
-                value={formData.dni}
-                onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
-                placeholder="Ej: 48912004"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              />
-              {errors.dni && <p className="text-red-500 text-[11px] mt-1">{errors.dni}</p>}
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">Nivel Educativo</label>
-              <select
-                value={formData.nivel}
-                onChange={(e) => setFormData({ ...formData, nivel: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              >
-                <option value="Primario">Primario</option>
-                <option value="Secundario">Secundario</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">Curso</label>
-              <select
-                value={formData.curso}
-                onChange={(e) => setFormData({ ...formData, curso: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              >
-                {formData.nivel === 'Primario' ? (
-                  <>
-                    <option value="4° Grado">4° Grado</option>
-                    <option value="5° Grado">5° Grado</option>
-                    <option value="6° Grado">6° Grado</option>
-                    <option value="7° Grado">7° Grado</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="1° Año">1° Año</option>
-                    <option value="2° Año">2° Año</option>
-                    <option value="3° Año">3° Año</option>
-                    <option value="4° Año">4° Año</option>
-                    <option value="5° Año">5° Año</option>
-                    <option value="6° Año">6° Año</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">División</label>
-              <select
-                value={formData.division}
-                onChange={(e) => setFormData({ ...formData, division: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              >
-                <option value="A">División A</option>
-                <option value="B">División B</option>
-                <option value="C">División C</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">Tutor Responsable *</label>
-              <input
-                type="text"
-                value={formData.tutor}
-                onChange={(e) => setFormData({ ...formData, tutor: e.target.value })}
-                placeholder="Ej: Marcelo Gómez"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              />
-              {errors.tutor && <p className="text-red-500 text-[11px] mt-1">{errors.tutor}</p>}
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">Teléfono Contacto *</label>
-              <input
-                type="text"
-                value={formData.tutorTelefono}
-                onChange={(e) => setFormData({ ...formData, tutorTelefono: e.target.value })}
-                placeholder="Ej: 11-4920-1928"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              />
-              {errors.tutorTelefono && <p className="text-red-500 text-[11px] mt-1">{errors.tutorTelefono}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">Condición Deportiva</label>
-              <select
-                value={formData.condicionTipo}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'regular') {
-                    setFormData({
-                      ...formData,
-                      condicionTipo: val,
-                      condicion: 'Regular • Al día',
-                      estadoCuota: 'Al Día',
-                      aptoMedico: true,
-                    });
-                  } else if (val === 'becado') {
-                    setFormData({
-                      ...formData,
-                      condicionTipo: val,
-                      condicion: 'Regular • Becado 100%',
-                      estadoCuota: 'Becado',
-                      aptoMedico: true,
-                    });
-                  } else {
-                    setFormData({
-                      ...formData,
-                      condicionTipo: val,
-                      condicion: 'Apto Médico Pendiente',
-                      estadoCuota: 'Pendiente',
-                      aptoMedico: false,
-                    });
-                  }
-                }}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              >
-                <option value="regular">Regular • Al día</option>
-                <option value="becado">Regular • Becado 100%</option>
-                <option value="pendiente">Apto Médico Pendiente</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-700 font-bold mb-1">Estado de Cuota</label>
-              <select
-                value={formData.estadoCuota}
-                onChange={(e) => setFormData({ ...formData, estadoCuota: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
-              >
-                <option value="Al Día">Al Día</option>
-                <option value="Pendiente">Pendiente</option>
-                <option value="Becado">Becado</option>
-              </select>
-            </div>
-          </div>
+          <EnrollStudentFormFields
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+          />
 
           {/* Institutional note */}
           <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-3 flex items-start gap-2 text-amber-800">

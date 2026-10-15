@@ -61,21 +61,25 @@ const EditSportsConfigModal = ({ isOpen, config, onClose, onSave }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Nombre de la Disciplina</label>
+              <label htmlFor="edit-sports-config-nombre" className="block text-slate-700 font-bold mb-1">Nombre de la Disciplina</label>
               <input
+                id="edit-sports-config-nombre"
                 type="text"
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                aria-label="Nombre de la Disciplina"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-semibold"
                 required
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Código de Cátedra</label>
+              <label htmlFor="edit-sports-config-codigo" className="block text-slate-700 font-bold mb-1">Código de Cátedra</label>
               <input
+                id="edit-sports-config-codigo"
                 type="text"
                 value={formData.codigo}
                 onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
+                aria-label="Código de Cátedra"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono font-bold"
                 required
               />
@@ -84,24 +88,28 @@ const EditSportsConfigModal = ({ isOpen, config, onClose, onSave }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Cupo Máximo (Plazas)</label>
+              <label htmlFor="edit-sports-config-cupomax" className="block text-slate-700 font-bold mb-1">Cupo Máximo (Plazas)</label>
               <input
+                id="edit-sports-config-cupomax"
                 type="number"
                 min="1"
                 max="100"
                 value={formData.cupoMax}
                 onChange={(e) => setFormData({ ...formData, cupoMax: e.target.value })}
+                aria-label="Cupo Máximo (Plazas)"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
                 required
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Lista de Espera Actual</label>
+              <label htmlFor="edit-sports-config-listaespera" className="block text-slate-700 font-bold mb-1">Lista de Espera Actual</label>
               <input
+                id="edit-sports-config-listaespera"
                 type="number"
                 min="0"
                 value={formData.listaEsperaCount}
                 onChange={(e) => setFormData({ ...formData, listaEsperaCount: e.target.value })}
+                aria-label="Lista de Espera Actual"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
               />
             </div>
@@ -109,20 +117,24 @@ const EditSportsConfigModal = ({ isOpen, config, onClose, onSave }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Días de Cursada</label>
+              <label htmlFor="edit-sports-config-dias" className="block text-slate-700 font-bold mb-1">Días de Cursada</label>
               <input
+                id="edit-sports-config-dias"
                 type="text"
                 value={formData.dias}
                 onChange={(e) => setFormData({ ...formData, dias: e.target.value })}
+                aria-label="Días de Cursada"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Banda Horaria</label>
+              <label htmlFor="edit-sports-config-horas" className="block text-slate-700 font-bold mb-1">Banda Horaria</label>
               <input
+                id="edit-sports-config-horas"
                 type="text"
                 value={formData.horas}
                 onChange={(e) => setFormData({ ...formData, horas: e.target.value })}
+                aria-label="Banda Horaria"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
               />
             </div>
@@ -130,41 +142,49 @@ const EditSportsConfigModal = ({ isOpen, config, onClose, onSave }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Espacio Asignado</label>
+              <label htmlFor="edit-sports-config-lugar" className="block text-slate-700 font-bold mb-1">Espacio Asignado</label>
               <input
+                id="edit-sports-config-lugar"
                 type="text"
                 value={formData.lugar}
                 onChange={(e) => setFormData({ ...formData, lugar: e.target.value })}
+                aria-label="Espacio Asignado"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
               />
             </div>
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Instalación / Sede</label>
+              <label htmlFor="edit-sports-config-instalacion" className="block text-slate-700 font-bold mb-1">Instalación / Sede</label>
               <input
+                id="edit-sports-config-instalacion"
                 type="text"
                 value={formData.instalacion}
                 onChange={(e) => setFormData({ ...formData, instalacion: e.target.value })}
+                aria-label="Instalación / Sede"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">Niveles Habilitados</label>
+            <label htmlFor="edit-sports-config-niveles" className="block text-slate-700 font-bold mb-1">Niveles Habilitados</label>
             <input
+              id="edit-sports-config-niveles"
               type="text"
               value={formData.nivelesDetalle}
               onChange={(e) => setFormData({ ...formData, nivelesDetalle: e.target.value })}
+              aria-label="Niveles Habilitados"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
             />
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">Política Transaccional Institucional</label>
+            <label htmlFor="edit-sports-config-politica" className="block text-slate-700 font-bold mb-1">Política Transaccional Institucional</label>
             <input
+              id="edit-sports-config-politica"
               type="text"
               value={formData.politica}
               onChange={(e) => setFormData({ ...formData, politica: e.target.value })}
+              aria-label="Política Transaccional Institucional"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
             />
           </div>

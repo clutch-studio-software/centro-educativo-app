@@ -90,10 +90,12 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
 
           {actionType === 'transfer' ? (
             <div>
-              <label className="block text-slate-700 font-bold mb-1">Disciplina de Destino</label>
+              <label htmlFor="transfer-target-discipline" className="block text-slate-700 font-bold mb-1">Disciplina de Destino</label>
               <select
+                id="transfer-target-discipline"
                 value={targetDiscipline}
                 onChange={(e) => setTargetDiscipline(e.target.value)}
+                aria-label="Disciplina de Destino"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
               >
                 {INITIAL_DISCIPLINES.filter((d) => d.nombre !== 'Atletismo').map((d) => (
@@ -112,12 +114,14 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
           )}
 
           <div>
-            <label className="block text-slate-700 font-bold mb-1">Motivo / Observaciones (Opcional)</label>
+            <label htmlFor="transfer-motivo" className="block text-slate-700 font-bold mb-1">Motivo / Observaciones (Opcional)</label>
             <textarea
+              id="transfer-motivo"
               rows={2}
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Indique la justificación de la gestión administrativa..."
+              aria-label="Motivo u observaciones"
               className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
             />
           </div>

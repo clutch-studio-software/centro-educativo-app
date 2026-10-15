@@ -1,16 +1,141 @@
 import React, { useState } from 'react';
 import { parseCourseDivision } from '../../../data/mockAcademicOffer';
 
+const EMPTY_TEACHERS = [];
+
+const buildUpdatedCourse = (course, formData) => {
+  const cupoMax = Number(formData.cupoMax) || 30;
+  const cupoOcupado = Number(formData.cupoOcupado) || 0;
+  const isLleno = cupoOcupado >= cupoMax;
+  const vacantes = Math.max(0, cupoMax - cupoOcupado);
+  const nombreClean = formData.nombre.trim();
+  const divisionClean = formData.division.trim() || 'A';
+
+  return {
+    ...course,
+    nombre: nombreClean,
+    division: divisionClean,
+    nombreCompleto: `${nombreClean} "${divisionClean}"`,
+    turno: formData.turno,
+    aula: formData.aula.trim(),
+    cupoMax,
+    cupoOcupado,
+    cupoTexto: isLleno ? '100% Lleno' : `${vacantes} Vacantes`,
+    isLleno,
+    docenteTitular: formData.docenteTitular,
+    preceptor: formData.preceptor,
+    activo: formData.activo,
+    barColor: isLleno ? 'bg-rose-500' : 'bg-blue-600',
+  };
+};
+
+const CourseBasicFields = ({ formData, onChange }) => {
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="sm:col-span-2">
+          <label htmlFor="edit-course-nombre" className="block font-semibold text-slate-700 mb-1.5">
+            Nombre del Curso / Grado
+          </label>
+          <input
+            id="edit-course-nombre"
+            type="text"
+            name="nombre"
+            value={formData.nombre}
+            onChange={onChange}
+            required
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-course-division" className="block font-semibold text-slate-700 mb-1.5">
+            División
+          </label>
+          <input
+            id="edit-course-division"
+            type="text"
+            name="division"
+            value={formData.division}
+            onChange={onChange}
+            required
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 uppercase"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="edit-course-turno" className="block font-semibold text-slate-700 mb-1.5">
+            Turno
+          </label>
+          <select
+            id="edit-course-turno"
+            name="turno"
+            value={formData.turno}
+            onChange={onChange}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+          >
+            <option value="Turno Mañana">Mañana</option>
+            <option value="Turno Tarde">Tarde</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="edit-course-aula" className="block font-semibold text-slate-700 mb-1.5">
+            Aula Asignada
+          </label>
+          <input
+            id="edit-course-aula"
+            type="text"
+            name="aula"
+            value={formData.aula}
+            onChange={onChange}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </div>
+      </div>
+    </>
+  );
+};
+
+const CourseStaffSelect = ({ course, formData, teachers, onChange }) => {
+  const isSecundario = course.nivelId === 'secundario';
+  const labelText = isSecundario ? 'Preceptor Asignado' : 'Docente Titular';
+  const fieldName = isSecundario ? 'preceptor' : 'docenteTitular';
+  const fieldValue = isSecundario ? formData.preceptor : formData.docenteTitular;
+
+  return (
+    <div>
+      <label htmlFor="edit-course-docente-preceptor" className="block font-semibold text-slate-700 mb-1.5">
+        {labelText}
+      </label>
+      <select
+        id="edit-course-docente-preceptor"
+        name={fieldName}
+        value={fieldValue}
+        onChange={onChange}
+        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+      >
+        <option value="">Sin designar</option>
+        {teachers.map((t) => (
+          <option key={t.id} value={t.nombreCompleto || `${t.nombre} ${t.apellido}`}>
+            {t.nombreCompleto || `${t.nombre} ${t.apellido}`} ({t.legajo})
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
   const parsed = parseCourseDivision(course);
-  const normalizedInitialTurno = String(course.turno || '').toLowerCase().includes('tarde')
-    ? 'Turno Tarde'
-    : 'Turno Mañana';
+  const isTarde = String(course.turno || '').toLowerCase().includes('tarde');
 
   const [formData, setFormData] = useState({
     nombre: course.nombre || parsed.nombre || '',
     division: course.division || parsed.division || 'A',
-    turno: normalizedInitialTurno,
+    turno: isTarde ? 'Turno Tarde' : 'Turno Mañana',
     aula: course.aula || '',
     cupoMax: course.cupoMax || 30,
     cupoOcupado: course.cupoOcupado || 0,
@@ -29,95 +154,18 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const cupoMax = Number(formData.cupoMax) || 30;
-    const cupoOcupado = Number(formData.cupoOcupado) || 0;
-    const isLleno = cupoOcupado >= cupoMax;
-    const vacantes = Math.max(0, cupoMax - cupoOcupado);
-    const nombreClean = formData.nombre.trim();
-    const divisionClean = formData.division.trim() || 'A';
-
-    const updated = {
-      ...course,
-      nombre: nombreClean,
-      division: divisionClean,
-      nombreCompleto: `${nombreClean} "${divisionClean}"`,
-      turno: formData.turno,
-      aula: formData.aula.trim(),
-      cupoMax,
-      cupoOcupado,
-      cupoTexto: isLleno ? '100% Lleno' : `${vacantes} Vacantes`,
-      isLleno,
-      docenteTitular: formData.docenteTitular,
-      preceptor: formData.preceptor,
-      activo: formData.activo,
-      barColor: isLleno ? 'bg-rose-500' : 'bg-blue-600',
-    };
-
+    const updated = buildUpdatedCourse(course, formData);
     onSave(course.id, updated);
     onClose();
   };
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="sm:col-span-2">
-          <label htmlFor="edit-course-nombre" className="block font-semibold text-slate-700 mb-1.5">Nombre del Curso / Grado</label>
-          <input
-            id="edit-course-nombre"
-            type="text"
-            name="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            required
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="edit-course-division" className="block font-semibold text-slate-700 mb-1.5">División</label>
-          <input
-            id="edit-course-division"
-            type="text"
-            name="division"
-            value={formData.division}
-            onChange={handleChange}
-            required
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 uppercase"
-          />
-        </div>
-      </div>
+      <CourseBasicFields formData={formData} onChange={handleChange} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label htmlFor="edit-course-turno" className="block font-semibold text-slate-700 mb-1.5">Turno</label>
-          <select
-            id="edit-course-turno"
-            name="turno"
-            value={formData.turno}
-            onChange={handleChange}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-          >
-            <option value="Turno Mañana">Mañana</option>
-            <option value="Turno Tarde">Tarde</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="edit-course-aula" className="block font-semibold text-slate-700 mb-1.5">Aula Asignada</label>
-          <input
-            id="edit-course-aula"
-            type="text"
-            name="aula"
-            value={formData.aula}
-            onChange={handleChange}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block font-semibold text-slate-700 mb-1.5">Alumnos Inscriptos</label>
+          <span className="block font-semibold text-slate-700 mb-1.5">Alumnos Inscriptos</span>
           <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-700 flex items-center justify-between">
             <span className="font-bold text-slate-900">{course.cupoOcupado || 0} alumnos</span>
             <span className="text-[10px] text-slate-400 font-semibold bg-white px-2 py-0.5 rounded-md border border-slate-200">
@@ -128,7 +176,9 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
         </div>
 
         <div>
-          <label htmlFor="edit-course-cupoMax" className="block font-semibold text-slate-700 mb-1.5">Cupo Máximo</label>
+          <label htmlFor="edit-course-cupoMax" className="block font-semibold text-slate-700 mb-1.5">
+            Cupo Máximo
+          </label>
           <input
             id="edit-course-cupoMax"
             type="number"
@@ -142,25 +192,12 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
         </div>
       </div>
 
-      <div>
-        <label htmlFor="edit-course-docente-preceptor" className="block font-semibold text-slate-700 mb-1.5">
-          {course.nivelId === 'secundario' ? 'Preceptor Asignado' : 'Docente Titular'}
-        </label>
-        <select
-          id="edit-course-docente-preceptor"
-          name={course.nivelId === 'secundario' ? 'preceptor' : 'docenteTitular'}
-          value={course.nivelId === 'secundario' ? formData.preceptor : formData.docenteTitular}
-          onChange={handleChange}
-          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
-        >
-          <option value="">Sin designar</option>
-          {teachers.map((t) => (
-            <option key={t.id} value={t.nombreCompleto || `${t.nombre} ${t.apellido}`}>
-              {t.nombreCompleto || `${t.nombre} ${t.apellido}`} ({t.legajo})
-            </option>
-          ))}
-        </select>
-      </div>
+      <CourseStaffSelect
+        course={course}
+        formData={formData}
+        teachers={teachers}
+        onChange={handleChange}
+      />
 
       {/* Toggle Activo */}
       <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
@@ -185,13 +222,13 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer border-none bg-transparent"
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
+          className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/25 transition-all cursor-pointer border-none"
         >
           Guardar Cambios
         </button>
@@ -200,7 +237,7 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
   );
 };
 
-const EditCourseModal = ({ isOpen, onClose, onSave, course, teachers = [] }) => {
+const EditCourseModal = ({ isOpen, onClose, onSave, course, teachers = EMPTY_TEACHERS }) => {
   if (!isOpen || !course) return null;
 
   return (
@@ -221,7 +258,8 @@ const EditCourseModal = ({ isOpen, onClose, onSave, course, teachers = [] }) => 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+            aria-label="Cerrar modal"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer border-none bg-transparent"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>

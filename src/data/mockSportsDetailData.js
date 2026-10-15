@@ -800,4 +800,5 @@ export const exportSportRosterCsv = (roster, disciplineTitle = 'Atletismo') => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };

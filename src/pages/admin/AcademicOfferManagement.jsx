@@ -2,12 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
 import DivisionTable from '../../components/admin/academic/DivisionTable';
-import ViewDivisionModal from '../../components/admin/academic/ViewDivisionModal';
 import SubjectPlanPanel from '../../components/admin/academic/SubjectPlanPanel';
-import NewCourseModal from '../../components/admin/academic/NewCourseModal';
-import EditCourseModal from '../../components/admin/academic/EditCourseModal';
-import NewSubjectModal from '../../components/admin/academic/NewSubjectModal';
-import ReassignTeacherModal from '../../components/admin/academic/ReassignTeacherModal';
+import AcademicTabsNav from '../../components/admin/academic/AcademicTabsNav';
+import AcademicModals from '../../components/admin/academic/AcademicModals';
 import {
   ACADEMIC_LEVELS,
   INITIAL_COURSES,
@@ -232,7 +229,7 @@ const AcademicOfferManagement = () => {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-xs transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[16px] text-blue-500">add_circle</span>
-                + Nueva Materia
+                Nueva Materia
               </button>
               <button
                 type="button"
@@ -241,73 +238,19 @@ const AcademicOfferManagement = () => {
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[16px]">add</span>
-                + Crear División / Curso
+                Crear División / Curso
               </button>
             </div>
           </div>
 
           {/* Navigation Tabs Bar: 3 Pestañas por Nivel + Planes de Estudio */}
-          <div className="mt-6 border-b border-slate-200/80 flex items-center justify-between">
-            <div
-              className="flex space-x-2 sm:space-x-4 text-sm font-semibold overflow-x-auto pb-px"
-              data-purpose="tab-navigation"
-            >
-              {ACADEMIC_LEVELS.map((level) => {
-                const count = (coursesByLevel[level.id] || []).length;
-                const isActive = activeTab === level.id;
-                return (
-                  <button
-                    key={level.id}
-                    type="button"
-                    id={`tabBtn-${level.id}`}
-                    data-testid={`tab-${level.id}`}
-                    onClick={() => setActiveTab(level.id)}
-                    className={`pb-3 px-3 border-b-2 flex items-center gap-2 transition-all font-semibold text-sm cursor-pointer whitespace-nowrap ${
-                      isActive
-                        ? 'border-blue-600 text-blue-600 font-bold'
-                        : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      {level.id === 'inicial'
-                        ? 'toys'
-                        : level.id === 'primario'
-                        ? 'school'
-                        : 'history_edu'}
-                    </span>
-                    <span>{level.name}</span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
-                        isActive
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-slate-100 text-slate-500 border-slate-200'
-                      }`}
-                    >
-                      {count} {level.id === 'inicial' ? 'Salas' : 'Divisiones'}
-                    </span>
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                id="tabBtnPlanes"
-                data-testid="tab-planes-materias"
-                onClick={() => setActiveTab('planes')}
-                className={`pb-3 px-3 border-b-2 flex items-center gap-2 transition-all font-semibold text-sm cursor-pointer whitespace-nowrap ${
-                  activeTab === 'planes'
-                    ? 'border-blue-600 text-blue-600 font-bold'
-                    : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]">menu_book</span>
-                <span>Planes de Materias</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-semibold border border-slate-200">
-                  {subjects.length} Materias
-                </span>
-              </button>
-            </div>
-          </div>
+          <AcademicTabsNav
+            levels={ACADEMIC_LEVELS}
+            coursesByLevel={coursesByLevel}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+            subjectsCount={subjects.length}
+          />
         </section>
 
         {/* Tab Content: Level Divisions Table */}
@@ -341,48 +284,30 @@ const AcademicOfferManagement = () => {
           </div>
         )}
 
-        {/* Modals */}
-        <ViewDivisionModal
-          isOpen={Boolean(viewingCourse)}
-          course={viewingCourse}
-          enrolledStudents={viewingEnrolledStudents}
-          onClose={() => {
+        {/* Modals Container */}
+        <AcademicModals
+          viewingCourse={viewingCourse}
+          viewingEnrolledStudents={viewingEnrolledStudents}
+          onCloseViewCourse={() => {
             setViewingCourse(null);
             setViewingEnrolledStudents([]);
           }}
-          onEdit={(c) => handleManageCourse(c)}
-        />
-
-        <NewCourseModal
-          isOpen={isNewCourseModalOpen}
-          onClose={() => setIsNewCourseModalOpen(false)}
-          onSave={handleCreateCourse}
-          teachers={teachers}
-        />
-
-        <EditCourseModal
-          isOpen={Boolean(editingCourse)}
-          course={editingCourse}
-          onClose={() => setEditingCourse(null)}
-          onSave={handleSaveEditCourse}
-          teachers={teachers}
-        />
-
-        <NewSubjectModal
-          isOpen={isNewSubjectModalOpen}
-          onClose={() => setIsNewSubjectModalOpen(false)}
-          onSave={handleCreateSubject}
+          onEditFromView={(c) => handleManageCourse(c)}
+          isNewCourseModalOpen={isNewCourseModalOpen}
+          onCloseNewCourse={() => setIsNewCourseModalOpen(false)}
+          onSaveNewCourse={handleCreateCourse}
+          editingCourse={editingCourse}
+          onCloseEditCourse={() => setEditingCourse(null)}
+          onSaveEditCourse={handleSaveEditCourse}
+          isNewSubjectModalOpen={isNewSubjectModalOpen}
+          onCloseNewSubject={() => setIsNewSubjectModalOpen(false)}
+          onSaveNewSubject={handleCreateSubject}
           courses={courses}
           teachers={teachers}
-          defaultCourseId={selectedCourseId}
-        />
-
-        <ReassignTeacherModal
-          isOpen={Boolean(reassigningSubject)}
-          subject={reassigningSubject}
-          onClose={() => setReassigningSubject(null)}
-          onSave={handleSaveReassignedTeacher}
-          teachers={teachers}
+          selectedCourseId={selectedCourseId}
+          reassigningSubject={reassigningSubject}
+          onCloseReassignTeacher={() => setReassigningSubject(null)}
+          onSaveReassignTeacher={handleSaveReassignedTeacher}
         />
       </div>
     </AdminLayout>

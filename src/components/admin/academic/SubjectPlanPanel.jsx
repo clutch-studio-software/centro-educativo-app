@@ -40,9 +40,8 @@ const SubjectPlanPanel = ({
       className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.025)] overflow-hidden"
     >
       {/* Panel Header Filter Toolbar */}
-      <div className="px-6 py-4.5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
+      <div className="px-6 pt-5 py-4.5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
         <div className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></div>
           <div>
             <h3 className="text-sm font-bold text-slate-900">
               Planes Curriculares &amp; Designación Docente
@@ -144,11 +143,6 @@ const SubjectPlanPanel = ({
                           } flex items-center justify-center text-[10px] font-bold shrink-0`}
                         >
                           {profesor?.initials || 'DC'}
-                          <span
-                            className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${
-                              profesor?.online !== false ? 'bg-emerald-500' : 'bg-slate-400'
-                            }`}
-                          ></span>
                         </div>
                         <div className="min-w-0">
                           <p className="font-bold text-slate-800 leading-tight truncate">

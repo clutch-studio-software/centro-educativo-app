@@ -1,5 +1,125 @@
 import React from 'react';
 
+const DisciplineDetailsHeader = ({ discipline, onClose }) => {
+  const bg = discipline.bgColor || 'bg-blue-50';
+  const text = discipline.textColor || 'text-blue-600';
+  const emoji = discipline.emoji || '🏅';
+
+  return (
+    <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+      <div className="flex items-center gap-3">
+        <div
+          className={`w-12 h-12 rounded-2xl ${bg} ${text} flex items-center justify-center font-bold text-2xl shadow-xs shrink-0 select-none`}
+        >
+          {emoji}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">
+              {discipline.nombre}
+            </h3>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                discipline.activo
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-slate-100 text-slate-500 border border-slate-200'
+              }`}
+            >
+              {discipline.activo ? 'Oferta Activa' : 'En Pausa'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500">{discipline.lugar || 'Campus Deportivo'}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        data-testid="close-details-modal"
+        aria-label="Cerrar detalles de la disciplina"
+        className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer border-none bg-transparent"
+      >
+        <span className="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+  );
+};
+
+const DisciplineProfessorCard = ({ profesor }) => {
+  return (
+    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80 flex items-start gap-3">
+      <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-xs">
+        {profesor?.iniciales || 'DOC'}
+      </div>
+      <div className="flex flex-col min-w-0">
+        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+          Profesor Responsable
+        </span>
+        <span className="font-bold text-slate-900 text-sm truncate">
+          {profesor?.nombre || 'Sin asignar'}
+        </span>
+        {profesor?.email && (
+          <span className="text-slate-500 truncate">{profesor.email}</span>
+        )}
+        {profesor?.telefono && (
+          <span className="text-slate-400 text-[11px]">{profesor.telefono}</span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DisciplineEnrolledTable = ({ inscriptos }) => {
+  if (inscriptos.length === 0) {
+    return (
+      <div className="p-6 text-center bg-slate-50 rounded-2xl text-slate-500">
+        No hay alumnos inscriptos registrados actualmente en esta disciplina.
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-slate-100 rounded-2xl overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+          <tr>
+            <th className="py-2.5 px-4" scope="col">Alumno</th>
+            <th className="py-2.5 px-4" scope="col">Curso / Nivel</th>
+            <th className="py-2.5 px-4" scope="col">Tutor & Teléfono</th>
+            <th className="py-2.5 px-4 text-center" scope="col">Apto Médico</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+          {inscriptos.map((ins) => (
+            <tr key={ins.id} className="hover:bg-slate-50/50">
+              <td className="py-3 px-4 font-semibold text-slate-900">{ins.alumno}</td>
+              <td className="py-3 px-4 text-slate-600">
+                {ins.curso} ({ins.nivel})
+              </td>
+              <td className="py-3 px-4">
+                <div className="flex flex-col">
+                  <span>{ins.tutor}</span>
+                  <span className="text-[10px] text-slate-400">{ins.telefono}</span>
+                </div>
+              </td>
+              <td className="py-3 px-4 text-center">
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    ins.aptoMedico
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}
+                >
+                  {ins.aptoMedico ? 'Apto al día' : 'Pendiente'}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const DisciplineDetailsModal = ({ isOpen, discipline, onClose, onEdit }) => {
   if (!isOpen || !discipline) return null;
 
@@ -15,70 +135,13 @@ const DisciplineDetailsModal = ({ isOpen, discipline, onClose, onEdit }) => {
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
     >
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 rounded-2xl ${
-                discipline.bgColor || 'bg-blue-50'
-              } ${
-                discipline.textColor || 'text-blue-600'
-              } flex items-center justify-center font-bold text-2xl shadow-xs shrink-0 select-none`}
-            >
-              {discipline.emoji || '🏅'}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                  {discipline.nombre}
-                </h3>
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    discipline.activo
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-slate-100 text-slate-500 border border-slate-200'
-                  }`}
-                >
-                  {discipline.activo ? 'Oferta Activa' : 'En Pausa'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">{discipline.lugar || 'Campus Deportivo'}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            data-testid="close-details-modal"
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer border-none bg-transparent"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
-        </div>
+        <DisciplineDetailsHeader discipline={discipline} onClose={onClose} />
 
         {/* Content Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-700">
           {/* Main Info Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Profesor */}
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-xs">
-                {discipline.profesor?.iniciales || 'DOC'}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Profesor Responsable
-                </span>
-                <span className="font-bold text-slate-900 text-sm truncate">
-                  {discipline.profesor?.nombre || 'Sin asignar'}
-                </span>
-                {discipline.profesor?.email && (
-                  <span className="text-slate-500 truncate">{discipline.profesor.email}</span>
-                )}
-                {discipline.profesor?.telefono && (
-                  <span className="text-slate-400 text-[11px]">{discipline.profesor.telefono}</span>
-                )}
-              </div>
-            </div>
+            <DisciplineProfessorCard profesor={discipline.profesor} />
 
             {/* Horarios & Niveles */}
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100/80 flex flex-col justify-between gap-2">
@@ -121,8 +184,8 @@ const DisciplineDetailsModal = ({ isOpen, discipline, onClose, onEdit }) => {
                   percentage >= 100
                     ? 'bg-amber-500'
                     : percentage >= 75
-                      ? 'bg-blue-600'
-                      : 'bg-emerald-500'
+                    ? 'bg-blue-600'
+                    : 'bg-emerald-500'
                 }`}
                 style={{ width: `${percentage}%` }}
               />
@@ -139,51 +202,7 @@ const DisciplineDetailsModal = ({ isOpen, discipline, onClose, onEdit }) => {
               <span className="text-[11px] text-slate-400">Control de aptitud médica</span>
             </div>
 
-            {inscriptos.length === 0 ? (
-              <div className="p-6 text-center bg-slate-50 rounded-2xl text-slate-500">
-                No hay alumnos inscriptos registrados actualmente en esta disciplina.
-              </div>
-            ) : (
-              <div className="border border-slate-100 rounded-2xl overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                    <tr>
-                      <th className="py-2.5 px-4">Alumno</th>
-                      <th className="py-2.5 px-4">Curso / Nivel</th>
-                      <th className="py-2.5 px-4">Tutor & Teléfono</th>
-                      <th className="py-2.5 px-4 text-center">Apto Médico</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
-                    {inscriptos.map((ins) => (
-                      <tr key={ins.id} className="hover:bg-slate-50/50">
-                        <td className="py-3 px-4 font-semibold text-slate-900">{ins.alumno}</td>
-                        <td className="py-3 px-4 text-slate-600">
-                          {ins.curso} ({ins.nivel})
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-col">
-                            <span>{ins.tutor}</span>
-                            <span className="text-[10px] text-slate-400">{ins.telefono}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              ins.aptoMedico
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
-                            }`}
-                          >
-                            {ins.aptoMedico ? 'Apto al día' : 'Pendiente'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <DisciplineEnrolledTable inscriptos={inscriptos} />
           </div>
         </div>
 
