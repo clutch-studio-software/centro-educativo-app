@@ -15,6 +15,7 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
   const [formData, setFormData] = useState({
     nivelId: 'secundario',
     nombre: '',
+    division: 'A',
     orientacion: '',
     turno: 'Turno Mañana (07:30 - 13:30)',
     aula: '',
@@ -38,10 +39,15 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
       return;
     }
 
+    const divisionClean = formData.division.trim() || 'A';
+    const nombreClean = formData.nombre.trim();
+
     const newCourse = {
       id: `curso-${Date.now()}`,
       nivelId: formData.nivelId,
-      nombre: formData.nombre.trim(),
+      nombre: nombreClean,
+      division: divisionClean,
+      nombreCompleto: `${nombreClean} "${divisionClean}"`,
       orientacion: formData.orientacion.trim() || undefined,
       turno: formData.turno,
       aula: formData.aula.trim() || 'Aula a asignar',
@@ -120,20 +126,37 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
             </select>
           </div>
 
-          {/* Nombre del Curso */}
-          <div>
-            <label htmlFor="new-course-nombre" className="block font-semibold text-slate-700 mb-1.5">
-              Nombre de la Sala / Grado / Curso
-            </label>
-            <input
-              id="new-course-nombre"
-              type="text"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              placeholder='Ej: 2° Grado "A" o Sala 4 Años "Verde"'
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
+          {/* Nombre del Curso y División */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <label htmlFor="new-course-nombre" className="block font-semibold text-slate-700 mb-1.5">
+                Nombre del Curso / Grado
+              </label>
+              <input
+                id="new-course-nombre"
+                type="text"
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleChange}
+                placeholder="Ej: 1° Grado o Sala 4 Años"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="new-course-division" className="block font-semibold text-slate-700 mb-1.5">
+                División
+              </label>
+              <input
+                id="new-course-division"
+                type="text"
+                name="division"
+                value={formData.division}
+                onChange={handleChange}
+                placeholder="Ej: A, B, C"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 uppercase"
+              />
+            </div>
           </div>
 
           {/* Orientación si es secundario */}

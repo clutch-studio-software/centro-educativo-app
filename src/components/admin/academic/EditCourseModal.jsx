@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { parseCourseDivision } from '../../../data/mockAcademicOffer';
 
 const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
+  const parsed = parseCourseDivision(course);
   const [formData, setFormData] = useState({
-    nombre: course.nombre || '',
+    nombre: course.nombre || parsed.nombre || '',
+    division: course.division || parsed.division || 'A',
     turno: course.turno || '',
     aula: course.aula || '',
     cupoMax: course.cupoMax || 30,
@@ -26,10 +29,14 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
     const cupoOcupado = Number(formData.cupoOcupado) || 0;
     const isLleno = cupoOcupado >= cupoMax;
     const vacantes = Math.max(0, cupoMax - cupoOcupado);
+    const nombreClean = formData.nombre.trim();
+    const divisionClean = formData.division.trim() || 'A';
 
     const updated = {
       ...course,
-      nombre: formData.nombre.trim(),
+      nombre: nombreClean,
+      division: divisionClean,
+      nombreCompleto: `${nombreClean} "${divisionClean}"`,
       turno: formData.turno,
       aula: formData.aula.trim(),
       cupoMax,
@@ -48,17 +55,32 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-      <div>
-        <label htmlFor="edit-course-nombre" className="block font-semibold text-slate-700 mb-1.5">Nombre de la División</label>
-        <input
-          id="edit-course-nombre"
-          type="text"
-          name="nombre"
-          value={formData.nombre}
-          onChange={handleChange}
-          required
-          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="sm:col-span-2">
+          <label htmlFor="edit-course-nombre" className="block font-semibold text-slate-700 mb-1.5">Nombre del Curso / Grado</label>
+          <input
+            id="edit-course-nombre"
+            type="text"
+            name="nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            required
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-course-division" className="block font-semibold text-slate-700 mb-1.5">División</label>
+          <input
+            id="edit-course-division"
+            type="text"
+            name="division"
+            value={formData.division}
+            onChange={handleChange}
+            required
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 uppercase"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
