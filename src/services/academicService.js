@@ -8,34 +8,15 @@ import {
   serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
-import { db } from './firebase';
-import { ensureAdminAuth } from './teachersService';
+import { db } from './firebase.js';
+import { ensureAdminAuth } from './teachersService.js';
+import { sortCourseObjects } from '../utils/academicUtils.js';
 
 /**
- * Orden estándar pedagógico de los niveles educativos
- */
-const LEVEL_ORDER = {
-  inicial: 1,
-  primario: 2,
-  secundario: 3,
-};
-
-/**
- * Normaliza y ordena un listado de cursos según nivel y grado/año
+ * Normaliza y ordena un listado de cursos según nivel, curso y división
  */
 export const sortAcademicCourses = (courses = []) => {
-  return [...courses].sort((a, b) => {
-    const levelDiff = (LEVEL_ORDER[a.nivelId] || 99) - (LEVEL_ORDER[b.nivelId] || 99);
-    if (levelDiff !== 0) return levelDiff;
-
-    // Extraer número de grado o sala si existe
-    const numA = parseInt(String(a.nombre || '').match(/\d+/)?.[0] || '0', 10);
-    const numB = parseInt(String(b.nombre || '').match(/\d+/)?.[0] || '0', 10);
-    if (numA !== numB) return numA - numB;
-
-    // Comparar división alfabéticamente
-    return String(a.division || 'A').localeCompare(String(b.division || 'A'));
-  });
+  return sortCourseObjects(courses);
 };
 
 /**
@@ -110,7 +91,6 @@ export const syncAcademicCatalog = async (courses) => {
     };
 
     for (const c of courses) {
-      if (!c.activo) continue;
       const nivelKey =
         c.nivelId === 'inicial'
           ? 'Inicial'
@@ -122,17 +102,28 @@ export const syncAcademicCatalog = async (courses) => {
       if (!catalog[nivelKey][nombreKey]) {
         catalog[nivelKey][nombreKey] = [];
       }
-      const div = c.division || 'A';
+      const div = (c.division || 'A').toUpperCase().trim();
       if (!catalog[nivelKey][nombreKey].includes(div)) {
         catalog[nivelKey][nombreKey].push(div);
       }
     }
 
     const currentDocRef = doc(db, 'academicOffer', 'current');
-    await setDoc(currentDocRef, catalog, { merge: true });
+    await setDoc(currentDocRef, catalog);
   } catch (err) {
     console.warn('No se pudo sincronizar academicOffer/current:', err.message);
   }
+};
+
+/**
+ * Sanitiza un objeto eliminando cualquier propiedad con valor undefined
+ * para evitar que Firestore rechace la operación setDoc/updateDoc.
+ */
+const sanitizeFirestorePayload = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  );
 };
 
 /**
@@ -161,26 +152,69 @@ export const createAcademicCourse = async (courseData) => {
     updatedAt: serverTimestamp(),
   };
 
-  await setDoc(docRef, payload);
-  return payload;
+  const cleanPayload = sanitizeFirestorePayload(payload);
+  await setDoc(docRef, cleanPayload);
+  return cleanPayload;
 };
 
 /**
  * Actualiza los datos de un curso o división existente en Firestore.
+ * Si se modificó el nombre o la división, actualiza en lote a todos los alumnos asignados.
  */
-export const updateAcademicCourse = async (courseId, courseData) => {
+export const updateAcademicCourse = async (
+  courseId,
+  courseData,
+  affectedStudents = []
+) => {
   await ensureAdminAuth();
 
-  const docRef = doc(db, 'academicOffer', courseId);
-  const updates = {
+  const cleanNombre = courseData.nombre.trim();
+  const cleanDivision = (courseData.division || 'A').toUpperCase().trim();
+
+  const updates = sanitizeFirestorePayload({
     ...courseData,
     cupoMax: Number(courseData.cupoMax) || 30,
-    division: (courseData.division || 'A').toUpperCase().trim(),
-    nombre: courseData.nombre.trim(),
+    division: cleanDivision,
+    nombre: cleanNombre,
     updatedAt: serverTimestamp(),
-  };
+  });
 
-  await updateDoc(docRef, updates);
+  const docRef = doc(db, 'academicOffer', courseId);
+
+  // Si hay alumnos que pertenecían a la división anterior, actualizar su asignación en Firestore
+  if (Array.isArray(affectedStudents) && affectedStudents.length > 0) {
+    const BATCH_SIZE = 400;
+    const nivelCap = courseData.nivelId
+      ? courseData.nivelId.charAt(0).toUpperCase() + courseData.nivelId.slice(1)
+      : '';
+    const cursoDisplay = nivelCap
+      ? `${nivelCap} - ${cleanNombre} ${cleanDivision}`
+      : `${cleanNombre} ${cleanDivision}`;
+
+    for (let i = 0; i < affectedStudents.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db);
+      if (i === 0) {
+        batch.update(docRef, updates);
+      }
+      const chunk = affectedStudents.slice(i, i + BATCH_SIZE);
+      for (const student of chunk) {
+        if (student.id) {
+          const studentRef = doc(db, 'students', student.id);
+          batch.update(studentRef, {
+            curso: cleanNombre,
+            division: cleanDivision,
+            cursoDisplay,
+            cursoId: courseId,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+      await batch.commit();
+    }
+  } else {
+    await updateDoc(docRef, updates);
+  }
+
   return { id: courseId, ...updates };
 };
 

@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { parseCourseDivision } from '../../../data/mockAcademicOffer';
+import {
+  COURSES_BY_ACADEMIC_LEVEL,
+  normalizeAcademicText,
+} from '../../../utils/academicUtils';
 
 const EMPTY_TEACHERS = [];
+const EMPTY_COURSES = [];
 
 const buildUpdatedCourse = (course, formData) => {
   const cupoMax = Number(formData.cupoMax) || 30;
@@ -9,7 +14,7 @@ const buildUpdatedCourse = (course, formData) => {
   const isLleno = cupoOcupado >= cupoMax;
   const vacantes = Math.max(0, cupoMax - cupoOcupado);
   const nombreClean = formData.nombre.trim();
-  const divisionClean = formData.division.trim() || 'A';
+  const divisionClean = formData.division.trim().toUpperCase() || 'A';
 
   return {
     ...course,
@@ -29,37 +34,45 @@ const buildUpdatedCourse = (course, formData) => {
   };
 };
 
-const CourseBasicFields = ({ formData, onChange }) => {
+const CourseBasicFields = ({ formData, onChange, nivelId = 'primario' }) => {
+  const availableCursos = COURSES_BY_ACADEMIC_LEVEL[nivelId] || COURSES_BY_ACADEMIC_LEVEL.primario;
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="sm:col-span-2">
           <label htmlFor="edit-course-nombre" className="block font-semibold text-slate-700 mb-1.5">
-            Nombre del Curso / Grado
+            Curso / Grado / Sala
           </label>
-          <input
+          <select
             id="edit-course-nombre"
-            type="text"
             name="nombre"
             value={formData.nombre}
             onChange={onChange}
-            required
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          />
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+          >
+            {availableCursos.map((cursoName) => (
+              <option key={cursoName} value={cursoName}>
+                {cursoName}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
           <label htmlFor="edit-course-division" className="block font-semibold text-slate-700 mb-1.5">
-            División
+            División (1 letra)
           </label>
           <input
             id="edit-course-division"
             type="text"
             name="division"
+            maxLength={1}
             value={formData.division}
             onChange={onChange}
             required
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 uppercase"
+            placeholder="Ej: A"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-center text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 uppercase tracking-widest"
           />
         </div>
       </div>
@@ -128,13 +141,13 @@ const CourseStaffSelect = ({ course, formData, teachers, onChange }) => {
   );
 };
 
-const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
+const EditCourseForm = ({ course, teachers, courses = EMPTY_COURSES, onSave, onClose }) => {
   const parsed = parseCourseDivision(course);
   const isTarde = String(course.turno || '').toLowerCase().includes('tarde');
 
   const [formData, setFormData] = useState({
     nombre: course.nombre || parsed.nombre || '',
-    division: course.division || parsed.division || 'A',
+    division: (course.division || parsed.division || 'A').toUpperCase().slice(0, 1),
     turno: isTarde ? 'Turno Tarde' : 'Turno Mañana',
     aula: course.aula || '',
     cupoMax: course.cupoMax || 30,
@@ -143,25 +156,70 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
     preceptor: course.preceptor || '',
     activo: course.activo !== false,
   });
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'division') {
+      const singleLetter = value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1);
+      setFormData((prev) => ({ ...prev, division: singleLetter }));
+      setError('');
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    setError('');
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const updated = buildUpdatedCourse(course, formData);
+
+    const divisionClean = formData.division.trim().toUpperCase();
+    if (!divisionClean || !/^[A-Z]$/.test(divisionClean)) {
+      setError('La división debe ser una única letra entre la A y la Z (Ej: A, B, C, D).');
+      return;
+    }
+
+    const nombreClean = formData.nombre.trim();
+
+    // Validar si existe duplicado en el mismo nivel excluyendo el propio curso
+    const isDuplicate = courses.some((c) => {
+      if (c.id === course.id) return false;
+      if (c.nivelId !== course.nivelId) return false;
+      const isSameCourse =
+        normalizeAcademicText(c.nombre) === normalizeAcademicText(nombreClean);
+      const existingDivision = (c.division || 'A').toUpperCase().trim();
+      return isSameCourse && existingDivision === divisionClean;
+    });
+
+    if (isDuplicate) {
+      setError(
+        `Ya existe la división "${divisionClean}" para el curso "${nombreClean}". No puede haber cursos con divisiones duplicadas.`
+      );
+      return;
+    }
+
+    const updated = buildUpdatedCourse(course, {
+      ...formData,
+      nombre: nombreClean,
+      division: divisionClean,
+    });
     onSave(course.id, updated);
     onClose();
   };
 
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-      <CourseBasicFields formData={formData} onChange={handleChange} />
+      {error && (
+        <div className="p-3 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl font-medium">
+          {error}
+        </div>
+      )}
+
+      <CourseBasicFields formData={formData} onChange={handleChange} nivelId={course.nivelId} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -237,7 +295,14 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
   );
 };
 
-const EditCourseModal = ({ isOpen, onClose, onSave, course, teachers = EMPTY_TEACHERS }) => {
+const EditCourseModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  course,
+  teachers = EMPTY_TEACHERS,
+  courses = EMPTY_COURSES,
+}) => {
   if (!isOpen || !course) return null;
 
   return (
@@ -269,6 +334,7 @@ const EditCourseModal = ({ isOpen, onClose, onSave, course, teachers = EMPTY_TEA
           key={course.id}
           course={course}
           teachers={teachers}
+          courses={courses}
           onSave={onSave}
           onClose={onClose}
         />

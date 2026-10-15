@@ -68,6 +68,29 @@ const AcademicOfferManagement = () => {
     });
   };
 
+  const handleEditCourseAndSyncView = useCallback(
+    async (courseId, updatedCourseData) => {
+      await handleSaveEditCourse(courseId, updatedCourseData);
+      if (viewingCourse && viewingCourse.id === courseId) {
+        const updatedCourse = { ...viewingCourse, ...updatedCourseData };
+        setViewingCourse(updatedCourse);
+        setViewingEnrolledStudents(getEnrolledStudentsForCourse(students, updatedCourse));
+      }
+    },
+    [handleSaveEditCourse, viewingCourse, students]
+  );
+
+  const handleDeleteCourseAndSyncView = useCallback(
+    async (course) => {
+      if (viewingCourse && viewingCourse.id === course.id) {
+        setViewingCourse(null);
+        setViewingEnrolledStudents([]);
+      }
+      await handleDeleteCourse(course);
+    },
+    [handleDeleteCourse, viewingCourse]
+  );
+
   const activeLevelConfig = useMemo(() => {
     return ACADEMIC_LEVELS.find((l) => l.id === activeTab) || ACADEMIC_LEVELS[1];
   }, [activeTab]);
@@ -142,7 +165,7 @@ const AcademicOfferManagement = () => {
               onToggleStatus={handleToggleCourseStatus}
               onEditCourse={handleManageCourse}
               onViewCourse={handleViewCourse}
-              onDeleteCourse={handleDeleteCourse}
+              onDeleteCourse={handleDeleteCourseAndSyncView}
               onAddNewDivision={() => setIsNewCourseModalOpen(true)}
             />
           </div>
@@ -177,7 +200,7 @@ const AcademicOfferManagement = () => {
           onSaveNewCourse={handleCreateCourse}
           editingCourse={editingCourse}
           onCloseEditCourse={() => setEditingCourse(null)}
-          onSaveEditCourse={handleSaveEditCourse}
+          onSaveEditCourse={handleEditCourseAndSyncView}
           isNewSubjectModalOpen={isNewSubjectModalOpen}
           onCloseNewSubject={() => setIsNewSubjectModalOpen(false)}
           onSaveNewSubject={handleCreateSubject}
@@ -187,6 +210,7 @@ const AcademicOfferManagement = () => {
           reassigningSubject={reassigningSubject}
           onCloseReassignTeacher={() => setReassigningSubject(null)}
           onSaveReassignTeacher={handleSaveReassignedTeacher}
+          defaultNivelId={activeTab !== 'planes' ? activeTab : 'inicial'}
         />
       </div>
     </AdminLayout>

@@ -25,6 +25,7 @@ export const AcademicModals = ({
   reassigningSubject,
   onCloseReassignTeacher,
   onSaveReassignTeacher,
+  defaultNivelId = 'inicial',
 }) => {
   return (
     <>
@@ -41,6 +42,8 @@ export const AcademicModals = ({
         onClose={onCloseNewCourse}
         onSave={onSaveNewCourse}
         teachers={teachers}
+        courses={courses}
+        defaultNivelId={defaultNivelId}
       />
 
       <EditCourseModal
@@ -49,6 +52,7 @@ export const AcademicModals = ({
         onClose={onCloseEditCourse}
         onSave={onSaveEditCourse}
         teachers={teachers}
+        courses={courses}
       />
 
       <NewSubjectModal

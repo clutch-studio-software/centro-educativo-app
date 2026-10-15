@@ -1,5 +1,10 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
+import {
+  getNivelOrder,
+  sortCourseNames,
+  sortDivisions,
+} from '../../utils/academicUtils';
 
 const StudentFilters = ({
   searchQuery,
@@ -42,18 +47,37 @@ const StudentFilters = ({
     };
   }, [academicOffer, levelFilter]);
 
-  // Divisiones disponibles según el curso o nivel seleccionado
+  // Niveles ordenados pedagógicamente: Inicial -> Primario -> Secundario
+  const sortedNivelEntries = useMemo(() => {
+    return Object.entries(coursesByLevel).sort(([nivelA], [nivelB]) => {
+      return getNivelOrder(nivelA) - getNivelOrder(nivelB);
+    });
+  }, [coursesByLevel]);
+
+  // Divisiones disponibles según el curso o nivel seleccionado (ordenadas alfabéticamente)
   const availableDivisions = useMemo(() => {
     if (courseFilter === 'todos' || courseFilter === 'sin asignar') {
+      if (courseFilter === 'sin asignar') return [];
+
       // Si hay un nivel seleccionado, recopilar todas las divisiones únicas de ese nivel
       if (levelFilter !== 'todos' && academicOffer?.[levelFilter]) {
         const divs = new Set();
         Object.values(academicOffer[levelFilter]).forEach((divList) => {
           if (Array.isArray(divList)) divList.forEach((d) => divs.add(d));
         });
-        return Array.from(divs);
+        return sortDivisions(Array.from(divs));
       }
-      return [];
+
+      // Si no hay nivel seleccionado, recopilar todas las divisiones únicas de toda la oferta
+      const divs = new Set();
+      Object.values(academicOffer || {}).forEach((nivelObj) => {
+        if (nivelObj && typeof nivelObj === 'object') {
+          Object.values(nivelObj).forEach((divList) => {
+            if (Array.isArray(divList)) divList.forEach((d) => divs.add(d));
+          });
+        }
+      });
+      return sortDivisions(Array.from(divs));
     }
 
     // Curso específico seleccionado
@@ -68,7 +92,7 @@ const StudentFilters = ({
         }
       }
     }
-    return Array.isArray(divs) ? divs : [];
+    return Array.isArray(divs) ? sortDivisions(divs) : [];
   }, [academicOffer, levelFilter, courseFilter]);
 
   return (
@@ -143,9 +167,9 @@ const StudentFilters = ({
               </option>
               <option value="sin asignar">Sin asignar</option>
               {levelFilter === 'todos' ? (
-                Object.entries(coursesByLevel).map(([nivelKey, cursosObj]) => (
+                sortedNivelEntries.map(([nivelKey, cursosObj]) => (
                   <optgroup key={nivelKey} label={`Nivel ${nivelKey}`}>
-                    {Object.keys(cursosObj).map((cursoName) => (
+                    {sortCourseNames(Object.keys(cursosObj || {})).map((cursoName) => (
                       <option key={cursoName} value={cursoName}>
                         {cursoName}
                       </option>
@@ -153,7 +177,7 @@ const StudentFilters = ({
                   </optgroup>
                 ))
               ) : (
-                Object.keys(coursesByLevel[levelFilter] || {}).map((cursoName) => (
+                sortCourseNames(Object.keys(coursesByLevel[levelFilter] || {})).map((cursoName) => (
                   <option key={cursoName} value={cursoName}>
                     {cursoName}
                   </option>
@@ -172,16 +196,16 @@ const StudentFilters = ({
               data-testid="student-division-select"
               value={divisionFilter}
               onChange={(e) => onDivisionChange(e.target.value)}
-              disabled={courseFilter === 'todos' && levelFilter === 'todos'}
+              disabled={courseFilter === 'sin asignar' || availableDivisions.length === 0}
               className={`h-9 px-3 text-slate-800 font-semibold text-xs rounded-full border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 shadow-xs transition-all ${
-                courseFilter === 'todos' && levelFilter === 'todos'
+                courseFilter === 'sin asignar' || availableDivisions.length === 0
                   ? 'bg-slate-100/60 text-slate-400 cursor-not-allowed'
                   : 'bg-slate-50 hover:bg-slate-100/80 cursor-pointer focus:bg-white'
               }`}
             >
               <option value="todos">
-                {courseFilter === 'todos' && levelFilter === 'todos'
-                  ? 'Elegir curso...'
+                {courseFilter === 'sin asignar'
+                  ? 'Sin divisiones'
                   : 'Todas las divisiones'}
               </option>
               {availableDivisions.map((divName) => (

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { parseCourseDivision } from '../../../data/mockAcademicOffer';
-import { getEnrolledStudentsForCourse } from '../../../utils/academicUtils';
+import { getEnrolledStudentsForCourse, sortCourseObjects } from '../../../utils/academicUtils';
 import { DivisionRowMenu } from './DivisionRowMenu';
 import { DivisionStatsCards, DivisionTableToolbar } from './DivisionTableToolbar';
 import { DivisionTableRow } from './DivisionTableRow';
@@ -62,9 +62,9 @@ const DivisionTable = ({
     setActiveMenuCourseId(course.id);
   };
 
-  // Filter courses by search, shift, status
+  // Filter and sort courses by search, shift, status (sorted by Course and then Division)
   const filteredCourses = useMemo(() => {
-    return courses.filter((course) => {
+    const list = courses.filter((course) => {
       const { nombre, division } = parseCourseDivision(course);
       const matchesSearch =
         searchTerm.trim() === '' ||
@@ -87,6 +87,8 @@ const DivisionTable = ({
 
       return matchesSearch && matchesShift && matchesStatus;
     });
+
+    return sortCourseObjects(list);
   }, [courses, searchTerm, shiftFilter, statusFilter]);
 
   // Aggregate stats dynamically

@@ -8,6 +8,8 @@ import { MOCK_STUDENTS } from '../data/mockStudents';
 import {
   getEnrolledStudentsForCourse,
   matchesStudentToDivision,
+  sortCourseObjects,
+  normalizeAcademicText,
 } from '../utils/academicUtils';
 import { fetchAdminDashboardData } from '../services/adminService';
 import {
@@ -85,40 +87,158 @@ export const useAcademicOfferData = (showToast) => {
   }, [showToast]);
 
   const handleCreateCourse = useCallback(async (newCourseData) => {
+    const cleanNombre = (newCourseData.nombre || '').trim();
+    const cleanDivision = (newCourseData.division || 'A').toUpperCase().trim();
+
+    // Validar duplicado exacto en el mismo nivel
+    const isDuplicate = courses.some((c) => {
+      if (c.nivelId !== newCourseData.nivelId) return false;
+      const isSameCourse =
+        normalizeAcademicText(c.nombre) === normalizeAcademicText(cleanNombre);
+      const existingDivision = (c.division || 'A').toUpperCase().trim();
+      return isSameCourse && existingDivision === cleanDivision;
+    });
+
+    if (isDuplicate) {
+      showToast(
+        `Ya existe la división "${cleanDivision}" para el curso "${cleanNombre}". No puede haber divisiones duplicadas.`,
+        'error'
+      );
+      return false;
+    }
+
     try {
-      const created = await createAcademicCourse(newCourseData);
-      setCourses((prev) => [created, ...prev]);
+      const created = await createAcademicCourse({
+        ...newCourseData,
+        nombre: cleanNombre,
+        division: cleanDivision,
+      });
+      const nextCourses = [created, ...courses];
+      setCourses(nextCourses);
       showToast(
         `¡División "${created.nombre} (${created.division || 'A'})" creada y guardada en Firebase!`,
         'success'
       );
-      syncAcademicCatalog([created, ...courses]);
+      await syncAcademicCatalog(nextCourses);
+      return true;
     } catch (err) {
       console.error('Error al guardar división en Firestore:', err);
-      setCourses((prev) => [newCourseData, ...prev]);
+      const fallbackCourse = {
+        ...newCourseData,
+        nombre: cleanNombre,
+        division: cleanDivision,
+      };
+      setCourses((prev) => [fallbackCourse, ...prev]);
       showToast('Guardado localmente. Error al sincronizar con Firebase.', 'warning');
+      return true;
     }
   }, [courses, showToast]);
 
-  const handleSaveEditCourse = useCallback(async (courseId, updatedCourseData) => {
-    setCourses((prev) =>
-      prev.map((c) => (c.id === courseId ? { ...c, ...updatedCourseData } : c))
-    );
-    showToast(
-      `División "${updatedCourseData.nombre} (${updatedCourseData.division || 'A'})" actualizada.`,
-      'success'
-    );
+  const handleSaveEditCourse = useCallback(
+    async (courseId, updatedCourseData) => {
+      const previousCourse = courses.find((c) => c.id === courseId);
 
-    try {
-      await updateAcademicCourse(courseId, updatedCourseData);
-      syncAcademicCatalog(
-        courses.map((c) => (c.id === courseId ? { ...c, ...updatedCourseData } : c))
+      const cleanNombre = (updatedCourseData.nombre || '').trim();
+      const cleanDivision = (updatedCourseData.division || 'A').toUpperCase().trim();
+      const targetNivel = updatedCourseData.nivelId || previousCourse?.nivelId;
+
+      // Validar si la nueva división ya existe en otro curso del mismo nivel
+      const isDuplicate = courses.some((c) => {
+        if (c.id === courseId) return false;
+        if (c.nivelId !== targetNivel) return false;
+        const isSameCourse =
+          normalizeAcademicText(c.nombre) === normalizeAcademicText(cleanNombre);
+        const existingDivision = (c.division || 'A').toUpperCase().trim();
+        return isSameCourse && existingDivision === cleanDivision;
+      });
+
+      if (isDuplicate) {
+        showToast(
+          `Ya existe la división "${cleanDivision}" para el curso "${cleanNombre}". No puede haber divisiones duplicadas.`,
+          'error'
+        );
+        return false;
+      }
+
+      const prevNombre = (previousCourse?.nombre || '').trim();
+      const prevDivision = (previousCourse?.division || 'A').toUpperCase().trim();
+
+      const hasNameOrDivisionChanged =
+        previousCourse &&
+        (cleanNombre !== prevNombre ||
+          cleanDivision !== prevDivision ||
+          updatedCourseData.nivelId !== previousCourse.nivelId);
+
+      // Obtener alumnos que pertenecían a este curso antes de la edición
+      const affectedStudents = previousCourse
+        ? getEnrolledStudentsForCourse(students, previousCourse)
+        : [];
+
+      const nextCourses = courses.map((c) =>
+        c.id === courseId
+          ? {
+              ...c,
+              ...updatedCourseData,
+              nombre: cleanNombre,
+              division: cleanDivision,
+            }
+          : c
       );
-    } catch (err) {
-      console.error('Error al actualizar en Firestore:', err);
-      showToast('Error al persistir cambios en Firebase.', 'warning');
-    }
-  }, [courses, showToast]);
+      setCourses(nextCourses);
+
+      // Actualizar inmediatamente a los alumnos en el estado local
+      if (hasNameOrDivisionChanged && affectedStudents.length > 0) {
+        const affectedIds = new Set(affectedStudents.map((s) => s.id));
+        const nivelCap = updatedCourseData.nivelId
+          ? updatedCourseData.nivelId.charAt(0).toUpperCase() +
+            updatedCourseData.nivelId.slice(1)
+          : '';
+        const newCursoDisplay = nivelCap
+          ? `${nivelCap} - ${cleanNombre} ${cleanDivision}`
+          : `${cleanNombre} ${cleanDivision}`;
+
+        setStudents((prev) =>
+          prev.map((s) => {
+            if (
+              affectedIds.has(s.id) ||
+              (previousCourse && matchesStudentToDivision(s, previousCourse))
+            ) {
+              return {
+                ...s,
+                curso: cleanNombre,
+                division: cleanDivision,
+                cursoDisplay: newCursoDisplay,
+                cursoId: courseId,
+              };
+            }
+            return s;
+          })
+        );
+      }
+
+      showToast(
+        `División "${cleanNombre} (${cleanDivision})" actualizada.${
+          hasNameOrDivisionChanged && affectedStudents.length > 0
+            ? ` ${affectedStudents.length} alumno(s) reasociados a la nueva división.`
+            : ''
+        }`,
+        'success'
+      );
+
+      try {
+        await updateAcademicCourse(
+          courseId,
+          { ...updatedCourseData, nombre: cleanNombre, division: cleanDivision },
+          hasNameOrDivisionChanged ? affectedStudents : []
+        );
+        syncAcademicCatalog(nextCourses);
+      } catch (err) {
+        console.error('Error al actualizar en Firestore:', err);
+        showToast('Error al persistir cambios en Firebase.', 'warning');
+      }
+    },
+    [courses, students, showToast]
+  );
 
   const handleDeleteCourse = useCallback(async (course) => {
     const affectedStudents = getEnrolledStudentsForCourse(students, course);
@@ -191,12 +311,12 @@ export const useAcademicOfferData = (showToast) => {
     showToast(`Docente ${newProfesor.nombre} reasignado a la materia.`, 'success');
   }, [showToast]);
 
-  // Group courses by level
+  // Group courses by level (ordenados por curso y luego por división)
   const coursesByLevel = useMemo(() => {
     return {
-      inicial: courses.filter((c) => c.nivelId === 'inicial'),
-      primario: courses.filter((c) => c.nivelId === 'primario'),
-      secundario: courses.filter((c) => c.nivelId === 'secundario'),
+      inicial: sortCourseObjects(courses.filter((c) => c.nivelId === 'inicial')),
+      primario: sortCourseObjects(courses.filter((c) => c.nivelId === 'primario')),
+      secundario: sortCourseObjects(courses.filter((c) => c.nivelId === 'secundario')),
     };
   }, [courses]);
 
