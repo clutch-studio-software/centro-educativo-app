@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { ACADEMIC_LEVELS } from '../../../data/mockAcademicOffer';
 
 const SHIFT_OPTIONS = [
-  'Turno Mañana (08:00 - 12:00)',
-  'Turno Tarde (13:00 - 17:00)',
-  'Jornada Simple (Mañana)',
-  'Jornada Simple (Tarde)',
-  'Jornada Completa',
-  'Turno Mañana (07:30 - 13:30)',
-  'Turno Tarde (13:30 - 19:30)',
+  { value: 'Turno Mañana', label: 'Mañana' },
+  { value: 'Turno Tarde', label: 'Tarde' },
 ];
 
 const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
@@ -17,7 +12,7 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
     nombre: '',
     division: 'A',
     orientacion: '',
-    turno: 'Turno Mañana (07:30 - 13:30)',
+    turno: 'Turno Mañana',
     aula: '',
     cupoMax: 30,
     docenteTitular: '',
@@ -180,7 +175,7 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
           {/* Turno y Aula en grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label htmlFor="new-course-turno" className="block font-semibold text-slate-700 mb-1.5">Turno / Jornada</label>
+              <label htmlFor="new-course-turno" className="block font-semibold text-slate-700 mb-1.5">Turno</label>
               <select
                 id="new-course-turno"
                 name="turno"
@@ -189,8 +184,8 @@ const NewCourseModal = ({ isOpen, onClose, onSave, teachers = [] }) => {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
               >
                 {SHIFT_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </select>

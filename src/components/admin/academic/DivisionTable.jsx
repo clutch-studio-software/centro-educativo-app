@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { parseCourseDivision } from '../../../data/mockAcademicOffer';
+import { getEnrolledStudentsForCourse } from '../../../utils/academicUtils';
 
 const DivisionRowMenu = ({
   course,
+  enrolledStudents = [],
   menuRef,
   menuPosition,
   onClose,
@@ -30,14 +32,16 @@ const DivisionRowMenu = ({
           onClick={(e) => {
             e.stopPropagation();
             onClose();
-            onView(course);
+            onView(course, enrolledStudents);
           }}
           className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
         >
           <span className="material-symbols-outlined text-[18px] text-blue-600">visibility</span>
           <div className="flex flex-col items-start leading-tight">
             <span>Visualizar división</span>
-            <span className="text-[10px] font-normal text-slate-400">Ver matrícula y detalles</span>
+            <span className="text-[10px] font-normal text-slate-400">
+              Ver nómina ({enrolledStudents.length} alumnos)
+            </span>
           </div>
         </button>
 
@@ -73,7 +77,9 @@ const DivisionRowMenu = ({
           <span className="material-symbols-outlined text-[18px] text-rose-500">delete</span>
           <div className="flex flex-col items-start leading-tight">
             <span>Borrar división</span>
-            <span className="text-[10px] font-normal text-rose-400">Eliminar de la oferta</span>
+            <span className="text-[10px] font-normal text-rose-400">
+              {enrolledStudents.length > 0 ? `${enrolledStudents.length} pasarán a sin asignar` : 'Eliminar de la oferta'}
+            </span>
           </div>
         </button>
       </div>
@@ -84,6 +90,7 @@ const DivisionRowMenu = ({
 const DivisionTable = ({
   level,
   courses = [],
+  students = [],
   onToggleStatus,
   onEditCourse,
   onViewCourse,
@@ -150,9 +157,8 @@ const DivisionTable = ({
 
       const matchesShift =
         shiftFilter === 'all' ||
-        (shiftFilter === 'manana' && c.turno?.toLowerCase().includes('mañana')) ||
-        (shiftFilter === 'tarde' && c.turno?.toLowerCase().includes('tarde')) ||
-        (shiftFilter === 'completa' && c.turno?.toLowerCase().includes('completa'));
+        (shiftFilter === 'manana' && !c.turno?.toLowerCase().includes('tarde')) ||
+        (shiftFilter === 'tarde' && c.turno?.toLowerCase().includes('tarde'));
 
       const matchesStatus =
         statusFilter === 'all' ||
@@ -163,11 +169,14 @@ const DivisionTable = ({
     });
   }, [courses, searchTerm, shiftFilter, statusFilter]);
 
-  // Level statistics
+  // Level statistics dynamically computed from actual student enrollments
   const stats = useMemo(() => {
     const totalDivisions = courses.length;
     const totalCapacity = courses.reduce((acc, c) => acc + (c.cupoMax || 0), 0);
-    const totalEnrolled = courses.reduce((acc, c) => acc + (c.cupoOcupado || 0), 0);
+    const totalEnrolled = courses.reduce(
+      (acc, c) => acc + getEnrolledStudentsForCourse(students, c).length,
+      0
+    );
     const activeDivisions = courses.filter((c) => c.activo).length;
     const occupancyRate = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0;
 
@@ -178,9 +187,12 @@ const DivisionTable = ({
       activeDivisions,
       occupancyRate,
     };
-  }, [courses]);
+  }, [courses, students]);
 
   const activeMenuCourse = courses.find((c) => c.id === activeMenuCourseId);
+  const activeMenuEnrolledStudents = activeMenuCourse
+    ? getEnrolledStudentsForCourse(students, activeMenuCourse)
+    : [];
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200" data-testid={`division-table-${level?.id}`}>
@@ -267,9 +279,8 @@ const DivisionTable = ({
             className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
           >
             <option value="all">Todos los turnos</option>
-            <option value="manana">Turno Mañana</option>
-            <option value="tarde">Turno Tarde</option>
-            <option value="completa">Jornada Completa</option>
+            <option value="manana">Mañana</option>
+            <option value="tarde">Tarde</option>
           </select>
 
           {/* Status Filter */}
@@ -348,13 +359,13 @@ const DivisionTable = ({
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
                 {filteredCourses.map((course) => {
                   const { nombre, division } = parseCourseDivision(course);
-                  const cupoOcupado = course.cupoOcupado || 0;
+                  const enrolledStudents = getEnrolledStudentsForCourse(students, course);
+                  const cupoOcupado = enrolledStudents.length;
                   const cupoMax = course.cupoMax || 30;
                   const percentage = Math.min(100, Math.round((cupoOcupado / cupoMax) * 100));
                   const isFull = cupoOcupado >= cupoMax;
                   const vacantes = Math.max(0, cupoMax - cupoOcupado);
                   const isTurnoTarde = course.turno?.toLowerCase().includes('tarde');
-                  const isJornadaCompleta = course.turno?.toLowerCase().includes('completa');
 
                   return (
                     <tr
@@ -405,26 +416,12 @@ const DivisionTable = ({
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100/80 text-slate-700">
                           <span
                             className={`material-symbols-outlined text-[15px] ${
-                              isTurnoTarde
-                                ? 'text-amber-500'
-                                : isJornadaCompleta
-                                ? 'text-purple-500'
-                                : 'text-blue-500'
+                              isTurnoTarde ? 'text-amber-500' : 'text-blue-500'
                             }`}
                           >
-                            {isTurnoTarde
-                              ? 'wb_twilight'
-                              : isJornadaCompleta
-                              ? 'schedule'
-                              : 'wb_sunny'}
+                            {isTurnoTarde ? 'wb_twilight' : 'wb_sunny'}
                           </span>
-                          <span>
-                            {isTurnoTarde
-                              ? 'Turno Tarde'
-                              : isJornadaCompleta
-                              ? 'Jornada Completa'
-                              : 'Turno Mañana'}
-                          </span>
+                          <span>{isTurnoTarde ? 'Tarde' : 'Mañana'}</span>
                         </div>
                       </td>
 
@@ -518,6 +515,7 @@ const DivisionTable = ({
       {/* Floating Actions Menu for Course */}
       <DivisionRowMenu
         course={activeMenuCourse}
+        enrolledStudents={activeMenuEnrolledStudents}
         menuRef={menuRef}
         menuPosition={menuPosition}
         onClose={() => setActiveMenuCourseId(null)}

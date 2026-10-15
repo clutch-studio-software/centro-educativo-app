@@ -3,10 +3,14 @@ import { parseCourseDivision } from '../../../data/mockAcademicOffer';
 
 const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
   const parsed = parseCourseDivision(course);
+  const normalizedInitialTurno = String(course.turno || '').toLowerCase().includes('tarde')
+    ? 'Turno Tarde'
+    : 'Turno Mañana';
+
   const [formData, setFormData] = useState({
     nombre: course.nombre || parsed.nombre || '',
     division: course.division || parsed.division || 'A',
-    turno: course.turno || '',
+    turno: normalizedInitialTurno,
     aula: course.aula || '',
     cupoMax: course.cupoMax || 30,
     cupoOcupado: course.cupoOcupado || 0,
@@ -85,15 +89,17 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label htmlFor="edit-course-turno" className="block font-semibold text-slate-700 mb-1.5">Turno / Horario</label>
-          <input
+          <label htmlFor="edit-course-turno" className="block font-semibold text-slate-700 mb-1.5">Turno</label>
+          <select
             id="edit-course-turno"
-            type="text"
             name="turno"
             value={formData.turno}
             onChange={handleChange}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          />
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+          >
+            <option value="Turno Mañana">Mañana</option>
+            <option value="Turno Tarde">Tarde</option>
+          </select>
         </div>
 
         <div>
@@ -111,17 +117,14 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label htmlFor="edit-course-cupoOcupado" className="block font-semibold text-slate-700 mb-1.5">Alumnos Inscriptos</label>
-          <input
-            id="edit-course-cupoOcupado"
-            type="number"
-            name="cupoOcupado"
-            min="0"
-            max={formData.cupoMax}
-            value={formData.cupoOcupado}
-            onChange={handleChange}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          />
+          <label className="block font-semibold text-slate-700 mb-1.5">Alumnos Inscriptos</label>
+          <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-700 flex items-center justify-between">
+            <span className="font-bold text-slate-900">{course.cupoOcupado || 0} alumnos</span>
+            <span className="text-[10px] text-slate-400 font-semibold bg-white px-2 py-0.5 rounded-md border border-slate-200">
+              Cálculo automático
+            </span>
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1">Calculado según los legajos asignados a esta división.</p>
         </div>
 
         <div>
@@ -131,6 +134,7 @@ const EditCourseForm = ({ course, teachers, onSave, onClose }) => {
             type="number"
             name="cupoMax"
             min="1"
+            max="60"
             value={formData.cupoMax}
             onChange={handleChange}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -212,7 +216,6 @@ const EditCourseModal = ({ isOpen, onClose, onSave, course, teachers = [] }) => 
             </span>
             <div>
               <h3 className="text-base font-bold text-slate-900">Editar / Gestionar Curso</h3>
-              <p className="text-xs text-slate-500">{course.nombre}</p>
             </div>
           </div>
           <button

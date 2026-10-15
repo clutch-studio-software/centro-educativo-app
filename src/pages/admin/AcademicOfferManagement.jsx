@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
 import DivisionTable from '../../components/admin/academic/DivisionTable';
@@ -14,6 +14,12 @@ import {
   INITIAL_SUBJECTS,
 } from '../../data/mockAcademicOffer';
 import { MOCK_TEACHERS } from '../../data/mockTeachers';
+import { MOCK_STUDENTS } from '../../data/mockStudents';
+import {
+  getEnrolledStudentsForCourse,
+  matchesStudentToDivision,
+} from '../../utils/academicUtils';
+import { fetchAdminDashboardData } from '../../services/adminService';
 import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 
 const AcademicOfferManagement = () => {
@@ -21,6 +27,7 @@ const AcademicOfferManagement = () => {
   const [courses, setCourses] = useState(INITIAL_COURSES);
   const [subjects, setSubjects] = useState(INITIAL_SUBJECTS);
   const [teachers] = useState(MOCK_TEACHERS);
+  const [students, setStudents] = useState(MOCK_STUDENTS);
 
   // Tab State: 'inicial' | 'primario' | 'secundario' | 'planes'
   const [activeTab, setActiveTab] = useState('primario');
@@ -33,6 +40,7 @@ const AcademicOfferManagement = () => {
   const [isNewSubjectModalOpen, setIsNewSubjectModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [viewingCourse, setViewingCourse] = useState(null);
+  const [viewingEnrolledStudents, setViewingEnrolledStudents] = useState([]);
   const [reassigningSubject, setReassigningSubject] = useState(null);
 
   // Toast Notification State
@@ -43,6 +51,23 @@ const AcademicOfferManagement = () => {
     setTimeout(() => {
       setNotification(null);
     }, 3500);
+  }, []);
+
+  // Sync with Firestore students if available
+  useEffect(() => {
+    let isMounted = true;
+    fetchAdminDashboardData()
+      .then((data) => {
+        if (isMounted && data?.students && data.students.length > 0) {
+          setStudents(data.students);
+        }
+      })
+      .catch(() => {
+        // Keeps fallback MOCK_STUDENTS
+      });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Handlers for Course actions
@@ -61,29 +86,75 @@ const AcademicOfferManagement = () => {
 
   const handleCreateCourse = (newCourse) => {
     setCourses((prev) => [newCourse, ...prev]);
-    showToast(`¡División "${newCourse.nombre} (${newCourse.division || 'A'})" creada con éxito!`, 'success');
+    showToast(
+      `¡División "${newCourse.nombre} (${newCourse.division || 'A'})" creada con éxito!`,
+      'success'
+    );
   };
 
   const handleSaveEditCourse = (courseId, updatedCourse) => {
     setCourses((prev) => prev.map((c) => (c.id === courseId ? updatedCourse : c)));
-    showToast(`División "${updatedCourse.nombre} (${updatedCourse.division || 'A'})" actualizada.`, 'success');
+    showToast(
+      `División "${updatedCourse.nombre} (${updatedCourse.division || 'A'})" actualizada.`,
+      'success'
+    );
     setEditingCourse(null);
   };
 
+  /**
+   * Elimina una división y reasigna a sus alumnos al estado "sin asignar"
+   */
   const handleDeleteCourse = (course) => {
+    const affectedStudents = getEnrolledStudentsForCourse(students, course);
+
+    // Reasignar alumnos que pertenecían a esta división a "sin asignar"
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (matchesStudentToDivision(s, course)) {
+          return {
+            ...s,
+            curso: 'sin asignar',
+            division: 'sin asignar',
+            cursoDisplay: 'Sin asignar',
+            cursoId: null,
+          };
+        }
+        return s;
+      })
+    );
+
+    // Quitar la división de la oferta
     setCourses((prev) => prev.filter((c) => c.id !== course.id));
+
+    if (viewingCourse && viewingCourse.id === course.id) {
+      setViewingCourse(null);
+      setViewingEnrolledStudents([]);
+    }
+
     showToast(
-      `División "${course.nombre} (${course.division || 'A'})" eliminada de la oferta académica.`,
+      affectedStudents.length > 0
+        ? `División "${course.nombre} (${course.division || 'A'})" eliminada. ${affectedStudents.length} alumno(s) quedaron con curso sin asignar.`
+        : `División "${course.nombre} (${course.division || 'A'})" eliminada de la oferta académica.`,
       'info'
     );
   };
 
-  const handleViewCourse = (course) => {
+  /**
+   * Abre el modal de detalles con la nómina de alumnos inscriptos
+   */
+  const handleViewCourse = (course, enrolledList) => {
+    const list = enrolledList || getEnrolledStudentsForCourse(students, course);
     setViewingCourse(course);
+    setViewingEnrolledStudents(list);
   };
 
   const handleManageCourse = (course) => {
-    setEditingCourse(course);
+    // Calculamos el cupo ocupado dinámicamente según alumnos reales
+    const currentEnrolled = getEnrolledStudentsForCourse(students, course).length;
+    setEditingCourse({
+      ...course,
+      cupoOcupado: currentEnrolled,
+    });
   };
 
   // Handlers for Subject actions
@@ -149,7 +220,7 @@ const AcademicOfferManagement = () => {
             <AdminSectionTitle
               icon="menu_book"
               title="Gestión del Plantel Docente y Académico"
-              subtitle="Administración centralizada de divisiones, turnos, cupos y oferta académica por nivel educativo."
+              subtitle="Administración centralizada de divisiones, turnos, matrícula de alumnos y oferta pedagógica."
             />
 
             {/* Section Primary CTA Buttons */}
@@ -245,6 +316,7 @@ const AcademicOfferManagement = () => {
             <DivisionTable
               level={activeLevelConfig}
               courses={coursesByLevel[activeTab] || []}
+              students={students}
               onToggleStatus={handleToggleCourseStatus}
               onEditCourse={handleManageCourse}
               onViewCourse={handleViewCourse}
@@ -273,8 +345,12 @@ const AcademicOfferManagement = () => {
         <ViewDivisionModal
           isOpen={Boolean(viewingCourse)}
           course={viewingCourse}
-          onClose={() => setViewingCourse(null)}
-          onEdit={(c) => setEditingCourse(c)}
+          enrolledStudents={viewingEnrolledStudents}
+          onClose={() => {
+            setViewingCourse(null);
+            setViewingEnrolledStudents([]);
+          }}
+          onEdit={(c) => handleManageCourse(c)}
         />
 
         <NewCourseModal
