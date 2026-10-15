@@ -1,4 +1,4 @@
-import { parseCourseDivision } from '../data/mockAcademicOffer';
+import { parseCourseDivision } from '../data/mockAcademicOffer.js';
 
 /**
  * Normaliza un texto para comparación tolerante a acentos, grados ordinales y espacios.
@@ -10,10 +10,10 @@ export const normalizeAcademicText = (text = '') =>
     .trim()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Quitar tildes
-    .replace(/°|º/g, '')             // Quitar símbolo de grado
-    .replace(/\b(er|do|to|mo|ro)\b/gi, '') // Quitar sufijos ordinales
-    .replace(/de\s+/gi, '')          // "Sala de 3 Años" -> "Sala 3 Años"
-    .replace(/[\s\-_"']+/g, ' ');    // Espacios consistentes
+    .replace(/(\d+)(?:er|do|to|mo|ro|°|º)/gi, '$1') // Quitar sufijos ordinales pegados a dígitos: 1er, 1°, 2do, 4to
+    .replace(/°|º/g, '') // Quitar símbolo de grado suelto
+    .replace(/de\s+/gi, '') // "Sala de 3 Años" -> "Sala 3 Años"
+    .replace(/[\s\-_"']+/g, ' '); // Espacios consistentes
 
 /**
  * Normaliza el identificador de nivel a 'inicial', 'primario' o 'secundario'

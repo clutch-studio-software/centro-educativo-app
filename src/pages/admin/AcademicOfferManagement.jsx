@@ -1,45 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
 import DivisionTable from '../../components/admin/academic/DivisionTable';
 import SubjectPlanPanel from '../../components/admin/academic/SubjectPlanPanel';
 import AcademicTabsNav from '../../components/admin/academic/AcademicTabsNav';
 import AcademicModals from '../../components/admin/academic/AcademicModals';
-import {
-  ACADEMIC_LEVELS,
-  INITIAL_COURSES,
-  INITIAL_SUBJECTS,
-} from '../../data/mockAcademicOffer';
-import { MOCK_TEACHERS } from '../../data/mockTeachers';
-import { MOCK_STUDENTS } from '../../data/mockStudents';
-import {
-  getEnrolledStudentsForCourse,
-  matchesStudentToDivision,
-} from '../../utils/academicUtils';
-import { fetchAdminDashboardData } from '../../services/adminService';
+import { ACADEMIC_LEVELS } from '../../data/mockAcademicOffer';
+import { getEnrolledStudentsForCourse } from '../../utils/academicUtils';
 import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
+import { useAcademicOfferData } from '../../hooks/useAcademicOfferData';
 
 const AcademicOfferManagement = () => {
-  // State for Academic Offer Data
-  const [courses, setCourses] = useState(INITIAL_COURSES);
-  const [subjects, setSubjects] = useState(INITIAL_SUBJECTS);
-  const [teachers] = useState(MOCK_TEACHERS);
-  const [students, setStudents] = useState(MOCK_STUDENTS);
-
-  // Tab State: 'inicial' | 'primario' | 'secundario' | 'planes'
-  const [activeTab, setActiveTab] = useState('primario');
-
-  // Selected Course for Subjects Plan View
-  const [selectedCourseId, setSelectedCourseId] = useState('curso-ns-1');
-
-  // Modals State
-  const [isNewCourseModalOpen, setIsNewCourseModalOpen] = useState(false);
-  const [isNewSubjectModalOpen, setIsNewSubjectModalOpen] = useState(false);
-  const [editingCourse, setEditingCourse] = useState(null);
-  const [viewingCourse, setViewingCourse] = useState(null);
-  const [viewingEnrolledStudents, setViewingEnrolledStudents] = useState([]);
-  const [reassigningSubject, setReassigningSubject] = useState(null);
-
   // Toast Notification State
   const [notification, setNotification] = useState(null);
 
@@ -50,91 +21,35 @@ const AcademicOfferManagement = () => {
     }, 3500);
   }, []);
 
-  // Sync with Firestore students if available
-  useEffect(() => {
-    let isMounted = true;
-    fetchAdminDashboardData()
-      .then((data) => {
-        if (isMounted && data?.students && data.students.length > 0) {
-          setStudents(data.students);
-        }
-      })
-      .catch(() => {
-        // Keeps fallback MOCK_STUDENTS
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Hook centralizado con persistencia y sincronización a Firestore
+  const {
+    courses,
+    subjects,
+    teachers,
+    students,
+    isLoading,
+    selectedCourseId,
+    setSelectedCourseId,
+    coursesByLevel,
+    handleToggleCourseStatus,
+    handleCreateCourse,
+    handleSaveEditCourse,
+    handleDeleteCourse,
+    handleCreateSubject,
+    handleToggleSubjectDictado,
+    handleSaveReassignedTeacher,
+  } = useAcademicOfferData(showToast);
 
-  // Handlers for Course actions
-  const handleToggleCourseStatus = (course) => {
-    const updatedStatus = !course.activo;
-    setCourses((prev) =>
-      prev.map((c) => (c.id === course.id ? { ...c, activo: updatedStatus } : c))
-    );
-    showToast(
-      `La división "${course.nombre} (${course.division || 'A'})" ha sido ${
-        updatedStatus ? 'activada' : 'pausada'
-      }.`,
-      updatedStatus ? 'success' : 'info'
-    );
-  };
+  // Tab State: 'inicial' | 'primario' | 'secundario' | 'planes'
+  const [activeTab, setActiveTab] = useState('primario');
 
-  const handleCreateCourse = (newCourse) => {
-    setCourses((prev) => [newCourse, ...prev]);
-    showToast(
-      `¡División "${newCourse.nombre} (${newCourse.division || 'A'})" creada con éxito!`,
-      'success'
-    );
-  };
-
-  const handleSaveEditCourse = (courseId, updatedCourse) => {
-    setCourses((prev) => prev.map((c) => (c.id === courseId ? updatedCourse : c)));
-    showToast(
-      `División "${updatedCourse.nombre} (${updatedCourse.division || 'A'})" actualizada.`,
-      'success'
-    );
-    setEditingCourse(null);
-  };
-
-  /**
-   * Elimina una división y reasigna a sus alumnos al estado "sin asignar"
-   */
-  const handleDeleteCourse = (course) => {
-    const affectedStudents = getEnrolledStudentsForCourse(students, course);
-
-    // Reasignar alumnos que pertenecían a esta división a "sin asignar"
-    setStudents((prev) =>
-      prev.map((s) => {
-        if (matchesStudentToDivision(s, course)) {
-          return {
-            ...s,
-            curso: 'sin asignar',
-            division: 'sin asignar',
-            cursoDisplay: 'Sin asignar',
-            cursoId: null,
-          };
-        }
-        return s;
-      })
-    );
-
-    // Quitar la división de la oferta
-    setCourses((prev) => prev.filter((c) => c.id !== course.id));
-
-    if (viewingCourse && viewingCourse.id === course.id) {
-      setViewingCourse(null);
-      setViewingEnrolledStudents([]);
-    }
-
-    showToast(
-      affectedStudents.length > 0
-        ? `División "${course.nombre} (${course.division || 'A'})" eliminada. ${affectedStudents.length} alumno(s) quedaron con curso sin asignar.`
-        : `División "${course.nombre} (${course.division || 'A'})" eliminada de la oferta académica.`,
-      'info'
-    );
-  };
+  // Modals State
+  const [isNewCourseModalOpen, setIsNewCourseModalOpen] = useState(false);
+  const [isNewSubjectModalOpen, setIsNewSubjectModalOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [viewingCourse, setViewingCourse] = useState(null);
+  const [viewingEnrolledStudents, setViewingEnrolledStudents] = useState([]);
+  const [reassigningSubject, setReassigningSubject] = useState(null);
 
   /**
    * Abre el modal de detalles con la nómina de alumnos inscriptos
@@ -146,60 +61,12 @@ const AcademicOfferManagement = () => {
   };
 
   const handleManageCourse = (course) => {
-    // Calculamos el cupo ocupado dinámicamente según alumnos reales
     const currentEnrolled = getEnrolledStudentsForCourse(students, course).length;
     setEditingCourse({
       ...course,
       cupoOcupado: currentEnrolled,
     });
   };
-
-  // Handlers for Subject actions
-  const handleCreateSubject = (newSubject) => {
-    setSubjects((prev) => [newSubject, ...prev]);
-    setCourses((prev) =>
-      prev.map((c) =>
-        c.id === newSubject.cursoId
-          ? { ...c, materiasCount: (c.materiasCount || 0) + 1 }
-          : c
-      )
-    );
-    setSelectedCourseId(newSubject.cursoId);
-    showToast(`Materia "${newSubject.nombre}" agregada al plan.`, 'success');
-  };
-
-  const handleToggleSubjectDictado = (subject) => {
-    const updatedDictado = !subject.dictadoActivo;
-    setSubjects((prev) =>
-      prev.map((s) =>
-        s.id === subject.id ? { ...s, dictadoActivo: updatedDictado } : s
-      )
-    );
-    showToast(
-      `Dictado de "${subject.nombre}" ${updatedDictado ? 'reanudado' : 'pausado'}.`,
-      'info'
-    );
-  };
-
-  const handleSaveReassignedTeacher = (subjectId, newProfesor) => {
-    setSubjects((prev) =>
-      prev.map((s) => (s.id === subjectId ? { ...s, profesor: newProfesor } : s))
-    );
-    showToast(
-      `Docente ${newProfesor.nombre} reasignado a la materia.`,
-      'success'
-    );
-    setReassigningSubject(null);
-  };
-
-  // Group courses by level
-  const coursesByLevel = useMemo(() => {
-    return {
-      inicial: courses.filter((c) => c.nivelId === 'inicial'),
-      primario: courses.filter((c) => c.nivelId === 'primario'),
-      secundario: courses.filter((c) => c.nivelId === 'secundario'),
-    };
-  }, [courses]);
 
   const activeLevelConfig = useMemo(() => {
     return ACADEMIC_LEVELS.find((l) => l.id === activeTab) || ACADEMIC_LEVELS[1];
@@ -253,8 +120,20 @@ const AcademicOfferManagement = () => {
           />
         </section>
 
+        {/* Loading Indicator */}
+        {isLoading && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center flex flex-col items-center justify-center gap-3 text-slate-500 shadow-2xs">
+            <span className="material-symbols-outlined text-3xl text-blue-600 animate-spin">
+              progress_activity
+            </span>
+            <span className="text-xs font-bold text-slate-600">
+              Sincronizando divisiones y matrícula en tiempo real con Firebase Store...
+            </span>
+          </div>
+        )}
+
         {/* Tab Content: Level Divisions Table */}
-        {activeTab !== 'planes' && (
+        {!isLoading && activeTab !== 'planes' && (
           <div className="animate-in fade-in duration-200" id={`viewLevel-${activeTab}`}>
             <DivisionTable
               level={activeLevelConfig}
@@ -270,7 +149,7 @@ const AcademicOfferManagement = () => {
         )}
 
         {/* Tab: Planes Curriculares y Materias */}
-        {activeTab === 'planes' && (
+        {!isLoading && activeTab === 'planes' && (
           <div className="animate-in fade-in duration-200" id="viewPlanes">
             <SubjectPlanPanel
               courses={courses}
