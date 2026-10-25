@@ -10,7 +10,8 @@ export const MOCK_TEACHERS = [
     especialidad: 'Matemática & Robótica',
     email: 'm.valenzuela@educar.edu.ar',
     telefono: '+54 9 362 489-1120',
-    estado: 'Titular',
+    condicion: 'Titular',
+    estado: 'Activo',
     cargaHoras: 24,
     cargaMaxHoras: 30,
     catedras: [
@@ -59,7 +60,8 @@ export const MOCK_TEACHERS = [
     especialidad: 'Tecnología & Robótica',
     email: 'c.mendez@educar.edu.ar',
     telefono: '+54 9 362 431-7744',
-    estado: 'Titular',
+    condicion: 'Titular',
+    estado: 'Activo',
     cargaHoras: 20,
     cargaMaxHoras: 30,
     catedras: [
@@ -99,7 +101,8 @@ export const MOCK_TEACHERS = [
     especialidad: 'Lengua & Literatura',
     email: 'l.paoli@educar.edu.ar',
     telefono: '+54 9 362 499-8821',
-    estado: 'Suplente',
+    condicion: 'Suplente',
+    estado: 'Activo',
     cargaHoras: 18,
     cargaMaxHoras: 30,
     catedras: [
@@ -139,7 +142,8 @@ export const MOCK_TEACHERS = [
     especialidad: 'Educación Física & Deportes',
     email: 'd.arzamendia@educar.edu.ar',
     telefono: '+54 9 362 472-5501',
-    estado: 'Interino',
+    condicion: 'Interino',
+    estado: 'Activo',
     cargaHoras: 22,
     cargaMaxHoras: 30,
     catedras: [
@@ -179,7 +183,8 @@ export const MOCK_TEACHERS = [
     especialidad: 'Biología & Cs. Naturales',
     email: 'm.quiroga@educar.edu.ar',
     telefono: '+54 9 362 460-3109',
-    estado: 'Titular',
+    condicion: 'Titular',
+    estado: 'Activo',
     cargaHoras: 26,
     cargaMaxHoras: 30,
     catedras: [
@@ -210,6 +215,7 @@ export const MOCK_TEACHERS = [
     especialidad: 'Ciencias Sociales & Humanidades',
     email: 'r.gomez@educar.edu.ar',
     telefono: '+54 9 362 455-8833',
+    condicion: 'Titular',
     estado: 'Suspendido',
     cargaHoras: 0,
     cargaMaxHoras: 30,

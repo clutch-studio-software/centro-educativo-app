@@ -204,14 +204,17 @@ const TeacherTableRow = ({
   setActiveMenuTeacherId,
   setMenuPosition,
 }) => {
-  const status = getStatusBadge(teacher.estado);
+  const isSuspended =
+    String(teacher.estado).toLowerCase() === 'suspendido' || Boolean(teacher.disabled);
+  const status = getStatusBadge(
+    isSuspended ? 'Suspendido' : (teacher.condicion || teacher.estado || 'Titular')
+  );
   const displayName =
     teacher.nombreCompleto ||
     (teacher.apellido
       ? `${teacher.nombre} ${teacher.apellido}`
       : teacher.nombre);
   const initials = getInitials(teacher.nombre, teacher.apellido);
-  const isSuspended = String(teacher.estado).toLowerCase() === 'suspendido';
 
   return (
     <tr
