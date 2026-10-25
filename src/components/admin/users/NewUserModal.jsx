@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   RBAC_ROLES,
   USER_ESTADOS,
@@ -19,23 +19,13 @@ const INITIAL_FORM = {
   estado: 'Activo',
 };
 
-const NewUserModal = ({ isOpen, activeRole = 'Directivo', onClose, onSubmit }) => {
-  const [formData, setFormData] = useState(INITIAL_FORM);
+const NewUserModalContent = ({ activeRole = 'Directivo', onClose, onSubmit }) => {
+  const [formData, setFormData] = useState(() => ({
+    ...INITIAL_FORM,
+    role: activeRole === 'Todos' ? 'Directivo' : activeRole,
+  }));
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        ...INITIAL_FORM,
-        role: activeRole === 'Todos' ? 'Directivo' : activeRole,
-      });
-      setErrors({});
-      setIsSubmitting(false);
-    }
-  }, [isOpen, activeRole]);
-
-  if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -374,6 +364,19 @@ const NewUserModal = ({ isOpen, activeRole = 'Directivo', onClose, onSubmit }) =
         </form>
       </div>
     </div>
+  );
+};
+
+const NewUserModal = ({ isOpen, activeRole = 'Directivo', onClose, onSubmit }) => {
+  if (!isOpen) return null;
+
+  return (
+    <NewUserModalContent
+      key={activeRole}
+      activeRole={activeRole}
+      onClose={onClose}
+      onSubmit={onSubmit}
+    />
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   RBAC_ROLES,
   USER_ESTADOS,
@@ -8,55 +8,38 @@ import {
 } from './userRbacConstants';
 import { formatDni } from '../../../utils/validators';
 
-const EditUserModal = ({
-  isOpen,
+const getInitialUserFormData = (user) => {
+  const rawEstado = String(user?.estado || '').trim();
+  const isRevista = ['titular', 'interino', 'suplente'].includes(rawEstado.toLowerCase());
+  const userCondicion = user?.condicion || (isRevista ? rawEstado.charAt(0).toUpperCase() + rawEstado.slice(1).toLowerCase() : 'Titular');
+  const userEstado = isRevista ? 'Activo' : (rawEstado || 'Activo');
+
+  return {
+    nombre: user?.nombre || '',
+    apellido: user?.apellido || '',
+    email: user?.email || '',
+    dni: user?.dni || '',
+    telefono: user?.telefono || '',
+    role: user?.role || 'Directivo',
+    cargo: user?.cargo || '',
+    condicion: userCondicion,
+    estado: userEstado,
+    customPermissions: user?.customPermissions || [],
+  };
+};
+
+const EMPTY_ROLE_PERMISSIONS = {};
+
+const EditUserModalContent = ({
   user,
-  rolePermissions = {},
+  rolePermissions = EMPTY_ROLE_PERMISSIONS,
   onClose,
   onSave,
 }) => {
-  const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    email: '',
-    dni: '',
-    telefono: '',
-    role: 'Directivo',
-    cargo: '',
-    condicion: 'Titular',
-    estado: 'Activo',
-    customPermissions: [],
-  });
+  const [formData, setFormData] = useState(() => getInitialUserFormData(user));
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'permissions'
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (user && isOpen) {
-      const rawEstado = String(user.estado || '').trim();
-      const isRevista = ['titular', 'interino', 'suplente'].includes(rawEstado.toLowerCase());
-      const userCondicion = user.condicion || (isRevista ? rawEstado.charAt(0).toUpperCase() + rawEstado.slice(1).toLowerCase() : 'Titular');
-      const userEstado = isRevista ? 'Activo' : (rawEstado || 'Activo');
-
-      setFormData({
-        nombre: user.nombre || '',
-        apellido: user.apellido || '',
-        email: user.email || '',
-        dni: user.dni || '',
-        telefono: user.telefono || '',
-        role: user.role || 'Directivo',
-        cargo: user.cargo || '',
-        condicion: userCondicion,
-        estado: userEstado,
-        customPermissions: user.customPermissions || [],
-      });
-      setActiveTab('general');
-      setErrors({});
-      setIsSubmitting(false);
-    }
-  }, [user, isOpen]);
-
-  if (!isOpen || !user) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,6 +92,8 @@ const EditUserModal = ({
   };
 
   const rolePerms = rolePermissions[formData.role] || [];
+  const rolePermsSet = new Set(rolePerms);
+  const customPermsSet = new Set(formData.customPermissions || []);
 
   return (
     <div
@@ -150,22 +135,20 @@ const EditUserModal = ({
           <button
             type="button"
             onClick={() => setActiveTab('general')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'general'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'general'
                 ? 'bg-white text-blue-600 shadow-xs border border-slate-200/80'
                 : 'text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             Datos Personales & Cargo
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('permissions')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'permissions'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${activeTab === 'permissions'
                 ? 'bg-white text-blue-600 shadow-xs border border-slate-200/80'
                 : 'text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             <span>Permisos & Accesos</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-50 text-blue-700">
@@ -192,11 +175,10 @@ const EditUserModal = ({
                           key={role.id}
                           type="button"
                           onClick={() => setFormData((p) => ({ ...p, role: role.id }))}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-left ${
-                            isSelected
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-left ${isSelected
                               ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-xs ring-1 ring-blue-500/30'
                               : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           <span className="material-symbols-outlined text-[18px] text-blue-600">
                             {role.icon}
@@ -223,9 +205,8 @@ const EditUserModal = ({
                       name="nombre"
                       value={formData.nombre}
                       onChange={handleChange}
-                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                        errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                      }`}
+                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+                        }`}
                     />
                     {errors.nombre && (
                       <span className="text-[11px] text-red-500 font-medium px-2">{errors.nombre}</span>
@@ -242,9 +223,8 @@ const EditUserModal = ({
                       name="apellido"
                       value={formData.apellido}
                       onChange={handleChange}
-                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                        errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                      }`}
+                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+                        }`}
                     />
                     {errors.apellido && (
                       <span className="text-[11px] text-red-500 font-medium px-2">{errors.apellido}</span>
@@ -264,9 +244,8 @@ const EditUserModal = ({
                       name="dni"
                       value={formData.dni}
                       onChange={handleChange}
-                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                        errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                      }`}
+                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+                        }`}
                     />
                     {errors.dni && (
                       <span className="text-[11px] text-red-500 font-medium px-2">{errors.dni}</span>
@@ -299,9 +278,8 @@ const EditUserModal = ({
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
-                      errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                    }`}
+                    className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+                      }`}
                   />
                   {errors.email && (
                     <span className="text-[11px] text-red-500 font-medium px-2">{errors.email}</span>
@@ -415,22 +393,21 @@ const EditUserModal = ({
 
                       <div className="space-y-2">
                         {mod.permissions.map((perm) => {
-                          const isInherited = rolePerms.includes(perm.id);
-                          const isCustom = (formData.customPermissions || []).includes(perm.id);
+                          const isInherited = rolePermsSet.has(perm.id);
+                          const isCustom = customPermsSet.has(perm.id);
 
                           return (
                             <label
                               key={perm.id}
-                              className={`flex items-start justify-between gap-3 p-2 rounded-xl text-xs transition-colors cursor-pointer ${
-                                isInherited
+                              className={`flex items-center justify-between gap-3 p-2 rounded-md text-xs transition-colors cursor-pointer ${isInherited
                                   ? 'bg-white/80 opacity-90'
                                   : isCustom
                                     ? 'bg-blue-50/80 border border-blue-200'
                                     : 'bg-white hover:bg-slate-100'
-                              }`}
+                                }`}
                             >
                               <div>
-                                <span className="font-bold text-slate-800 block">
+                                <span className="text-left font-bold text-slate-800 block">
                                   {perm.label}
                                 </span>
                                 <span className="text-[11px] text-slate-500">
@@ -495,6 +472,26 @@ const EditUserModal = ({
         </form>
       </div>
     </div>
+  );
+};
+
+const EditUserModal = ({
+  isOpen,
+  user,
+  rolePermissions = EMPTY_ROLE_PERMISSIONS,
+  onClose,
+  onSave,
+}) => {
+  if (!isOpen || !user) return null;
+
+  return (
+    <EditUserModalContent
+      key={user.id || user.legajo || 'edit-user'}
+      user={user}
+      rolePermissions={rolePermissions}
+      onClose={onClose}
+      onSave={onSave}
+    />
   );
 };
 

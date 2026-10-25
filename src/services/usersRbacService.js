@@ -328,7 +328,6 @@ export const updateRbacUserApi = async (userId, userData) => {
       dni: userData.dni || '',
       email: userData.email || '',
       telefono: userData.telefono || '',
-      role: normRole,
       cargo: userData.cargo || '',
       condicion: cleanCondicion || null,
       estado: cleanEstado,
@@ -539,4 +538,5 @@ export const exportUsersCsv = (users = [], activeRole = 'Todos') => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 };

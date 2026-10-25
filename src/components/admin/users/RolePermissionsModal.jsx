@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   RBAC_ROLES,
   PERMISSION_MODULES,
@@ -6,30 +6,21 @@ import {
   getRoleBadge,
 } from './userRbacConstants';
 
-const RolePermissionsModal = ({
-  isOpen,
+const EMPTY_ROLE_PERMISSIONS = {};
+
+const RolePermissionsModalContent = ({
   initialRole = 'Directivo',
-  rolePermissions = {},
+  rolePermissions = EMPTY_ROLE_PERMISSIONS,
   onClose,
   onSavePermissions,
 }) => {
   const [selectedRole, setSelectedRole] = useState(initialRole || 'Directivo');
-  const [localPermissions, setLocalPermissions] = useState({});
+  const [localPermissions, setLocalPermissions] = useState(() => ({ ...rolePermissions }));
   const [isSaving, setIsSaving] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
 
-  // Sincronizar estado cuando se abre o cambian las props
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedRole(initialRole || 'Directivo');
-      setLocalPermissions({ ...rolePermissions });
-      setFilterQuery('');
-    }
-  }, [isOpen, initialRole, rolePermissions]);
-
-  if (!isOpen) return null;
-
   const currentRolePerms = localPermissions[selectedRole] || [];
+  const currentRolePermsSet = new Set(currentRolePerms);
   const roleConfig = RBAC_ROLES.find((r) => r.id === selectedRole) || RBAC_ROLES[0];
   const roleBadge = getRoleBadge(selectedRole);
 
@@ -159,26 +150,23 @@ const RolePermissionsModal = ({
                   key={role.id}
                   type="button"
                   onClick={() => setSelectedRole(role.id)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
-                    isSelected
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap active:scale-95 ${isSelected
                       ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                  }`}
+                    }`}
                 >
                   <span
-                    className={`material-symbols-outlined text-[16px] ${
-                      isSelected ? 'text-blue-600' : 'text-slate-400'
-                    }`}
+                    className={`material-symbols-outlined text-[16px] ${isSelected ? 'text-blue-600' : 'text-slate-400'
+                      }`}
                   >
                     {role.icon}
                   </span>
                   <span>{role.name}</span>
                   <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-                      isSelected
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${isSelected
                         ? 'bg-blue-50 text-blue-700'
                         : 'bg-slate-200 text-slate-600'
-                    }`}
+                      }`}
                   >
                     {permsCount}
                   </span>
@@ -240,7 +228,7 @@ const RolePermissionsModal = ({
             filteredModules.map((module) => {
               const modulePermIds = module.permissions.map((p) => p.id);
               const enabledInModule = modulePermIds.filter((id) =>
-                currentRolePerms.includes(id)
+                currentRolePermsSet.has(id)
               );
               const allEnabled =
                 modulePermIds.length > 0 &&
@@ -252,15 +240,15 @@ const RolePermissionsModal = ({
                   className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] overflow-hidden"
                 >
                   {/* Encabezado del módulo */}
-                  <div className="px-5 py-3.5 bg-slate-50/90 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                  <div className="px-5 py-3.5 text-start bg-slate-50/90 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <span className="material-symbols-outlined text-[20px] text-blue-600">
                         {module.icon}
                       </span>
                       <div>
-                        <h3 className="text-xs font-extrabold text-slate-900">
+                        <p className="text-[14px] font-extrabold text-slate-900">
                           {module.title}
-                        </h3>
+                        </p>
                         <p className="text-[11px] text-slate-500">
                           {module.description}
                         </p>
@@ -284,13 +272,13 @@ const RolePermissionsModal = ({
                   {/* Lista de permisos dentro del módulo */}
                   <div className="p-3 divide-y divide-slate-100">
                     {module.permissions.map((perm) => {
-                      const isChecked = currentRolePerms.includes(perm.id);
+                      const isChecked = currentRolePermsSet.has(perm.id);
 
                       return (
                         <div
                           key={perm.id}
                           onClick={() => handleTogglePermission(perm.id)}
-                          className="p-3 flex items-start justify-between gap-4 hover:bg-slate-50/80 rounded-xl transition-colors cursor-pointer group"
+                          className="p-3 flex items-center justify-between gap-4 hover:bg-slate-50/80 text-start rounded-md transition-colors cursor-pointer group"
                         >
                           <div className="flex flex-col pr-4">
                             <div className="flex items-center gap-2">
@@ -316,15 +304,13 @@ const RolePermissionsModal = ({
                                 e.stopPropagation();
                                 handleTogglePermission(perm.id);
                               }}
-                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                isChecked ? 'bg-blue-600' : 'bg-slate-200'
-                              }`}
+                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isChecked ? 'bg-blue-600' : 'bg-slate-200'
+                                }`}
                             >
                               <span
                                 aria-hidden="true"
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                  isChecked ? 'translate-x-5' : 'translate-x-0'
-                                }`}
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isChecked ? 'translate-x-5' : 'translate-x-0'
+                                  }`}
                               />
                             </button>
                           </div>
@@ -376,6 +362,26 @@ const RolePermissionsModal = ({
         </div>
       </div>
     </div>
+  );
+};
+
+const RolePermissionsModal = ({
+  isOpen,
+  initialRole = 'Directivo',
+  rolePermissions = EMPTY_ROLE_PERMISSIONS,
+  onClose,
+  onSavePermissions,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <RolePermissionsModalContent
+      key={initialRole || 'role-permissions'}
+      initialRole={initialRole}
+      rolePermissions={rolePermissions}
+      onClose={onClose}
+      onSavePermissions={onSavePermissions}
+    />
   );
 };
 
