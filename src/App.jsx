@@ -19,6 +19,7 @@ import TeachersManagement from './pages/admin/TeachersManagement';
 import AcademicOfferManagement from './pages/admin/AcademicOfferManagement';
 import SportsManagement from './pages/admin/SportsManagement';
 import SportsDetailManagement from './pages/admin/SportsDetailManagement';
+import UsersRbacManagement from './pages/admin/UsersRbacManagement';
 
 function App() {
   const location = useLocation();
@@ -50,7 +51,7 @@ function App() {
         <Route path="/admin/deportes/detalle" element={<SportsDetailManagement />} />
         <Route path="/admin/deportes/detalle/:id" element={<SportsDetailManagement />} />
         <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
-        <Route path="/admin/usuarios" element={<AdminPlaceholder />} />
+        <Route path="/admin/usuarios" element={<UsersRbacManagement />} />
         <Route path="/admin/reportes" element={<AdminPlaceholder />} />
         <Route path="/admin/*" element={<AdminPlaceholder />} />
         <Route path="/privacy" element={<Privacy />} />
