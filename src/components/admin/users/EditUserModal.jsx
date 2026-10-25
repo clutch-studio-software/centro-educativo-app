@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   RBAC_ROLES,
   USER_ESTADOS,
@@ -378,16 +378,45 @@ const EditUserModalContent = ({
     }
   };
 
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog) {
+      if (typeof dialog.showModal === 'function') {
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+      } else {
+        dialog.setAttribute('open', '');
+      }
+    }
+    return () => {
+      if (dialog) {
+        if (typeof dialog.close === 'function') {
+          if (dialog.open) {
+            dialog.close();
+          }
+        } else {
+          dialog.removeAttribute('open');
+        }
+      }
+    };
+  }, []);
+
   const rolePerms = rolePermissions[formData.role] || [];
   const rolePermsSet = new Set(rolePerms);
   const customPermsSet = new Set(formData.customPermissions || []);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
       aria-labelledby="edit-user-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm border-none outline-none m-0 max-w-none max-h-none w-full h-full backdrop:bg-transparent animate-in fade-in duration-200"
     >
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
@@ -475,7 +504,7 @@ const EditUserModalContent = ({
           />
         </form>
       </div>
-    </div>
+    </dialog>
   );
 };
 

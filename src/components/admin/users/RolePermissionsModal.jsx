@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   RBAC_ROLES,
   PERMISSION_MODULES,
@@ -61,10 +61,14 @@ const RolePermissionsHeaderBar = ({
 
         {/* Buscador de permisos en el modal */}
         <div className="relative min-w-[220px]">
+          <label htmlFor="role-permissions-search" className="sr-only">
+            Buscar permiso
+          </label>
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">
             search
           </span>
           <input
+            id="role-permissions-search"
             type="text"
             value={filterQuery}
             onChange={(e) => onFilterChange(e.target.value)}
@@ -159,8 +163,7 @@ const RolePermissionModuleCard = ({
           return (
             <div
               key={perm.id}
-              onClick={() => onTogglePermission(perm.id)}
-              className="p-3 flex items-center justify-between gap-4 hover:bg-slate-50/80 text-start rounded-md transition-colors cursor-pointer group"
+              className="p-3 flex items-center justify-between gap-4 hover:bg-slate-50/80 text-start rounded-md transition-colors group"
             >
               <div className="flex flex-col pr-4">
                 <div className="flex items-center gap-2">
@@ -182,10 +185,8 @@ const RolePermissionModuleCard = ({
                   type="button"
                   role="switch"
                   aria-checked={isChecked}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTogglePermission(perm.id);
-                  }}
+                  aria-label={perm.label}
+                  onClick={() => onTogglePermission(perm.id)}
                   className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isChecked ? 'bg-blue-600' : 'bg-slate-200'
                     }`}
                 >
@@ -295,12 +296,41 @@ const RolePermissionsModalContent = ({
     };
   }).filter((mod) => mod.permissions.length > 0);
 
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog) {
+      if (typeof dialog.showModal === 'function') {
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+      } else {
+        dialog.setAttribute('open', '');
+      }
+    }
+    return () => {
+      if (dialog) {
+        if (typeof dialog.close === 'function') {
+          if (dialog.open) {
+            dialog.close();
+          }
+        } else {
+          dialog.removeAttribute('open');
+        }
+      }
+    };
+  }, []);
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
       aria-labelledby="role-permissions-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm border-none outline-none m-0 max-w-none max-h-none w-full h-full backdrop:bg-transparent animate-in fade-in duration-200"
     >
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
@@ -401,7 +431,7 @@ const RolePermissionsModalContent = ({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 
