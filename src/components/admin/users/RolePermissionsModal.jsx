@@ -8,6 +8,202 @@ import {
 
 const EMPTY_ROLE_PERMISSIONS = {};
 
+const RolePermissionsHeaderBar = ({
+  selectedRole,
+  onSelectRole,
+  localPermissions,
+  filterQuery,
+  onFilterChange,
+  roleBadge,
+  currentRolePermsCount,
+  totalAvailablePerms,
+  onResetToDefaults,
+}) => {
+  return (
+    <>
+      {/* Selector de Rol y Barra de Estado */}
+      <div className="px-6 py-4 bg-slate-50/80 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+        {/* Selector de pestañas de rol */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+          {RBAC_ROLES.map((role) => {
+            const isSelected = selectedRole === role.id;
+            const permsCount = (localPermissions[role.id] || []).length;
+
+            return (
+              <button
+                key={role.id}
+                type="button"
+                onClick={() => onSelectRole(role.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap active:scale-95 ${isSelected
+                    ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  }`}
+              >
+                <span
+                  className={`material-symbols-outlined text-[16px] ${isSelected ? 'text-blue-600' : 'text-slate-400'
+                    }`}
+                >
+                  {role.icon}
+                </span>
+                <span>{role.name}</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${isSelected
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'bg-slate-200 text-slate-600'
+                    }`}
+                >
+                  {permsCount}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Buscador de permisos en el modal */}
+        <div className="relative min-w-[220px]">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">
+            search
+          </span>
+          <input
+            type="text"
+            value={filterQuery}
+            onChange={(e) => onFilterChange(e.target.value)}
+            placeholder="Buscar permiso..."
+            className="w-full pl-8 pr-3 py-1.5 bg-white rounded-full text-xs font-medium text-slate-800 placeholder:text-slate-400 border border-slate-200 focus:outline-none focus:border-blue-500 transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Resumen del Rol Seleccionado */}
+      <div className="px-6 py-3 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${roleBadge.badgeClass}`}
+          >
+            <span className="material-symbols-outlined text-[15px]">{roleBadge.icon}</span>
+            <span>{roleBadge.label}</span>
+          </span>
+          <span className="text-xs text-slate-500">
+            <strong className="text-slate-800 font-bold">{currentRolePermsCount}</strong> de{' '}
+            {totalAvailablePerms} privilegios habilitados
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onResetToDefaults}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 rounded-full text-[11px] font-bold border border-slate-200 hover:border-amber-200 transition-colors cursor-pointer"
+            title="Restaurar la configuración predeterminada del rol"
+          >
+            <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+            <span>Restablecer por defecto</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const RolePermissionModuleCard = ({
+  module,
+  currentRolePermsSet,
+  onToggleModule,
+  onTogglePermission,
+}) => {
+  const modulePermIds = module.permissions.map((p) => p.id);
+  const enabledInModule = modulePermIds.filter((id) =>
+    currentRolePermsSet.has(id)
+  );
+  const allEnabled =
+    modulePermIds.length > 0 &&
+    enabledInModule.length === modulePermIds.length;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] overflow-hidden">
+      {/* Encabezado del módulo */}
+      <div className="px-5 py-3.5 text-start bg-slate-50/90 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="material-symbols-outlined text-[20px] text-blue-600">
+            {module.icon}
+          </span>
+          <div>
+            <p className="text-[14px] font-extrabold text-slate-900">
+              {module.title}
+            </p>
+            <p className="text-[11px] text-slate-500">
+              {module.description}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold text-slate-500 mr-1">
+            {enabledInModule.length} de {modulePermIds.length} activos
+          </span>
+          <button
+            type="button"
+            onClick={() => onToggleModule(modulePermIds, !allEnabled)}
+            className="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-200 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+          >
+            {allEnabled ? 'Desactivar todos' : 'Activar todos'}
+          </button>
+        </div>
+      </div>
+
+      {/* Lista de permisos dentro del módulo */}
+      <div className="p-3 divide-y divide-slate-100">
+        {module.permissions.map((perm) => {
+          const isChecked = currentRolePermsSet.has(perm.id);
+
+          return (
+            <div
+              key={perm.id}
+              onClick={() => onTogglePermission(perm.id)}
+              className="p-3 flex items-center justify-between gap-4 hover:bg-slate-50/80 text-start rounded-md transition-colors cursor-pointer group"
+            >
+              <div className="flex flex-col pr-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                    {perm.label}
+                  </span>
+                  <span className="font-mono text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                    {perm.id}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 mt-0.5">
+                  {perm.description}
+                </span>
+              </div>
+
+              {/* Toggle Switch */}
+              <div className="shrink-0 pt-0.5">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isChecked}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTogglePermission(perm.id);
+                  }}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isChecked ? 'bg-blue-600' : 'bg-slate-200'
+                    }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isChecked ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                  />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const RolePermissionsModalContent = ({
   initialRole = 'Directivo',
   rolePermissions = EMPTY_ROLE_PERMISSIONS,
@@ -137,86 +333,17 @@ const RolePermissionsModalContent = ({
           </button>
         </div>
 
-        {/* Selector de Rol y Barra de Estado */}
-        <div className="px-6 py-4 bg-slate-50/80 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-          {/* Selector de pestañas de rol */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
-            {RBAC_ROLES.map((role) => {
-              const isSelected = selectedRole === role.id;
-              const permsCount = (localPermissions[role.id] || []).length;
-
-              return (
-                <button
-                  key={role.id}
-                  type="button"
-                  onClick={() => setSelectedRole(role.id)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap active:scale-95 ${isSelected
-                      ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                    }`}
-                >
-                  <span
-                    className={`material-symbols-outlined text-[16px] ${isSelected ? 'text-blue-600' : 'text-slate-400'
-                      }`}
-                  >
-                    {role.icon}
-                  </span>
-                  <span>{role.name}</span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${isSelected
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-slate-200 text-slate-600'
-                      }`}
-                  >
-                    {permsCount}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Buscador de permisos en el modal */}
-          <div className="relative min-w-[220px]">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[16px]">
-              search
-            </span>
-            <input
-              type="text"
-              value={filterQuery}
-              onChange={(e) => setFilterQuery(e.target.value)}
-              placeholder="Buscar permiso..."
-              className="w-full pl-8 pr-3 py-1.5 bg-white rounded-full text-xs font-medium text-slate-800 placeholder:text-slate-400 border border-slate-200 focus:outline-none focus:border-blue-500 transition-all"
-            />
-          </div>
-        </div>
-
-        {/* Resumen del Rol Seleccionado */}
-        <div className="px-6 py-3 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${roleBadge.badgeClass}`}
-            >
-              <span className="material-symbols-outlined text-[15px]">{roleBadge.icon}</span>
-              <span>{roleBadge.label}</span>
-            </span>
-            <span className="text-xs text-slate-500">
-              <strong className="text-slate-800 font-bold">{currentRolePerms.length}</strong> de{' '}
-              {totalAvailablePerms} privilegios habilitados
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleResetToDefaults}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 rounded-full text-[11px] font-bold border border-slate-200 hover:border-amber-200 transition-colors cursor-pointer"
-              title="Restaurar la configuración predeterminada del rol"
-            >
-              <span className="material-symbols-outlined text-[14px]">restart_alt</span>
-              <span>Restablecer por defecto</span>
-            </button>
-          </div>
-        </div>
+        <RolePermissionsHeaderBar
+          selectedRole={selectedRole}
+          onSelectRole={setSelectedRole}
+          localPermissions={localPermissions}
+          filterQuery={filterQuery}
+          onFilterChange={setFilterQuery}
+          roleBadge={roleBadge}
+          currentRolePermsCount={currentRolePerms.length}
+          totalAvailablePerms={totalAvailablePerms}
+          onResetToDefaults={handleResetToDefaults}
+        />
 
         {/* Contenido scrolleable con categorías de permisos */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/40">
@@ -225,102 +352,15 @@ const RolePermissionsModalContent = ({
               No se encontraron permisos que coincidan con &quot;{filterQuery}&quot;.
             </div>
           ) : (
-            filteredModules.map((module) => {
-              const modulePermIds = module.permissions.map((p) => p.id);
-              const enabledInModule = modulePermIds.filter((id) =>
-                currentRolePermsSet.has(id)
-              );
-              const allEnabled =
-                modulePermIds.length > 0 &&
-                enabledInModule.length === modulePermIds.length;
-
-              return (
-                <div
-                  key={module.id}
-                  className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.02)] overflow-hidden"
-                >
-                  {/* Encabezado del módulo */}
-                  <div className="px-5 py-3.5 text-start bg-slate-50/90 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="material-symbols-outlined text-[20px] text-blue-600">
-                        {module.icon}
-                      </span>
-                      <div>
-                        <p className="text-[14px] font-extrabold text-slate-900">
-                          {module.title}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          {module.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-semibold text-slate-500 mr-1">
-                        {enabledInModule.length} de {modulePermIds.length} activos
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleModule(modulePermIds, !allEnabled)}
-                        className="px-2.5 py-1 bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 hover:border-blue-200 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
-                      >
-                        {allEnabled ? 'Desactivar todos' : 'Activar todos'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Lista de permisos dentro del módulo */}
-                  <div className="p-3 divide-y divide-slate-100">
-                    {module.permissions.map((perm) => {
-                      const isChecked = currentRolePermsSet.has(perm.id);
-
-                      return (
-                        <div
-                          key={perm.id}
-                          onClick={() => handleTogglePermission(perm.id)}
-                          className="p-3 flex items-center justify-between gap-4 hover:bg-slate-50/80 text-start rounded-md transition-colors cursor-pointer group"
-                        >
-                          <div className="flex flex-col pr-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
-                                {perm.label}
-                              </span>
-                              <span className="font-mono text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                                {perm.id}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-slate-500 mt-0.5">
-                              {perm.description}
-                            </span>
-                          </div>
-
-                          {/* Toggle Switch */}
-                          <div className="shrink-0 pt-0.5">
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={isChecked}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTogglePermission(perm.id);
-                              }}
-                              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isChecked ? 'bg-blue-600' : 'bg-slate-200'
-                                }`}
-                            >
-                              <span
-                                aria-hidden="true"
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isChecked ? 'translate-x-5' : 'translate-x-0'
-                                  }`}
-                              />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })
+            filteredModules.map((module) => (
+              <RolePermissionModuleCard
+                key={module.id}
+                module={module}
+                currentRolePermsSet={currentRolePermsSet}
+                onToggleModule={handleToggleModule}
+                onTogglePermission={handleTogglePermission}
+              />
+            ))
           )}
         </div>
 

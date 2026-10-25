@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
 import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
+import AdminTablePagination from '../../components/admin/AdminTablePagination';
 import RoleTabs from '../../components/admin/users/RoleTabs';
 import RoleSummaryBanner from '../../components/admin/users/RoleSummaryBanner';
 import UserFilters from '../../components/admin/users/UserFilters';
@@ -77,74 +78,47 @@ const UsersManagementHeader = ({
   </section>
 );
 
-const UsersPagination = ({
-  isLoading,
-  totalItems,
-  startIndex,
-  pageSize,
-  currentPage,
-  totalPages,
-  onPageChange,
-}) => {
-  if (isLoading || totalItems === 0) return null;
 
-  return (
-    <div className="px-6 py-4 bg-white/70 border-t border-slate-100 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
-      <div className="text-xs font-semibold text-slate-500">
-        Mostrando{' '}
-        <span className="font-bold text-slate-900">
-          {startIndex + 1} - {Math.min(startIndex + pageSize, totalItems)}
-        </span>{' '}
-        de <span className="font-bold text-slate-900">{totalItems}</span> usuarios registrados
-      </div>
+const UsersRbacModals = ({
+  isNewUserModalOpen,
+  activeRole,
+  onCloseNewUserModal,
+  onCreateUser,
+  editingUser,
+  rolePermissions,
+  onCloseEditUser,
+  onSaveEditUser,
+  permissionsModalRole,
+  onClosePermissionsModal,
+  onSavePermissions,
+}) => (
+  <>
+    <NewUserModal
+      isOpen={isNewUserModalOpen}
+      activeRole={activeRole}
+      onClose={onCloseNewUserModal}
+      onSubmit={onCreateUser}
+    />
 
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className={`px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold transition-colors ${
-            currentPage === 1
-              ? 'text-slate-300 cursor-not-allowed'
-              : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
-          }`}
-        >
-          Anterior
-        </button>
+    <EditUserModal
+      isOpen={Boolean(editingUser)}
+      user={editingUser}
+      rolePermissions={rolePermissions}
+      onClose={onCloseEditUser}
+      onSave={onSaveEditUser}
+    />
 
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-          <button
-            key={pageNum}
-            type="button"
-            onClick={() => onPageChange(pageNum)}
-            className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-colors cursor-pointer ${
-              currentPage === pageNum
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-700 hover:bg-amber-50 hover:text-amber-600'
-            }`}
-          >
-            {pageNum}
-          </button>
-        ))}
+    <RolePermissionsModal
+      isOpen={Boolean(permissionsModalRole)}
+      initialRole={permissionsModalRole || 'Directivo'}
+      rolePermissions={rolePermissions}
+      onClose={onClosePermissionsModal}
+      onSavePermissions={onSavePermissions}
+    />
+  </>
+);
 
-        <button
-          type="button"
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages}
-          className={`px-3 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold transition-colors ${
-            currentPage === totalPages
-              ? 'text-slate-300 cursor-not-allowed'
-              : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
-          }`}
-        >
-          Siguiente
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const UsersRbacManagement = () => {
+const useUsersRbacState = () => {
   // Estado de Datos
   const [users, setUsers] = useState([]);
   const [rolePermissions, setRolePermissions] = useState({});
@@ -163,7 +137,7 @@ const UsersRbacManagement = () => {
   // Modales
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [permissionsModalRole, setPermissionsModalRole] = useState(null); // null o string del rol
+  const [permissionsModalRole, setPermissionsModalRole] = useState(null);
 
   // Notificación flotante Toast
   const [notification, setNotification] = useState(null);
@@ -416,6 +390,80 @@ const UsersRbacManagement = () => {
     }
   };
 
+  return {
+    notification,
+    setNotification,
+    activeRole,
+    setActiveRole,
+    roleCounts,
+    rolePermissions,
+    searchTerm,
+    setSearchTerm,
+    selectedEstado,
+    setSelectedEstado,
+    handleResetFilters,
+    isLoading,
+    currentUsers,
+    totalItems,
+    totalPages,
+    startIndex,
+    currentPage,
+    setCurrentPage,
+    handleEditUser,
+    handleToggleStatus,
+    handleResetPassword,
+    handleDeleteUser,
+    handleOpenPermissionsModal,
+    handleExportCsv,
+    isNewUserModalOpen,
+    setIsNewUserModalOpen,
+    handleCreateUser,
+    editingUser,
+    setEditingUser,
+    handleSaveEditUser,
+    permissionsModalRole,
+    setPermissionsModalRole,
+    handleSavePermissions,
+  };
+};
+
+const UsersRbacManagement = () => {
+  const {
+    notification,
+    setNotification,
+    activeRole,
+    setActiveRole,
+    roleCounts,
+    rolePermissions,
+    searchTerm,
+    setSearchTerm,
+    selectedEstado,
+    setSelectedEstado,
+    handleResetFilters,
+    isLoading,
+    currentUsers,
+    totalItems,
+    totalPages,
+    startIndex,
+    currentPage,
+    setCurrentPage,
+    handleEditUser,
+    handleToggleStatus,
+    handleResetPassword,
+    handleDeleteUser,
+    handleOpenPermissionsModal,
+    handleExportCsv,
+    isNewUserModalOpen,
+    setIsNewUserModalOpen,
+    handleCreateUser,
+    editingUser,
+    setEditingUser,
+    handleSaveEditUser,
+    permissionsModalRole,
+    setPermissionsModalRole,
+    handleSavePermissions,
+  } = useUsersRbacState();
+
   return (
     <AdminLayout activeItem="usuarios" breadcrumbs={['Administración', 'Usuarios & Roles (RBAC)']}>
       <div className="flex flex-col w-full gap-6">
@@ -477,7 +525,7 @@ const UsersRbacManagement = () => {
             onResetFilters={handleResetFilters}
           />
 
-          <UsersPagination
+          <AdminTablePagination
             isLoading={isLoading}
             totalItems={totalItems}
             startIndex={startIndex}
@@ -485,30 +533,22 @@ const UsersRbacManagement = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
+            itemLabel="usuarios registrados"
           />
         </div>
 
         {/* Modales */}
-        <NewUserModal
-          isOpen={isNewUserModalOpen}
+        <UsersRbacModals
+          isNewUserModalOpen={isNewUserModalOpen}
           activeRole={activeRole}
-          onClose={() => setIsNewUserModalOpen(false)}
-          onSubmit={handleCreateUser}
-        />
-
-        <EditUserModal
-          isOpen={Boolean(editingUser)}
-          user={editingUser}
+          onCloseNewUserModal={() => setIsNewUserModalOpen(false)}
+          onCreateUser={handleCreateUser}
+          editingUser={editingUser}
           rolePermissions={rolePermissions}
-          onClose={() => setEditingUser(null)}
-          onSave={handleSaveEditUser}
-        />
-
-        <RolePermissionsModal
-          isOpen={Boolean(permissionsModalRole)}
-          initialRole={permissionsModalRole || 'Directivo'}
-          rolePermissions={rolePermissions}
-          onClose={() => setPermissionsModalRole(null)}
+          onCloseEditUser={() => setEditingUser(null)}
+          onSaveEditUser={handleSaveEditUser}
+          permissionsModalRole={permissionsModalRole}
+          onClosePermissionsModal={() => setPermissionsModalRole(null)}
           onSavePermissions={handleSavePermissions}
         />
       </div>

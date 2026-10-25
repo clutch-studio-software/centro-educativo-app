@@ -7,6 +7,7 @@ import {
   validateUserForm,
 } from './userRbacConstants';
 import { formatDni } from '../../../utils/validators';
+import UserModalFooter from './UserModalFooter';
 
 const getInitialUserFormData = (user) => {
   const rawEstado = String(user?.estado || '').trim();
@@ -29,6 +30,292 @@ const getInitialUserFormData = (user) => {
 };
 
 const EMPTY_ROLE_PERMISSIONS = {};
+
+const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => (
+  <>
+    {/* Selector de Rol Institucional */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="edit-user-role" className="text-xs font-bold text-slate-700">
+        Rol Institucional Asignado *
+      </label>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {RBAC_ROLES.map((role) => {
+          const isSelected = formData.role === role.id;
+          return (
+            <button
+              key={role.id}
+              type="button"
+              onClick={() => setFormData((p) => ({ ...p, role: role.id }))}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-left ${isSelected
+                  ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-xs ring-1 ring-blue-500/30'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+            >
+              <span className="material-symbols-outlined text-[18px] text-blue-600">
+                {role.icon}
+              </span>
+              <span>{role.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      {errors.role && (
+        <span className="text-[11px] text-red-500 font-medium px-2">{errors.role}</span>
+      )}
+    </div>
+
+    {/* Nombre y Apellido */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-user-nombre" className="text-xs font-bold text-slate-700">
+          Nombre *
+        </label>
+        <input
+          id="edit-user-nombre"
+          type="text"
+          name="nombre"
+          value={formData.nombre}
+          onChange={handleChange}
+          className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+            }`}
+        />
+        {errors.nombre && (
+          <span className="text-[11px] text-red-500 font-medium px-2">{errors.nombre}</span>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-user-apellido" className="text-xs font-bold text-slate-700">
+          Apellido *
+        </label>
+        <input
+          id="edit-user-apellido"
+          type="text"
+          name="apellido"
+          value={formData.apellido}
+          onChange={handleChange}
+          className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+            }`}
+        />
+        {errors.apellido && (
+          <span className="text-[11px] text-red-500 font-medium px-2">{errors.apellido}</span>
+        )}
+      </div>
+    </div>
+
+    {/* DNI y Teléfono */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-user-dni" className="text-xs font-bold text-slate-700">
+          DNI *
+        </label>
+        <input
+          id="edit-user-dni"
+          type="text"
+          name="dni"
+          value={formData.dni}
+          onChange={handleChange}
+          className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+            }`}
+        />
+        {errors.dni && (
+          <span className="text-[11px] text-red-500 font-medium px-2">{errors.dni}</span>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-user-telefono" className="text-xs font-bold text-slate-700">
+          Teléfono
+        </label>
+        <input
+          id="edit-user-telefono"
+          type="text"
+          name="telefono"
+          value={formData.telefono}
+          onChange={handleChange}
+          className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500"
+        />
+      </div>
+    </div>
+
+    {/* Email */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="edit-user-email" className="text-xs font-bold text-slate-700">
+        Correo Electrónico Institucional *
+      </label>
+      <input
+        id="edit-user-email"
+        type="email"
+        name="email"
+        value={formData.email}
+        onChange={handleChange}
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+          }`}
+      />
+      {errors.email && (
+        <span className="text-[11px] text-red-500 font-medium px-2">{errors.email}</span>
+      )}
+    </div>
+
+    {/* Cargo y Estado */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-user-cargo" className="text-xs font-bold text-slate-700">
+          Cargo / Función Desempeñada
+        </label>
+        <input
+          id="edit-user-cargo"
+          type="text"
+          name="cargo"
+          value={formData.cargo}
+          onChange={handleChange}
+          className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500"
+        />
+      </div>
+
+      {formData.role === 'Docente' ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="edit-user-condicion" className="text-xs font-bold text-slate-700">
+            Condición Docente / Revista *
+          </label>
+          <select
+            id="edit-user-condicion"
+            name="condicion"
+            value={formData.condicion || 'Titular'}
+            onChange={handleChange}
+            className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+          >
+            {DOCENTE_CONDICIONES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
+            Estado de la Cuenta
+          </label>
+          <select
+            id="edit-user-estado"
+            name="estado"
+            value={formData.estado}
+            onChange={handleChange}
+            className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+          >
+            {USER_ESTADOS.map((est) => (
+              <option key={est} value={est}>
+                {est}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+
+    {formData.role === 'Docente' && (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
+            Estado de la Cuenta
+          </label>
+          <select
+            id="edit-user-estado"
+            name="estado"
+            value={formData.estado}
+            onChange={handleChange}
+            className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+          >
+            {USER_ESTADOS.map((est) => (
+              <option key={est} value={est}>
+                {est}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    )}
+  </>
+);
+
+const EditUserPermissionsTab = ({
+  formData,
+  rolePerms,
+  rolePermsSet,
+  customPermsSet,
+  handleToggleCustomPermission,
+}) => (
+  <div className="space-y-4">
+    <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-3">
+      <span className="material-symbols-outlined text-[20px] text-blue-600 shrink-0">
+        shield
+      </span>
+      <div className="text-xs text-blue-900 leading-relaxed">
+        Este usuario hereda automáticamente los <strong className="font-bold">{rolePerms.length} permisos</strong> correspondientes al rol <strong className="font-bold">{formData.role}</strong>. Puedes habilitar privilegios adicionales individuales debajo.
+      </div>
+    </div>
+
+    <div className="space-y-4">
+      {PERMISSION_MODULES.map((mod) => (
+        <div
+          key={mod.id}
+          className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80"
+        >
+          <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-2 mb-2">
+            <span className="material-symbols-outlined text-[16px] text-blue-600">
+              {mod.icon}
+            </span>
+            <span>{mod.title}</span>
+          </h4>
+
+          <div className="space-y-2">
+            {mod.permissions.map((perm) => {
+              const isInherited = rolePermsSet.has(perm.id);
+              const isCustom = customPermsSet.has(perm.id);
+
+              return (
+                <label
+                  key={perm.id}
+                  className={`flex items-center justify-between gap-3 p-2 rounded-md text-xs transition-colors cursor-pointer ${isInherited
+                      ? 'bg-white/80 opacity-90'
+                      : isCustom
+                        ? 'bg-blue-50/80 border border-blue-200'
+                        : 'bg-white hover:bg-slate-100'
+                    }`}
+                >
+                  <div>
+                    <span className="text-left font-bold text-slate-800 block">
+                      {perm.label}
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      {perm.description}
+                    </span>
+                  </div>
+
+                  <div className="shrink-0 flex items-center gap-2">
+                    {isInherited ? (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Heredado
+                      </span>
+                    ) : (
+                      <input
+                        type="checkbox"
+                        checked={isCustom}
+                        onChange={() => handleToggleCustomPermission(perm.id)}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 const EditUserModalContent = ({
   user,
@@ -161,314 +448,31 @@ const EditUserModalContent = ({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="p-6 overflow-y-auto space-y-4 flex-1">
             {activeTab === 'general' ? (
-              <>
-                {/* Selector de Rol Institucional */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="edit-user-role" className="text-xs font-bold text-slate-700">
-                    Rol Institucional Asignado *
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {RBAC_ROLES.map((role) => {
-                      const isSelected = formData.role === role.id;
-                      return (
-                        <button
-                          key={role.id}
-                          type="button"
-                          onClick={() => setFormData((p) => ({ ...p, role: role.id }))}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-left ${isSelected
-                              ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-xs ring-1 ring-blue-500/30'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                            }`}
-                        >
-                          <span className="material-symbols-outlined text-[18px] text-blue-600">
-                            {role.icon}
-                          </span>
-                          <span>{role.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {errors.role && (
-                    <span className="text-[11px] text-red-500 font-medium px-2">{errors.role}</span>
-                  )}
-                </div>
-
-                {/* Nombre y Apellido */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="edit-user-nombre" className="text-xs font-bold text-slate-700">
-                      Nombre *
-                    </label>
-                    <input
-                      id="edit-user-nombre"
-                      type="text"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleChange}
-                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                        }`}
-                    />
-                    {errors.nombre && (
-                      <span className="text-[11px] text-red-500 font-medium px-2">{errors.nombre}</span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="edit-user-apellido" className="text-xs font-bold text-slate-700">
-                      Apellido *
-                    </label>
-                    <input
-                      id="edit-user-apellido"
-                      type="text"
-                      name="apellido"
-                      value={formData.apellido}
-                      onChange={handleChange}
-                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                        }`}
-                    />
-                    {errors.apellido && (
-                      <span className="text-[11px] text-red-500 font-medium px-2">{errors.apellido}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* DNI y Teléfono */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="edit-user-dni" className="text-xs font-bold text-slate-700">
-                      DNI *
-                    </label>
-                    <input
-                      id="edit-user-dni"
-                      type="text"
-                      name="dni"
-                      value={formData.dni}
-                      onChange={handleChange}
-                      className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                        }`}
-                    />
-                    {errors.dni && (
-                      <span className="text-[11px] text-red-500 font-medium px-2">{errors.dni}</span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="edit-user-telefono" className="text-xs font-bold text-slate-700">
-                      Teléfono
-                    </label>
-                    <input
-                      id="edit-user-telefono"
-                      type="text"
-                      name="telefono"
-                      value={formData.telefono}
-                      onChange={handleChange}
-                      className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="edit-user-email" className="text-xs font-bold text-slate-700">
-                    Correo Electrónico Institucional *
-                  </label>
-                  <input
-                    id="edit-user-email"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-                      }`}
-                  />
-                  {errors.email && (
-                    <span className="text-[11px] text-red-500 font-medium px-2">{errors.email}</span>
-                  )}
-                </div>
-
-                {/* Cargo y Estado */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="edit-user-cargo" className="text-xs font-bold text-slate-700">
-                      Cargo / Función Desempeñada
-                    </label>
-                    <input
-                      id="edit-user-cargo"
-                      type="text"
-                      name="cargo"
-                      value={formData.cargo}
-                      onChange={handleChange}
-                      className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {formData.role === 'Docente' ? (
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="edit-user-condicion" className="text-xs font-bold text-slate-700">
-                        Condición Docente / Revista *
-                      </label>
-                      <select
-                        id="edit-user-condicion"
-                        name="condicion"
-                        value={formData.condicion || 'Titular'}
-                        onChange={handleChange}
-                        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
-                      >
-                        {DOCENTE_CONDICIONES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
-                        Estado de la Cuenta
-                      </label>
-                      <select
-                        id="edit-user-estado"
-                        name="estado"
-                        value={formData.estado}
-                        onChange={handleChange}
-                        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
-                      >
-                        {USER_ESTADOS.map((est) => (
-                          <option key={est} value={est}>
-                            {est}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {formData.role === 'Docente' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
-                        Estado de la Cuenta
-                      </label>
-                      <select
-                        id="edit-user-estado"
-                        name="estado"
-                        value={formData.estado}
-                        onChange={handleChange}
-                        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
-                      >
-                        {USER_ESTADOS.map((est) => (
-                          <option key={est} value={est}>
-                            {est}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </>
+              <EditUserGeneralTab
+                formData={formData}
+                setFormData={setFormData}
+                handleChange={handleChange}
+                errors={errors}
+              />
             ) : (
-              /* Pestaña de Permisos */
-              <div className="space-y-4">
-                <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-100 flex items-start gap-3">
-                  <span className="material-symbols-outlined text-[20px] text-blue-600 shrink-0">
-                    shield
-                  </span>
-                  <div className="text-xs text-blue-900 leading-relaxed">
-                    Este usuario hereda automáticamente los <strong className="font-bold">{rolePerms.length} permisos</strong> correspondientes al rol <strong className="font-bold">{formData.role}</strong>. Puedes habilitar privilegios adicionales individuales debajo.
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {PERMISSION_MODULES.map((mod) => (
-                    <div
-                      key={mod.id}
-                      className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80"
-                    >
-                      <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-[16px] text-blue-600">
-                          {mod.icon}
-                        </span>
-                        <span>{mod.title}</span>
-                      </h4>
-
-                      <div className="space-y-2">
-                        {mod.permissions.map((perm) => {
-                          const isInherited = rolePermsSet.has(perm.id);
-                          const isCustom = customPermsSet.has(perm.id);
-
-                          return (
-                            <label
-                              key={perm.id}
-                              className={`flex items-center justify-between gap-3 p-2 rounded-md text-xs transition-colors cursor-pointer ${isInherited
-                                  ? 'bg-white/80 opacity-90'
-                                  : isCustom
-                                    ? 'bg-blue-50/80 border border-blue-200'
-                                    : 'bg-white hover:bg-slate-100'
-                                }`}
-                            >
-                              <div>
-                                <span className="text-left font-bold text-slate-800 block">
-                                  {perm.label}
-                                </span>
-                                <span className="text-[11px] text-slate-500">
-                                  {perm.description}
-                                </span>
-                              </div>
-
-                              <div className="shrink-0 flex items-center gap-2">
-                                {isInherited ? (
-                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    Heredado
-                                  </span>
-                                ) : (
-                                  <input
-                                    type="checkbox"
-                                    checked={isCustom}
-                                    onChange={() => handleToggleCustomPermission(perm.id)}
-                                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                  />
-                                )}
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <EditUserPermissionsTab
+                formData={formData}
+                rolePerms={rolePerms}
+                rolePermsSet={rolePermsSet}
+                customPermsSet={customPermsSet}
+                handleToggleCustomPermission={handleToggleCustomPermission}
+              />
             )}
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 bg-white border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-bold text-xs transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full font-bold text-xs shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[16px]">save</span>
-                  <span>Guardar Cambios</span>
-                </>
-              )}
-            </button>
-          </div>
+          <UserModalFooter
+            onClose={onClose}
+            isSubmitting={isSubmitting}
+            submitText="Guardar Cambios"
+            submittingText="Guardando..."
+            submitIcon="save"
+          />
         </form>
       </div>
     </div>
