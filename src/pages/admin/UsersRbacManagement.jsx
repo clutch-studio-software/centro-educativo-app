@@ -260,6 +260,7 @@ const UsersRbacManagement = () => {
         const matchesDni = (u.dni || '').replace(/\./g, '').includes(query.replace(/\./g, ''));
         const matchesLegajo = (u.legajo || '').toLowerCase().includes(query);
         const matchesCargo = (u.cargo || '').toLowerCase().includes(query);
+        const matchesCondicion = (u.condicion || '').toLowerCase().includes(query);
 
         if (
           !matchesNombre &&
@@ -268,7 +269,8 @@ const UsersRbacManagement = () => {
           !matchesEmail &&
           !matchesDni &&
           !matchesLegajo &&
-          !matchesCargo
+          !matchesCargo &&
+          !matchesCondicion
         ) {
           return false;
         }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   RBAC_ROLES,
   USER_ESTADOS,
+  DOCENTE_CONDICIONES,
   validateUserForm,
 } from './userRbacConstants';
 import { formatDni } from '../../../utils/validators';
@@ -14,6 +15,7 @@ const INITIAL_FORM = {
   telefono: '',
   role: 'Directivo',
   cargo: '',
+  condicion: 'Titular',
   estado: 'Activo',
 };
 
@@ -273,25 +275,71 @@ const NewUserModal = ({ isOpen, activeRole = 'Directivo', onClose, onSubmit }) =
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="new-user-estado" className="text-xs font-bold text-slate-700">
-                  Estado de la Cuenta *
-                </label>
-                <select
-                  id="new-user-estado"
-                  name="estado"
-                  value={formData.estado}
-                  onChange={handleChange}
-                  className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
-                >
-                  {USER_ESTADOS.map((est) => (
-                    <option key={est} value={est}>
-                      {est}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Si es Docente: Condición de Revista */}
+              {formData.role === 'Docente' ? (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="new-user-condicion" className="text-xs font-bold text-slate-700">
+                    Condición Docente / Revista *
+                  </label>
+                  <select
+                    id="new-user-condicion"
+                    name="condicion"
+                    value={formData.condicion || 'Titular'}
+                    onChange={handleChange}
+                    className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+                  >
+                    {DOCENTE_CONDICIONES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="new-user-estado" className="text-xs font-bold text-slate-700">
+                    Estado de la Cuenta *
+                  </label>
+                  <select
+                    id="new-user-estado"
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleChange}
+                    className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+                  >
+                    {USER_ESTADOS.map((est) => (
+                      <option key={est} value={est}>
+                        {est}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
+
+            {/* Si es Docente, mostrar Estado de la Cuenta en su propia fila */}
+            {formData.role === 'Docente' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="new-user-estado" className="text-xs font-bold text-slate-700">
+                    Estado de la Cuenta *
+                  </label>
+                  <select
+                    id="new-user-estado"
+                    name="estado"
+                    value={formData.estado}
+                    onChange={handleChange}
+                    className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+                  >
+                    {USER_ESTADOS.map((est) => (
+                      <option key={est} value={est}>
+                        {est}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer */}

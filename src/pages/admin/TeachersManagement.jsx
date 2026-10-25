@@ -289,10 +289,17 @@ const TeachersManagement = () => {
         }
       }
 
-      // Estado filter (Titular, Suplente, Interino, Suspendido)
+      // Estado/Condición filter (Titular, Suplente, Interino, Suspendido)
       if (selectedEstado) {
-        if (String(t.estado || '').toLowerCase() !== selectedEstado.toLowerCase()) {
-          return false;
+        if (selectedEstado.toLowerCase() === 'suspendido') {
+          if (String(t.estado || '').toLowerCase() !== 'suspendido' && !t.disabled) {
+            return false;
+          }
+        } else {
+          const tCond = String(t.condicion || t.estado || '').toLowerCase();
+          if (tCond !== selectedEstado.toLowerCase()) {
+            return false;
+          }
         }
       }
 

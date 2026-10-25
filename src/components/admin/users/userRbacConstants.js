@@ -4,6 +4,7 @@ import { RBAC_ROLES, PERMISSION_MODULES, DEFAULT_ROLE_PERMISSIONS } from '../../
 export { RBAC_ROLES, PERMISSION_MODULES, DEFAULT_ROLE_PERMISSIONS };
 
 export const USER_ESTADOS = ['Activo', 'Inactivo', 'Suspendido'];
+export const DOCENTE_CONDICIONES = ['Titular', 'Interino', 'Suplente'];
 
 /**
  * Normaliza un rol proveniente de Firestore o Auth a uno de los 5 roles canónicos:
@@ -100,7 +101,8 @@ export const getRoleBadge = (role = '') => {
 };
 
 /**
- * Retorna el badge de estado de un usuario (Activo / Suspendido / Inactivo).
+ * Retorna el badge de estado de un usuario institucional (Activo / Suspendido / Inactivo).
+ * Si por histórico llega un estado de revista como Titular/Interino/Suplente, lo mapea a Activo.
  */
 export const getStatusBadge = (estado = '') => {
   const norm = String(estado).toLowerCase().trim();
@@ -123,12 +125,49 @@ export const getStatusBadge = (estado = '') => {
         badgeClass: 'bg-slate-100 text-slate-600 border-slate-200',
         dotClass: 'bg-slate-400',
       };
+    case 'titular':
+    case 'interino':
+    case 'suplente':
+      return {
+        label: 'Activo',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        dotClass: 'bg-emerald-500',
+      };
     default:
       return {
         label: estado || 'Activo',
         badgeClass: 'bg-slate-50 text-slate-700 border-slate-200',
         dotClass: 'bg-slate-400',
       };
+  }
+};
+
+/**
+ * Retorna el badge para la condición de revista del docente (Titular / Interino / Suplente).
+ */
+export const getCondicionBadge = (condicion = '') => {
+  const norm = String(condicion).toLowerCase().trim();
+  switch (norm) {
+    case 'titular':
+      return {
+        label: 'Titular',
+        badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+        dotClass: 'bg-emerald-500',
+      };
+    case 'interino':
+      return {
+        label: 'Interino',
+        badgeClass: 'bg-blue-50 text-blue-700 border-blue-200/80',
+        dotClass: 'bg-blue-500',
+      };
+    case 'suplente':
+      return {
+        label: 'Suplente',
+        badgeClass: 'bg-amber-50 text-amber-700 border-amber-200/80',
+        dotClass: 'bg-amber-500',
+      };
+    default:
+      return null;
   }
 };
 

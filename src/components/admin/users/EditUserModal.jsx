@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   RBAC_ROLES,
   USER_ESTADOS,
+  DOCENTE_CONDICIONES,
   PERMISSION_MODULES,
   validateUserForm,
 } from './userRbacConstants';
@@ -22,6 +23,7 @@ const EditUserModal = ({
     telefono: '',
     role: 'Directivo',
     cargo: '',
+    condicion: 'Titular',
     estado: 'Activo',
     customPermissions: [],
   });
@@ -31,6 +33,11 @@ const EditUserModal = ({
 
   useEffect(() => {
     if (user && isOpen) {
+      const rawEstado = String(user.estado || '').trim();
+      const isRevista = ['titular', 'interino', 'suplente'].includes(rawEstado.toLowerCase());
+      const userCondicion = user.condicion || (isRevista ? rawEstado.charAt(0).toUpperCase() + rawEstado.slice(1).toLowerCase() : 'Titular');
+      const userEstado = isRevista ? 'Activo' : (rawEstado || 'Activo');
+
       setFormData({
         nombre: user.nombre || '',
         apellido: user.apellido || '',
@@ -39,7 +46,8 @@ const EditUserModal = ({
         telefono: user.telefono || '',
         role: user.role || 'Directivo',
         cargo: user.cargo || '',
-        estado: user.estado || 'Activo',
+        condicion: userCondicion,
+        estado: userEstado,
         customPermissions: user.customPermissions || [],
       });
       setActiveTab('general');
@@ -316,25 +324,69 @@ const EditUserModal = ({
                     />
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
-                      Estado de la Cuenta
-                    </label>
-                    <select
-                      id="edit-user-estado"
-                      name="estado"
-                      value={formData.estado}
-                      onChange={handleChange}
-                      className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
-                    >
-                      {USER_ESTADOS.map((est) => (
-                        <option key={est} value={est}>
-                          {est}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {formData.role === 'Docente' ? (
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="edit-user-condicion" className="text-xs font-bold text-slate-700">
+                        Condición Docente / Revista *
+                      </label>
+                      <select
+                        id="edit-user-condicion"
+                        name="condicion"
+                        value={formData.condicion || 'Titular'}
+                        onChange={handleChange}
+                        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+                      >
+                        {DOCENTE_CONDICIONES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
+                        Estado de la Cuenta
+                      </label>
+                      <select
+                        id="edit-user-estado"
+                        name="estado"
+                        value={formData.estado}
+                        onChange={handleChange}
+                        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+                      >
+                        {USER_ESTADOS.map((est) => (
+                          <option key={est} value={est}>
+                            {est}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
+
+                {formData.role === 'Docente' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
+                        Estado de la Cuenta
+                      </label>
+                      <select
+                        id="edit-user-estado"
+                        name="estado"
+                        value={formData.estado}
+                        onChange={handleChange}
+                        className="bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border border-slate-200 focus:border-blue-500 cursor-pointer"
+                      >
+                        {USER_ESTADOS.map((est) => (
+                          <option key={est} value={est}>
+                            {est}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               /* Pestaña de Permisos */

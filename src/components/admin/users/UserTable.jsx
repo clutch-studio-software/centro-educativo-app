@@ -19,7 +19,9 @@ const UserFloatingMenu = ({
 }) => {
   if (!activeUser) return null;
 
-  const isSuspendido = activeUser.estado === 'Suspendido' || activeUser.estado === 'Inactivo';
+  const isSuspendido =
+    String(activeUser.estado).toLowerCase() === 'suspendido' ||
+    String(activeUser.estado).toLowerCase() === 'inactivo';
 
   return (
     <div
@@ -68,7 +70,7 @@ const UserFloatingMenu = ({
           <div className="flex flex-col items-start leading-tight">
             <span>Permisos del Rol</span>
             <span className="text-[10px] font-normal text-slate-400">
-              Ver matriz de accesos de {activeUser.role}
+              Configurar permisos del rol
             </span>
           </div>
         </button>
@@ -107,9 +109,8 @@ const UserFloatingMenu = ({
           className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
         >
           <span
-            className={`material-symbols-outlined text-[18px] ${
-              isSuspendido ? 'text-emerald-600' : 'text-slate-500'
-            }`}
+            className={`material-symbols-outlined text-[18px] ${isSuspendido ? 'text-emerald-600' : 'text-slate-500'
+              }`}
           >
             {isSuspendido ? 'toggle_on' : 'toggle_off'}
           </span>
@@ -290,14 +291,16 @@ const UserTable = ({
 
                   {/* Rol Institucional */}
                   <td className="py-3.5 px-6">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${roleBadge.badgeClass}`}
-                    >
-                      <span className="material-symbols-outlined text-[14px]">
-                        {roleBadge.icon}
+                    <div className="flex flex-col items-start gap-1.5">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${roleBadge.badgeClass}`}
+                      >
+                        <span className="material-symbols-outlined text-[14px]">
+                          {roleBadge.icon}
+                        </span>
+                        <span>{roleBadge.label}</span>
                       </span>
-                      <span>{roleBadge.label}</span>
-                    </span>
+                    </div>
                   </td>
 
                   {/* Permisos */}
@@ -345,11 +348,10 @@ const UserTable = ({
                             setActiveMenuUserId(user.id);
                           }
                         }}
-                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                          isMenuOpen
+                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${isMenuOpen
                             ? 'bg-blue-50 text-blue-600 border-blue-200'
                             : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100 border-transparent hover:border-slate-200'
-                        }`}
+                          }`}
                         title="Opciones de usuario"
                       >
                         <span className="material-symbols-outlined text-[20px]">

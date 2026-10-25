@@ -59,7 +59,41 @@ export const getStoredRbacUsers = () => {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        let modified = false;
+        const sanitized = parsed.map((u) => {
+          const rawEstado = String(u.estado || '').trim();
+          const normEstado = rawEstado.toLowerCase();
+          const normRole = normalizeRole(u.role);
+          let userCondicion = u.condicion;
+
+          if (['titular', 'interino', 'suplente'].includes(normEstado)) {
+            if (!userCondicion) {
+              userCondicion = rawEstado.charAt(0).toUpperCase() + rawEstado.slice(1).toLowerCase();
+            }
+            modified = true;
+            return {
+              ...u,
+              condicion: userCondicion,
+              estado: u.disabled ? 'Suspendido' : 'Activo',
+            };
+          }
+
+          if (normRole === 'Docente' && !userCondicion) {
+            userCondicion = 'Titular';
+            modified = true;
+            return {
+              ...u,
+              condicion: userCondicion,
+            };
+          }
+
+          return u;
+        });
+
+        if (modified) {
+          saveStoredRbacUsers(sanitized);
+        }
+        return sanitized;
       }
     }
   } catch (err) {
@@ -117,6 +151,31 @@ export const fetchRbacUsersApi = async () => {
             return null;
           }
 
+          let rawEstado = String(data.estado || '').trim();
+          let rawCondicion = data.condicion || '';
+
+          // Si el estado en Firestore es una condición de revista docente (Titular / Interino / Suplente)
+          if (['titular', 'interino', 'suplente'].includes(rawEstado.toLowerCase())) {
+            if (!rawCondicion) {
+              rawCondicion = rawEstado.charAt(0).toUpperCase() + rawEstado.slice(1).toLowerCase();
+            }
+            rawEstado = data.disabled ? 'Suspendido' : 'Activo';
+          } else if (!rawEstado) {
+            rawEstado = data.disabled ? 'Suspendido' : 'Activo';
+          } else if (rawEstado.toLowerCase() === 'activo') {
+            rawEstado = 'Activo';
+          } else if (rawEstado.toLowerCase() === 'suspendido') {
+            rawEstado = 'Suspendido';
+          } else if (rawEstado.toLowerCase() === 'inactivo') {
+            rawEstado = 'Inactivo';
+          } else {
+            rawEstado = data.disabled ? 'Suspendido' : 'Activo';
+          }
+
+          if (normRole === 'Docente' && !rawCondicion) {
+            rawCondicion = 'Titular';
+          }
+
           return {
             id: docSnap.id,
             legajo: data.legajo || `#USR-${docSnap.id.slice(0, 6).toUpperCase()}`,
@@ -128,7 +187,8 @@ export const fetchRbacUsersApi = async () => {
             telefono: data.telefono || '',
             role: normRole,
             cargo: data.cargo || `Personal ${normRole}`,
-            estado: data.estado || (data.disabled ? 'Suspendido' : 'Activo'),
+            condicion: normRole === 'Docente' ? rawCondicion : (data.condicion || undefined),
+            estado: rawEstado,
             customPermissions: data.customPermissions || [],
             createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt || new Date().toISOString(),
           };
@@ -160,6 +220,12 @@ export const createRbacUserApi = async (userData) => {
   const cleanApellido = String(userData.apellido || '').trim();
   const nombreCompleto = `${cleanNombre} ${cleanApellido}`.trim();
 
+  const cleanCondicion = normRole === 'Docente' ? (userData.condicion || 'Titular') : undefined;
+  let cleanEstado = userData.estado || 'Activo';
+  if (['titular', 'interino', 'suplente'].includes(String(cleanEstado).toLowerCase())) {
+    cleanEstado = 'Activo';
+  }
+
   let targetUid = `usr-${Date.now()}`;
 
   // Intentar crear mediante Cloud Function si está disponible
@@ -174,8 +240,9 @@ export const createRbacUserApi = async (userData) => {
       nombreCompleto,
       telefono: userData.telefono || '',
       cargo: userData.cargo || `Personal ${normRole}`,
+      condicion: cleanCondicion,
       legajo,
-      estado: userData.estado || 'Activo',
+      estado: cleanEstado,
       customPermissions: userData.customPermissions || [],
     });
 
@@ -197,7 +264,8 @@ export const createRbacUserApi = async (userData) => {
     telefono: userData.telefono || '',
     role: normRole,
     cargo: userData.cargo || `Personal ${normRole}`,
-    estado: userData.estado || 'Activo',
+    condicion: cleanCondicion,
+    estado: cleanEstado,
     customPermissions: userData.customPermissions || [],
     createdAt: new Date().toISOString(),
   };
@@ -231,6 +299,12 @@ export const updateRbacUserApi = async (userId, userData) => {
   const cleanApellido = String(userData.apellido || '').trim();
   const nombreCompleto = `${cleanNombre} ${cleanApellido}`.trim();
 
+  const cleanCondicion = normRole === 'Docente' ? (userData.condicion || 'Titular') : (userData.condicion || undefined);
+  let cleanEstado = userData.estado || 'Activo';
+  if (['titular', 'interino', 'suplente'].includes(String(cleanEstado).toLowerCase())) {
+    cleanEstado = 'Activo';
+  }
+
   const updatedUser = {
     ...userData,
     id: userId,
@@ -238,6 +312,8 @@ export const updateRbacUserApi = async (userId, userData) => {
     apellido: cleanApellido,
     nombreCompleto,
     role: normRole,
+    condicion: cleanCondicion,
+    estado: cleanEstado,
     updatedAt: new Date().toISOString(),
   };
 
@@ -254,7 +330,8 @@ export const updateRbacUserApi = async (userId, userData) => {
       telefono: userData.telefono || '',
       role: normRole,
       cargo: userData.cargo || '',
-      estado: userData.estado || 'Activo',
+      condicion: cleanCondicion || null,
+      estado: cleanEstado,
       customPermissions: userData.customPermissions || [],
       updatedAt: serverTimestamp(),
     });
@@ -296,7 +373,8 @@ export const toggleRbacUserStatusApi = async (userId) => {
     throw new Error('Usuario no encontrado.');
   }
 
-  const nuevoEstado = target.estado === 'Activo' ? 'Suspendido' : 'Activo';
+  const isCurrentlyActive = String(target.estado || '').toLowerCase() === 'activo';
+  const nuevoEstado = isCurrentlyActive ? 'Suspendido' : 'Activo';
   const updatedUser = { ...target, estado: nuevoEstado, updatedAt: new Date().toISOString() };
 
   try {
@@ -439,7 +517,7 @@ export const saveRolePermissionsApi = async (rolePermissions) => {
  * Exporta el listado de usuarios a formato CSV.
  */
 export const exportUsersCsv = (users = [], activeRole = 'Todos') => {
-  const headers = ['Legajo', 'Nombre y Apellido', 'DNI', 'Email Institucional', 'Teléfono', 'Rol', 'Cargo', 'Estado'];
+  const headers = ['Legajo', 'Nombre y Apellido', 'DNI', 'Email Institucional', 'Teléfono', 'Rol', 'Condición Docente', 'Cargo', 'Estado'];
   const rows = users.map((u) => [
     `"${u.legajo || ''}"`,
     `"${u.nombreCompleto || `${u.nombre || ''} ${u.apellido || ''}`.trim()}"`,
@@ -447,6 +525,7 @@ export const exportUsersCsv = (users = [], activeRole = 'Todos') => {
     `"${u.email || ''}"`,
     `"${u.telefono || ''}"`,
     `"${u.role || ''}"`,
+    `"${u.role === 'Docente' ? (u.condicion || 'Titular') : ''}"`,
     `"${u.cargo || ''}"`,
     `"${u.estado || ''}"`,
   ]);

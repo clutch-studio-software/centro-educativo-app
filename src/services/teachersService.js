@@ -136,6 +136,11 @@ const normalizeFirestoreTeacher = (docId, data = {}) => {
     creadoEn = data.createdAt;
   }
 
+  const rawEstado = String(data.estado || '').trim();
+  const isSuspended = Boolean(data.disabled || rawEstado.toLowerCase() === 'suspendido');
+  const condicion = data.condicion || (!['activo', 'inactivo', 'suspendido'].includes(rawEstado.toLowerCase()) ? rawEstado : 'Titular');
+  const estadoCuenta = isSuspended ? 'Suspendido' : (rawEstado.toLowerCase() === 'inactivo' ? 'Inactivo' : 'Activo');
+
   return {
     id: docId,
     legajo,
@@ -152,7 +157,9 @@ const normalizeFirestoreTeacher = (docId, data = {}) => {
     especialidad: (data.especialidad || '').trim(),
     email: (data.email || '').trim().toLowerCase(),
     telefono: (data.telefono || '').trim(),
-    estado: data.estado || (data.disabled ? 'Suspendido' : 'Titular'),
+    condicion,
+    estado: estadoCuenta,
+    disabled: isSuspended,
     avatar: null,
     cargaHoras: Number(data.cargaHoras) || 0,
     cargaMaxHoras: Number(data.cargaMaxHoras) || 30,
@@ -231,7 +238,9 @@ export const createTeacherApi = async (teacherData) => {
   const cleanTelefono = (teacherData.telefono || '').trim();
   const cleanTitulacion = (teacherData.titulacion || '').trim();
   const cleanEspecialidad = (teacherData.especialidad || '').trim();
-  const estado = teacherData.estado || 'Titular';
+  const cleanCondicion = (teacherData.condicion || (['titular', 'interino', 'suplente'].includes(String(teacherData.estado || '').toLowerCase()) ? teacherData.estado : 'Titular')).trim();
+  const isSuspended = teacherData.estado === 'Suspendido' || teacherData.disabled;
+  const estadoCuenta = isSuspended ? 'Suspendido' : 'Activo';
 
   // Registrar docente de forma segura exclusivamente en el servidor vía Cloud Function
   const cfResult = await callAdminFunction('cf_createAdministrativeUser', {
@@ -246,7 +255,9 @@ export const createTeacherApi = async (teacherData) => {
     titulacion: cleanTitulacion,
     especialidad: cleanEspecialidad,
     telefono: cleanTelefono,
-    estado,
+    condicion: cleanCondicion,
+    estado: estadoCuenta,
+    disabled: isSuspended,
     nombreCompleto,
   });
 
@@ -263,9 +274,10 @@ export const createTeacherApi = async (teacherData) => {
     titulacion: cleanTitulacion,
     especialidad: cleanEspecialidad,
     telefono: cleanTelefono,
-    estado,
+    condicion: cleanCondicion,
+    estado: estadoCuenta,
     legajo,
-    disabled: estado === 'Suspendido',
+    disabled: isSuspended,
     cargaHoras: 0,
     cargaMaxHoras: 30,
     catedras: [],
@@ -317,9 +329,9 @@ export const createTeacherApi = async (teacherData) => {
     dni: cleanDni,
     titulacion: cleanTitulacion,
     especialidad: cleanEspecialidad,
-    email: cleanEmail,
-    telefono: cleanTelefono,
-    estado,
+    condicion: cleanCondicion,
+    estado: estadoCuenta,
+    disabled: isSuspended,
     avatar: null,
     cargaHoras: 0,
     cargaMaxHoras: 30,
@@ -360,7 +372,9 @@ export const updateTeacherApi = async (teacherId, teacherData) => {
   const cleanTelefono = (teacherData.telefono || '').trim();
   const cleanTitulacion = (teacherData.titulacion || '').trim();
   const cleanEspecialidad = (teacherData.especialidad || '').trim();
-  const estado = teacherData.estado || 'Titular';
+  const cleanCondicion = (teacherData.condicion || (['titular', 'interino', 'suplente'].includes(String(teacherData.estado || '').toLowerCase()) ? teacherData.estado : 'Titular')).trim();
+  const isSuspended = teacherData.estado === 'Suspendido' || teacherData.disabled;
+  const estadoCuenta = isSuspended ? 'Suspendido' : 'Activo';
 
   const fieldsToUpdate = {
     tratamiento,
@@ -372,8 +386,9 @@ export const updateTeacherApi = async (teacherId, teacherData) => {
     especialidad: cleanEspecialidad,
     email: cleanEmail,
     telefono: cleanTelefono,
-    estado,
-    disabled: estado === 'Suspendido',
+    condicion: cleanCondicion,
+    estado: estadoCuenta,
+    disabled: isSuspended,
   };
 
   // 1. Intentar vía Cloud Function
@@ -413,7 +428,9 @@ export const updateTeacherApi = async (teacherId, teacherData) => {
         especialidad: cleanEspecialidad,
         email: cleanEmail || t.email,
         telefono: cleanTelefono,
-        estado,
+        condicion: cleanCondicion,
+        estado: estadoCuenta,
+        disabled: isSuspended,
         updatedAt: new Date().toISOString(),
       };
     }
@@ -440,11 +457,13 @@ export const toggleTeacherStatusApi = async (teacherId) => {
     return toggleTeacherStatusApi(teacherId);
   }
 
-  const nuevoEstado = teacher.estado === 'Suspendido' ? 'Titular' : 'Suspendido';
+  const isCurrentlySuspended = teacher.estado === 'Suspendido' || teacher.disabled;
+  const nuevoEstado = isCurrentlySuspended ? 'Activo' : 'Suspendido';
 
   await updateTeacherApi(teacherId, {
     ...teacher,
     estado: nuevoEstado,
+    disabled: nuevoEstado === 'Suspendido',
   });
 
   const refreshedList = getStoredTeachers();
@@ -607,7 +626,7 @@ export const exportTeachersPayrollCsv = (teachers = []) => {
     `"${(t.especialidad || '').replace(/"/g, '""')}"`,
     t.email,
     t.telefono,
-    t.estado,
+    t.condicion || t.estado,
     t.cargaHoras || 0,
   ]);
 

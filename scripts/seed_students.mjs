@@ -196,7 +196,7 @@ async function seed() {
   console.log('==================================================');
 
   // Autenticar como administrador
-  const adminKey = envVars.VITE_DEV_ADMIN_KEY || envVars.VITE_ADMIN_PASSWORD;
+  const adminKey = envVars.ADMIN_PASSWORD || envVars.VITE_DEV_ADMIN_KEY || envVars.VITE_ADMIN_PASSWORD;
   const userCred = await signInWithEmailAndPassword(auth, envVars.VITE_ADMIN_EMAIL, adminKey);
   console.log(`Sesión iniciada con UID: ${userCred.user.uid}`);
 
