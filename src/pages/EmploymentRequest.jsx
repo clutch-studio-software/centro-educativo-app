@@ -140,8 +140,9 @@ const EmploymentRequest = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Nombre */}
                                 <div className="flex flex-col gap-2">
-                                    <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo <span className="text-red-500">*</span></label>
+                                    <label htmlFor="employment-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo <span className="text-red-500">*</span></label>
                                     <input 
+                                        id="employment-name"
                                         type="text" 
                                         name="name"
                                         value={formData.name}
@@ -154,8 +155,9 @@ const EmploymentRequest = () => {
                                 
                                 {/* Email */}
                                 <div className="flex flex-col gap-2">
-                                    <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo Electrónico <span className="text-red-500">*</span></label>
+                                    <label htmlFor="employment-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo Electrónico <span className="text-red-500">*</span></label>
                                     <input 
+                                        id="employment-email"
                                         type="email" 
                                         name="email"
                                         value={formData.email}
@@ -169,9 +171,10 @@ const EmploymentRequest = () => {
 
                             {/* Área */}
                             <div className="flex flex-col gap-2">
-                                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Área de Interés Principal <span className="text-red-500">*</span></label>
+                                <label htmlFor="employment-area" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Área de Interés Principal <span className="text-red-500">*</span></label>
                                 <div className="relative">
                                     <select 
+                                        id="employment-area"
                                         name="area"
                                         value={formData.area}
                                         onChange={handleInputChange}
@@ -191,8 +194,9 @@ const EmploymentRequest = () => {
 
                             {/* Reusable File Drag and Drop Zone (Molecule) */}
                             <div className="flex flex-col gap-2">
-                                <label className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Sube tu CV (PDF) <span className="text-red-500">*</span></label>
+                                <label htmlFor="employment-cv-input" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Sube tu CV (PDF) <span className="text-red-500">*</span></label>
                                 <FileUploadZone 
+                                    inputId="employment-cv-input"
                                     file={cvFile}
                                     onFileChange={(file) => {
                                         setCvFile(file);

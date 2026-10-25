@@ -1,0 +1,1146 @@
+import React, { useState, useMemo } from 'react';
+import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
+import { sortCourseNames, sortDivisions } from '../../utils/academicUtils';
+import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
+import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
+
+const AVAILABLE_SERVICIOS = [
+  'Comedor Escolar',
+  'Transporte',
+  'Club Deportivo',
+  'Jornada Extendida',
+  'Robótica & Programación',
+  'Inglés Cambridge',
+];
+
+const getMatchedTutor = (tutorsList, currentStudent) => {
+  const sortedTutors = (tutorsList || [])
+    .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+
+  return (
+    sortedTutors.find((t) => t.id === currentStudent?.parentId) ||
+    sortedTutors.find(
+      (t) =>
+        t.email &&
+        currentStudent?.tutorEmail &&
+        t.email.trim().toLowerCase() === currentStudent.tutorEmail.trim().toLowerCase()
+    ) ||
+    null
+  );
+};
+
+const validateEditStudentForm = ({
+  studentNombre,
+  studentApellido,
+  studentDni,
+  studentFechaNacimiento,
+  studentNivel,
+  tutorMode,
+  reassignedTutorId,
+  tutorNombre,
+  tutorTelefono,
+}) => {
+  if (!studentNombre.trim() || !studentApellido.trim() || !studentDni.trim()) {
+    return { error: 'El nombre, apellido y DNI del alumno son obligatorios.', tab: 'student' };
+  }
+
+  if (studentFechaNacimiento) {
+    const ageCheck = validarEdadPorNivel(studentFechaNacimiento, studentNivel);
+    if (!ageCheck.esValido) {
+      return { error: ageCheck.error, tab: 'student' };
+    }
+  }
+
+  if (tutorMode === 'reassign' && !reassignedTutorId) {
+    return { error: 'Selecciona un tutor registrado para reasignar al alumno.', tab: 'tutor' };
+  }
+
+  if (tutorMode === 'current') {
+    if (!tutorNombre.trim()) {
+      return { error: 'El nombre del tutor responsable es obligatorio.', tab: 'tutor' };
+    }
+    if (tutorTelefono.trim() && !isValidPhone(tutorTelefono)) {
+      return {
+        error: 'El teléfono debe contener únicamente números y tener 10 u 11 dígitos (ej: 1123456789).',
+        tab: 'tutor',
+      };
+    }
+  }
+
+  return null;
+};
+
+const buildSavePayload = ({
+  student,
+  studentNombre,
+  studentApellido,
+  studentDni,
+  studentFechaNacimiento,
+  studentDomicilio,
+  studentNivel,
+  studentCurso,
+  studentDivision,
+  studentEstado,
+  studentServicios,
+  currentTutorId,
+  tutorMode,
+  selectedReassignedTutor,
+  tutorNombre,
+  tutorDni,
+  tutorTelefono,
+  tutorEmail,
+  tutorDomicilio,
+  reassignedTutorId,
+}) => {
+  const cleanNombre = studentNombre.trim();
+  const cleanApellido = studentApellido.trim();
+
+  let baseNombre = cleanNombre;
+  if (cleanApellido) {
+    const escapedApellido = cleanApellido.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`\\s+${escapedApellido}$`, 'i');
+    if (regex.test(cleanNombre)) {
+      baseNombre = cleanNombre.replace(regex, '').trim();
+    }
+  }
+
+  const fullName = cleanApellido ? `${baseNombre} ${cleanApellido}`.trim() : baseNombre;
+  const initials = `${(baseNombre[0] || '').toUpperCase()}${(cleanApellido[0] || '').toUpperCase()}`;
+
+  return {
+    studentId: student.id,
+    studentData: {
+      nombre: fullName,
+      apellido: cleanApellido,
+      dni: studentDni.trim(),
+      fechaNacimiento: studentFechaNacimiento,
+      domicilio: studentDomicilio.trim(),
+      nivel: studentNivel,
+      curso: studentCurso,
+      division: studentDivision,
+      estado: studentEstado,
+      servicios: studentServicios,
+      initials: initials || 'AL',
+    },
+    tutorId: currentTutorId,
+    tutorData:
+      tutorMode === 'reassign' && selectedReassignedTutor
+        ? {
+            id: selectedReassignedTutor.id,
+            nombre: selectedReassignedTutor.nombre,
+            email: selectedReassignedTutor.email,
+            telefono: selectedReassignedTutor.telefono || '',
+            dni: selectedReassignedTutor.dni || '',
+            domicilio: selectedReassignedTutor.domicilio || '',
+          }
+        : {
+            id: currentTutorId,
+            nombre: tutorNombre.trim(),
+            dni: tutorDni.trim(),
+            telefono: tutorTelefono.trim(),
+            email: tutorEmail.trim(),
+            domicilio: tutorDomicilio.trim(),
+          },
+    reassignedTutorId: tutorMode === 'reassign' ? reassignedTutorId : null,
+  };
+};
+
+const getAvailableDivisiones = (academicOffer, nivel, curso) => {
+  if (!curso || curso === 'sin asignar') return ['A'];
+  const courseDivs = academicOffer?.[nivel]?.[curso];
+  if (Array.isArray(courseDivs) && courseDivs.length > 0) {
+    return sortDivisions(courseDivs);
+  }
+  return ['A'];
+};
+
+const StudentFieldsTab = ({
+  studentNombre,
+  setStudentNombre,
+  studentApellido,
+  setStudentApellido,
+  studentDni,
+  setStudentDni,
+  studentFechaNacimiento,
+  setStudentFechaNacimiento,
+  studentDomicilio,
+  setStudentDomicilio,
+  studentNivel,
+  handleNivelChange,
+  studentCurso,
+  handleCursoChange,
+  availableCursos,
+  studentDivision,
+  setStudentDivision,
+  availableDivisiones,
+  studentEstado,
+  setStudentEstado,
+  studentServicios,
+  handleToggleServicio,
+}) => (
+  <div data-testid="section-student-fields" className="flex flex-col gap-5">
+    {/* Información Personal */}
+    <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3.5">
+      <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+        <span className="material-symbols-outlined text-[16px] text-slate-400">person</span>
+        Información Personal
+      </h3>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div>
+          <label htmlFor="edit-student-firstname-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Nombre *
+          </label>
+          <input
+            id="edit-student-firstname-input"
+            data-testid="edit-student-firstname-input"
+            type="text"
+            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+            placeholder="Ej: Lucas Valentín"
+            value={studentNombre}
+            onChange={(e) => setStudentNombre(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-student-lastname-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Apellido *
+          </label>
+          <input
+            id="edit-student-lastname-input"
+            data-testid="edit-student-lastname-input"
+            type="text"
+            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+            placeholder="Ej: Gómez"
+            value={studentApellido}
+            onChange={(e) => setStudentApellido(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-student-dni-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            DNI del Alumno *
+          </label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+              badge
+            </span>
+            <input
+              id="edit-student-dni-input"
+              data-testid="edit-student-dni-input"
+              type="text"
+              className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono font-semibold"
+              placeholder="Ej: 49.821.305"
+              value={studentDni}
+              onChange={(e) => setStudentDni(formatDni(e.target.value))}
+              required
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="edit-student-birthdate-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Fecha de Nacimiento
+          </label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+              calendar_month
+            </span>
+            <input
+              id="edit-student-birthdate-input"
+              data-testid="edit-student-birthdate-input"
+              type="date"
+              className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+              value={studentFechaNacimiento}
+              onChange={(e) => setStudentFechaNacimiento(e.target.value)}
+            />
+          </div>
+          {studentFechaNacimiento && (
+            (() => {
+              const check = validarEdadPorNivel(studentFechaNacimiento, studentNivel);
+              return (
+                <p
+                  className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
+                    check.esValido ? 'text-emerald-600' : 'text-red-600'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[13px]">
+                    {check.esValido ? 'check_circle' : 'warning'}
+                  </span>
+                  {check.esValido
+                    ? `Edad: ${check.edad} años (válida para ${studentNivel})`
+                    : check.error}
+                </p>
+              );
+            })()
+          )}
+        </div>
+
+        <div className="sm:col-span-2">
+          <label htmlFor="edit-student-address-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Domicilio
+          </label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+              location_on
+            </span>
+            <input
+              id="edit-student-address-input"
+              data-testid="edit-student-address-input"
+              type="text"
+              className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+              placeholder="Ej: Av. Sarmiento 1240, Resistencia"
+              value={studentDomicilio}
+              onChange={(e) => setStudentDomicilio(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Asignación Académica */}
+    <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3.5">
+      <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+        <span className="material-symbols-outlined text-[16px] text-slate-400">school</span>
+        Asignación Académica
+      </h3>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        {/* Selector de Nivel */}
+        <div>
+          <label htmlFor="edit-student-nivel-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Nivel Educativo *
+          </label>
+          <select
+            id="edit-student-nivel-select"
+            data-testid="edit-student-level-select"
+            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold"
+            value={studentNivel}
+            onChange={(e) => handleNivelChange(e.target.value)}
+          >
+            <option value="Inicial">Inicial</option>
+            <option value="Primario">Primario</option>
+            <option value="Secundario">Secundario</option>
+          </select>
+        </div>
+
+        {/* Selector de Curso */}
+        <div>
+          <label htmlFor="edit-student-curso-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            Curso *
+          </label>
+          <select
+            id="edit-student-curso-select"
+            data-testid="edit-student-course-select"
+            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+            value={studentCurso}
+            onChange={(e) => handleCursoChange(e.target.value)}
+          >
+            <option value="sin asignar">Sin asignar</option>
+            {availableCursos.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Selector de División */}
+        <div>
+          <label htmlFor="edit-student-division-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+            División / Sala *
+          </label>
+          <select
+            id="edit-student-division-select"
+            data-testid="edit-student-division-select"
+            disabled={studentCurso === 'sin asignar'}
+            className={`w-full h-9 px-3 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              studentCurso === 'sin asignar'
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                : 'bg-white text-slate-800 border border-slate-200 cursor-pointer'
+            }`}
+            value={studentDivision}
+            onChange={(e) => setStudentDivision(e.target.value)}
+          >
+            {availableDivisiones.map((d) => (
+              <option key={d} value={d}>
+                {d.toLowerCase().includes('sala') || d.toLowerCase().includes('div')
+                  ? d
+                  : `División "${d}"`}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Estado Administrativo */}
+      <div className="mt-1">
+        <label htmlFor="edit-student-estado-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+          Estado Administrativo
+        </label>
+        <select
+          id="edit-student-estado-select"
+          data-testid="edit-student-status-select"
+          className="w-full sm:w-1/2 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={studentEstado}
+          onChange={(e) => setStudentEstado(e.target.value)}
+        >
+          <option value="Activo - Regular">Activo - Regular</option>
+          <option value="Documentación Pendiente">Documentación Pendiente</option>
+          <option value="Con Deuda Arancelaria">Con Deuda Arancelaria</option>
+          <option value="Baja Administrativa">Baja Administrativa</option>
+        </select>
+      </div>
+    </div>
+
+    {/* Servicios Adicionales */}
+    <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-2.5">
+      <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+        <span className="material-symbols-outlined text-[16px] text-slate-400">local_activity</span>
+        Servicios y Actividades Adicionales
+      </h3>
+      <div className="flex flex-wrap gap-2 pt-1">
+        {AVAILABLE_SERVICIOS.map((servicio) => {
+          const isSelected = studentServicios.includes(servicio);
+          return (
+            <button
+              key={servicio}
+              type="button"
+              onClick={() => handleToggleServicio(servicio)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
+                isSelected
+                  ? 'bg-lime-100 text-lime-900 border-lime-300 shadow-xs'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[15px]">
+                {isSelected ? 'check_circle' : 'add_circle'}
+              </span>
+              <span>{servicio}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+);
+
+const TutorFieldsTab = ({
+  tutorMode,
+  setTutorMode,
+  currentTutorId,
+  tutorNombre,
+  setTutorNombre,
+  tutorDni,
+  setTutorDni,
+  tutorTelefono,
+  setTutorTelefono,
+  tutorEmail,
+  setTutorEmail,
+  tutorDomicilio,
+  setTutorDomicilio,
+  tutorSearchFilter,
+  setTutorSearchFilter,
+  filteredTutors,
+  reassignedTutorId,
+  setReassignedTutorId,
+  selectedReassignedTutor,
+}) => (
+  <div data-testid="section-tutor-fields" className="flex flex-col gap-5">
+    {/* Selector de Modo: Editar actual vs Reasignar */}
+    <div className="flex items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+      <button
+        type="button"
+        data-testid="tutor-mode-current"
+        onClick={() => setTutorMode('current')}
+        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border-none cursor-pointer flex items-center justify-center gap-2 ${
+          tutorMode === 'current'
+            ? 'bg-white text-blue-700 shadow-xs'
+            : 'bg-transparent text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        <span className="material-symbols-outlined text-[16px]">edit</span>
+        <span>Modificar Datos del Tutor Actual</span>
+      </button>
+
+      <button
+        type="button"
+        data-testid="tutor-mode-reassign"
+        onClick={() => setTutorMode('reassign')}
+        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border-none cursor-pointer flex items-center justify-center gap-2 ${
+          tutorMode === 'reassign'
+            ? 'bg-white text-blue-700 shadow-xs'
+            : 'bg-transparent text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+        <span>Reasignar a Otro Tutor Registrado</span>
+      </button>
+    </div>
+
+    {/* MODO 1: EDITAR DATOS DEL TUTOR ACTUAL */}
+    {tutorMode === 'current' && (
+      <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px] text-slate-400">person</span>
+            Datos de Contacto del Tutor
+          </h3>
+          <span className="text-[10px] font-bold text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded-md">
+            ID: {currentTutorId || 'No asignado'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="sm:col-span-2">
+            <label htmlFor="edit-tutor-name-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+              Nombre y Apellido del Tutor *
+            </label>
+            <input
+              id="edit-tutor-name-input"
+              data-testid="edit-tutor-name-input"
+              type="text"
+              className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              placeholder="Ej: Marcelo Gómez"
+              value={tutorNombre}
+              onChange={(e) => setTutorNombre(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-tutor-dni-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+              DNI del Tutor
+            </label>
+            <input
+              id="edit-tutor-dni-input"
+              data-testid="edit-tutor-dni-input"
+              type="text"
+              className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-semibold"
+              placeholder="Ej: 28.394.021"
+              value={tutorDni}
+              onChange={(e) => setTutorDni(formatDni(e.target.value))}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-tutor-phone-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+              Teléfono / WhatsApp de Contacto
+            </label>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                call
+              </span>
+              <input
+                id="edit-tutor-phone-input"
+                data-testid="edit-tutor-phone-input"
+                type="tel"
+                maxLength={11}
+                className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                placeholder="Ej: 1123456789 (10 u 11 dígitos)"
+                value={tutorTelefono}
+                onChange={(e) => setTutorTelefono(sanitizePhoneNumber(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="edit-tutor-email-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+              Correo Electrónico
+            </label>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                mail
+              </span>
+              <input
+                id="edit-tutor-email-input"
+                data-testid="edit-tutor-email-input"
+                type="email"
+                className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                placeholder="Ej: tutor@gmail.com"
+                value={tutorEmail}
+                onChange={(e) => setTutorEmail(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="edit-tutor-address-input" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+              Domicilio del Tutor
+            </label>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                home
+              </span>
+              <input
+                id="edit-tutor-address-input"
+                data-testid="edit-tutor-address-input"
+                type="text"
+                className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                placeholder="Ej: Av. Sarmiento 1240"
+                value={tutorDomicilio}
+                onChange={(e) => setTutorDomicilio(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* MODO 2: REASIGNAR A OTRO TUTOR REGISTRADO */}
+    {tutorMode === 'reassign' && (
+      <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3.5 text-left">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px] text-slate-400">group</span>
+            Seleccionar Nuevo Tutor Responsable
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            Transfiere el legajo del alumno a otro tutor ya registrado en la plataforma.
+          </p>
+        </div>
+
+        {/* Buscador de Tutores */}
+        <div className="relative">
+          <label htmlFor="reassign-tutor-search-input" className="sr-only">
+            Filtrar tutores
+          </label>
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+            search
+          </span>
+          <input
+            id="reassign-tutor-search-input"
+            data-testid="reassign-tutor-search-input"
+            type="text"
+            className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-md text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Filtrar tutores por nombre, DNI o email..."
+            value={tutorSearchFilter}
+            onChange={(e) => setTutorSearchFilter(e.target.value)}
+          />
+        </div>
+
+        {/* Dropdown / Lista A-Z de Tutores */}
+        <div
+          className="max-h-52 overflow-y-auto border border-slate-200 rounded-md bg-white divide-y divide-slate-100 text-left overflow-hidden shadow-xs no-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {filteredTutors.length === 0 ? (
+            <div className="p-4 text-center text-xs text-slate-400">
+              No se encontraron tutores coincidentes.
+            </div>
+          ) : (
+            filteredTutors.map((t) => {
+              const isSelected = reassignedTutorId === t.id;
+              return (
+                <div
+                  key={t.id}
+                  data-testid={`tutor-option-${t.id}`}
+                  onClick={() => setReassignedTutorId(t.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setReassignedTutorId(t.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  className={`px-3.5 py-3 flex items-center gap-3 text-xs transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-blue-50/90 text-blue-900'
+                      : 'hover:bg-slate-50/80 text-slate-700'
+                  }`}
+                >
+                  {/* Radio Indicator */}
+                  <div className="shrink-0">
+                    <span
+                      className={`w-[18px] h-[18px] rounded-md flex items-center justify-center border-2 text-[11px] transition-colors ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-slate-300 text-transparent bg-white'
+                      }`}
+                    >
+                      ✓
+                    </span>
+                  </div>
+
+                  {/* Tutor Info */}
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className={`truncate ${isSelected ? 'text-blue-900 font-bold' : 'text-slate-800 font-semibold'}`}>
+                      {t.nombre}
+                    </span>
+                    <span className={`text-[11px] font-normal truncate ${isSelected ? 'text-blue-700/80' : 'text-slate-400'}`}>
+                      DNI: {t.dni || 'S/D'} · {t.email || 'Sin email'} · Tel: {t.telefono || 'S/T'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Confirmación del tutor seleccionado */}
+        {selectedReassignedTutor && (
+          <div
+            data-testid="selected-reassigned-tutor-card"
+            className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-md flex items-center gap-3 text-xs text-emerald-900"
+          >
+            <span className="material-symbols-outlined text-[20px] text-emerald-600 shrink-0">
+              check_circle
+            </span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold truncate">
+                Tutor asignado: {selectedReassignedTutor.nombre}
+              </span>
+              <span className="text-[11px] text-emerald-700 truncate">
+                Email: {selectedReassignedTutor.email} · Tel: {selectedReassignedTutor.telefono || 'No registrado'}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+);
+
+const getInitialStudentFormState = (student, matchedTutor) => {
+  const rawNombre = (student?.nombre || '').trim();
+  let initialApellido = (student?.apellido || '').trim();
+  let initialNombre = rawNombre;
+
+  if (initialApellido) {
+    // Si student.nombre contiene el apellido al final, se lo removemos para dejar únicamente el nombre
+    const escapedApellido = initialApellido.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`\\s+${escapedApellido}$`, 'i');
+    if (regex.test(rawNombre)) {
+      initialNombre = rawNombre.replace(regex, '').trim();
+    }
+  } else if (rawNombre) {
+    // Si no tiene apellido explícito, separamos la última palabra como apellido
+    const parts = rawNombre.split(/\s+/);
+    if (parts.length > 1) {
+      initialApellido = parts.pop();
+      initialNombre = parts.join(' ');
+    }
+  }
+
+  return {
+    studentNombre: initialNombre,
+    studentApellido: initialApellido,
+    studentDni: formatDni(student?.dni || ''),
+    studentFechaNacimiento: student?.fechaNacimiento || '',
+    studentDomicilio: student?.domicilio || '',
+    studentNivel: student?.nivel || 'Primario',
+    studentCurso: student?.curso || 'sin asignar',
+    studentDivision: student?.division || 'sin asignar',
+    studentEstado: student?.estado || 'Activo - Regular',
+    studentServicios: Array.isArray(student?.servicios) ? [...student.servicios] : ['Comedor Escolar'],
+    tutorNombre: matchedTutor?.nombre || (student?.tutorNombre || '').replace(' (Tutor)', ''),
+    tutorDni: formatDni(matchedTutor?.dni || ''),
+    tutorTelefono: matchedTutor?.telefono || student?.tutorTelefono || '',
+    tutorEmail: matchedTutor?.email || student?.tutorEmail || '',
+    tutorDomicilio: matchedTutor?.domicilio || student?.tutorDomicilio || '',
+  };
+};
+
+const filterTutorsByTerm = (tutors, term) => {
+  if (!term.trim()) return tutors;
+  const lower = term.toLowerCase().trim();
+  return tutors.filter(
+    (t) =>
+      (t.nombre && t.nombre.toLowerCase().includes(lower)) ||
+      (t.dni && String(t.dni).includes(lower)) ||
+      (t.email && t.email.toLowerCase().includes(lower))
+  );
+};
+
+const EditStudentHeader = ({ student, isSubmitting, onClose }) => (
+  <div className="px-6 py-4 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between gap-4 shrink-0">
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="w-10 h-10 rounded-2xl bg-blue-100/80 text-blue-700 flex items-center justify-center font-extrabold shrink-0 shadow-xs">
+        <span className="material-symbols-outlined text-[22px]">edit_square</span>
+      </div>
+      <div className="min-w-0">
+        <h2 className="text-base font-extrabold text-slate-800 truncate">
+          Editar Legajo del Alumno
+        </h2>
+        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium truncate">
+          <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+            {student.legajo}
+          </span>
+          <span>·</span>
+          <span className="truncate">{student.nombre}</span>
+        </div>
+      </div>
+    </div>
+
+    <button
+      data-testid="edit-student-close-button"
+      onClick={onClose}
+      disabled={isSubmitting}
+      className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors border-none bg-transparent cursor-pointer"
+      type="button"
+      title="Cerrar modal"
+    >
+      <span className="material-symbols-outlined text-[20px]">close</span>
+    </button>
+  </div>
+);
+
+const EditStudentTabs = ({ activeTab, setActiveTab }) => (
+  <div className="px-6 pt-3 bg-white border-b border-slate-200 flex items-center gap-4 shrink-0">
+    <button
+      type="button"
+      data-testid="tab-student-data"
+      onClick={() => setActiveTab('student')}
+      className={`pb-3 px-1 font-bold text-xs flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+        activeTab === 'student'
+          ? 'border-blue-600 text-blue-700'
+          : 'border-transparent text-slate-400 hover:text-slate-700'
+      }`}
+    >
+      <span className="material-symbols-outlined text-[17px]">school</span>
+      <span>1. Datos del Alumno</span>
+    </button>
+
+    <button
+      type="button"
+      data-testid="tab-tutor-data"
+      onClick={() => setActiveTab('tutor')}
+      className={`pb-3 px-1 font-bold text-xs flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+        activeTab === 'tutor'
+          ? 'border-blue-600 text-blue-700'
+          : 'border-transparent text-slate-400 hover:text-slate-700'
+      }`}
+    >
+      <span className="material-symbols-outlined text-[17px]">family_restroom</span>
+      <span>2. Tutor Responsable</span>
+    </button>
+  </div>
+);
+
+const EditStudentModalContent = ({
+  student,
+  tutors = [],
+  academicOffer = DEFAULT_ACADEMIC_OFFER,
+  onClose,
+  onSaveStudent,
+}) => {
+  // Navigation Tabs
+  const [activeTab, setActiveTab] = useState('student'); // 'student' | 'tutor'
+
+  const matchedTutor = getMatchedTutor(tutors, student);
+  const [init] = useState(() => getInitialStudentFormState(student, matchedTutor));
+
+  // Student State
+  const [studentNombre, setStudentNombre] = useState(init.studentNombre);
+  const [studentApellido, setStudentApellido] = useState(init.studentApellido);
+  const [studentDni, setStudentDni] = useState(init.studentDni);
+  const [studentFechaNacimiento, setStudentFechaNacimiento] = useState(init.studentFechaNacimiento);
+  const [studentDomicilio, setStudentDomicilio] = useState(init.studentDomicilio);
+  const [studentNivel, setStudentNivel] = useState(init.studentNivel);
+  const [studentCurso, setStudentCurso] = useState(init.studentCurso);
+  const [studentDivision, setStudentDivision] = useState(init.studentDivision);
+  const [studentEstado, setStudentEstado] = useState(init.studentEstado);
+  const [studentServicios, setStudentServicios] = useState(init.studentServicios);
+
+  // Tutor Mode ('current' | 'reassign')
+  const [tutorMode, setTutorMode] = useState('current');
+  const currentTutorId = matchedTutor?.id || student?.parentId || null;
+  const [tutorNombre, setTutorNombre] = useState(init.tutorNombre);
+  const [tutorDni, setTutorDni] = useState(init.tutorDni);
+  const [tutorTelefono, setTutorTelefono] = useState(init.tutorTelefono);
+  const [tutorEmail, setTutorEmail] = useState(init.tutorEmail);
+  const [tutorDomicilio, setTutorDomicilio] = useState(init.tutorDomicilio);
+
+  // Reassignment State
+  const [reassignedTutorId, setReassignedTutorId] = useState(null);
+  const [tutorSearchFilter, setTutorSearchFilter] = useState('');
+
+  // UI State
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Available Tutors (Sorted A-Z)
+  const availableTutors = (tutors || [])
+    .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
+    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
+
+
+  // Cursos disponibles para el nivel seleccionado según academicOffer dinámico
+  const availableCursos = useMemo(() => {
+    const offerCourses = Object.keys(academicOffer?.[studentNivel] || {});
+    if (offerCourses.length > 0) {
+      if (
+        studentCurso &&
+        studentCurso !== 'sin asignar' &&
+        !offerCourses.includes(studentCurso)
+      ) {
+        return sortCourseNames([studentCurso, ...offerCourses]);
+      }
+      return sortCourseNames(offerCourses);
+    }
+    return sortCourseNames(CURSOS_POR_NIVEL[studentNivel] || []);
+  }, [academicOffer, studentNivel, studentCurso]);
+
+  // Divisiones disponibles para el curso seleccionado
+  const availableDivisiones = useMemo(() => {
+    return getAvailableDivisiones(academicOffer, studentNivel, studentCurso);
+  }, [academicOffer, studentNivel, studentCurso]);
+
+  const handleNivelChange = (newNivel) => {
+    setStudentNivel(newNivel);
+    setStudentCurso('sin asignar');
+    setStudentDivision('sin asignar');
+  };
+
+  const handleCursoChange = (newCurso) => {
+    setStudentCurso(newCurso);
+    if (newCurso === 'sin asignar') {
+      setStudentDivision('sin asignar');
+    } else {
+      const validDivs = getAvailableDivisiones(academicOffer, studentNivel, newCurso);
+      if (!validDivs.includes(studentDivision)) {
+        setStudentDivision(validDivs[0] || 'A');
+      }
+    }
+  };
+
+  const handleToggleServicio = (servicio) => {
+    setStudentServicios((prev) =>
+      prev.includes(servicio) ? prev.filter((s) => s !== servicio) : [...prev, servicio]
+    );
+  };
+
+  // Filtered tutors for reassignment
+  const filteredTutors = filterTutorsByTerm(availableTutors, tutorSearchFilter);
+
+  const selectedReassignedTutor = availableTutors.find((t) => t.id === reassignedTutorId);
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    setFormError('');
+
+    const validation = validateEditStudentForm({
+      studentNombre,
+      studentApellido,
+      studentDni,
+      studentFechaNacimiento,
+      studentNivel,
+      tutorMode,
+      reassignedTutorId,
+      tutorNombre,
+      tutorTelefono,
+    });
+
+    if (validation) {
+      setFormError(validation.error);
+      setActiveTab(validation.tab);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = buildSavePayload({
+        student,
+        studentNombre,
+        studentApellido,
+        studentDni,
+        studentFechaNacimiento,
+        studentDomicilio,
+        studentNivel,
+        studentCurso,
+        studentDivision,
+        studentEstado,
+        studentServicios,
+        currentTutorId,
+        tutorMode,
+        selectedReassignedTutor,
+        tutorNombre,
+        tutorDni,
+        tutorTelefono,
+        tutorEmail,
+        tutorDomicilio,
+        reassignedTutorId,
+      });
+
+      await onSaveStudent(payload);
+      onClose();
+    } catch (err) {
+      console.error('Error guardando edición de alumno:', err);
+      setFormError(err.message || 'Error al guardar los cambios.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
+      {/* Backdrop */}
+      <div
+        data-testid="edit-student-modal-overlay"
+        aria-hidden="true"
+        onClick={() => {
+          if (!isSubmitting) onClose();
+        }}
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+      />
+      <div
+        data-testid="edit-student-modal"
+        className="relative z-10 w-full max-w-3xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 text-left"
+      >
+        <EditStudentHeader student={student} isSubmitting={isSubmitting} onClose={onClose} />
+        <EditStudentTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        {/* Form Error Notice */}
+        {formError && (
+          <div
+            data-testid="edit-student-error"
+            className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2 shrink-0 animate-in fade-in"
+          >
+            <span className="material-symbols-outlined text-[18px] text-red-500">error</span>
+            <span>{formError}</span>
+          </div>
+        )}
+
+        {/* Scrollable Form Body */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 flex flex-col gap-6 flex-1">
+          {/* TAB 1: DATOS DEL ALUMNO */}
+          {activeTab === 'student' && (
+            <StudentFieldsTab
+              studentNombre={studentNombre}
+              setStudentNombre={setStudentNombre}
+              studentApellido={studentApellido}
+              setStudentApellido={setStudentApellido}
+              studentDni={studentDni}
+              setStudentDni={setStudentDni}
+              studentFechaNacimiento={studentFechaNacimiento}
+              setStudentFechaNacimiento={setStudentFechaNacimiento}
+              studentDomicilio={studentDomicilio}
+              setStudentDomicilio={setStudentDomicilio}
+              studentNivel={studentNivel}
+              handleNivelChange={handleNivelChange}
+              studentCurso={studentCurso}
+              handleCursoChange={handleCursoChange}
+              availableCursos={availableCursos}
+              studentDivision={studentDivision}
+              setStudentDivision={setStudentDivision}
+              availableDivisiones={availableDivisiones}
+              studentEstado={studentEstado}
+              setStudentEstado={setStudentEstado}
+              studentServicios={studentServicios}
+              handleToggleServicio={handleToggleServicio}
+            />
+          )}
+
+          {/* TAB 2: TUTOR RESPONSABLE */}
+          {activeTab === 'tutor' && (
+            <TutorFieldsTab
+              tutorMode={tutorMode}
+              setTutorMode={setTutorMode}
+              currentTutorId={currentTutorId}
+              tutorNombre={tutorNombre}
+              setTutorNombre={setTutorNombre}
+              tutorDni={tutorDni}
+              setTutorDni={setTutorDni}
+              tutorTelefono={tutorTelefono}
+              setTutorTelefono={setTutorTelefono}
+              tutorEmail={tutorEmail}
+              setTutorEmail={setTutorEmail}
+              tutorDomicilio={tutorDomicilio}
+              setTutorDomicilio={setTutorDomicilio}
+              tutorSearchFilter={tutorSearchFilter}
+              setTutorSearchFilter={setTutorSearchFilter}
+              filteredTutors={filteredTutors}
+              reassignedTutorId={reassignedTutorId}
+              setReassignedTutorId={setReassignedTutorId}
+              selectedReassignedTutor={selectedReassignedTutor}
+            />
+          )}
+
+          {/* Modal Footer Controls */}
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+            <button
+              type="button"
+              data-testid="edit-student-cancel-button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border-none"
+            >
+              Cancelar
+            </button>
+
+            <div className="flex items-center gap-2">
+              {activeTab === 'student' ? (
+                <button
+                  type="button"
+                  data-testid="edit-student-next-button"
+                  onClick={() => setActiveTab('tutor')}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
+                >
+                  <span>Siguiente: Tutor</span>
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="edit-student-prev-button"
+                  onClick={() => setActiveTab('student')}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                  <span>Volver a Alumno</span>
+                </button>
+              )}
+
+              <button
+                type="submit"
+                data-testid="edit-student-submit-button"
+                disabled={isSubmitting}
+                className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer border-none flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                    <span>Guardando cambios...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[16px]">save</span>
+                    <span>Guardar Cambios</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const EditStudentModal = ({
+  isOpen,
+  student,
+  tutors = [],
+  academicOffer = DEFAULT_ACADEMIC_OFFER,
+  onClose,
+  onSaveStudent,
+}) => {
+  if (!isOpen || !student) return null;
+
+  return (
+    <EditStudentModalContent
+      key={student.id}
+      student={student}
+      tutors={tutors}
+      academicOffer={academicOffer}
+      onClose={onClose}
+      onSaveStudent={onSaveStudent}
+    />
+  );
+};
+
+export default EditStudentModal;

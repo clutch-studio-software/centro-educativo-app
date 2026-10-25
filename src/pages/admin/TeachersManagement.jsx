@@ -1,0 +1,417 @@
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import AdminLayout from '../../components/admin/AdminLayout';
+import AdminToast from '../../components/admin/AdminToast';
+import TeacherFilters from '../../components/admin/teachers/TeacherFilters';
+import TeacherTable from '../../components/admin/teachers/TeacherTable';
+import NewTeacherModal from '../../components/admin/teachers/NewTeacherModal';
+import EditTeacherModal from '../../components/admin/teachers/EditTeacherModal';
+import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
+import AdminTablePagination from '../../components/admin/AdminTablePagination';
+import {
+  fetchTeachersApi,
+  createTeacherApi,
+  updateTeacherApi,
+  toggleTeacherStatusApi,
+  resetTeacherPasswordApi,
+  deleteTeacherApi,
+  exportTeachersPayrollCsv,
+} from '../../services/teachersService';
+import { auth } from '../../services/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
+const PAGE_SIZE = 5;
+
+const useTeachersAuthCheck = (navigate, loadTeachers) => {
+  useEffect(() => {
+    const checkAdminAuth = async () => {
+      const savedUser = localStorage.getItem('school_user');
+      const currentUser = savedUser ? JSON.parse(savedUser) : null;
+
+      if (
+        currentUser &&
+        (currentUser.role === 'user_admin' || currentUser.role === 'Administrador')
+      ) {
+        return;
+      }
+
+      const firebaseUser = auth.currentUser;
+      if (firebaseUser) {
+        try {
+          const idTokenResult = await firebaseUser.getIdTokenResult();
+          if (
+            idTokenResult.claims.role === 'user_admin' ||
+            idTokenResult.claims.role === 'Administrador'
+          ) {
+            return;
+          }
+        } catch {
+          // Continue to redirect if claims check fails
+        }
+      }
+
+      if (import.meta.env.DEV && !auth.currentUser) {
+        try {
+          await signInWithEmailAndPassword(
+            auth,
+            import.meta.env.VITE_ADMIN_EMAIL,
+            import.meta.env.VITE_DEV_ADMIN_KEY
+          );
+          loadTeachers();
+          return;
+        } catch (devErr) {
+          console.warn('Auto-login dev admin:', devErr.message);
+        }
+      }
+
+      if (!auth.currentUser && (!currentUser || currentUser.role !== 'user_admin')) {
+        console.warn('Acceso denegado: Se requiere rol user_admin.');
+        navigate('/login');
+      }
+    };
+
+    checkAdminAuth();
+  }, [navigate, loadTeachers]);
+};
+
+const TeachersManagementHeader = ({ onExportNomina, onOpenNewTeacherModal }) => (
+  <section data-testid="teachers-management-header" className="flex flex-col gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <AdminSectionTitle
+        icon="badge"
+        title="Gestión del Plantel Docente y Académico"
+        subtitle="Administración centralizada de legajos docentes, designaciones y estado de personal."
+      />
+
+      <div data-testid="buttons-actions-teachers" className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onExportNomina}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[18px] text-amber-500">
+            file_download
+          </span>
+          <span>Exportar Nómina</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenNewTeacherModal}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all rounded-full font-bold text-xs shadow-[0_4px_14px_rgba(11,80,213,0.3)] hover:shadow-lg active:scale-95 h-10 duration-200 text-center cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-[18px] text-emerald-300">
+            person_add
+          </span>
+          <span>Registrar Docente</span>
+        </button>
+      </div>
+    </div>
+  </section>
+);
+
+
+const TeachersModals = ({
+  isNewTeacherModalOpen,
+  setIsNewTeacherModalOpen,
+  handleCreateTeacher,
+  editingTeacher,
+  setEditingTeacher,
+  handleSaveEditTeacher,
+}) => (
+  <>
+    <NewTeacherModal
+      isOpen={isNewTeacherModalOpen}
+      onClose={() => setIsNewTeacherModalOpen(false)}
+      onSubmit={handleCreateTeacher}
+    />
+
+    <EditTeacherModal
+      isOpen={Boolean(editingTeacher)}
+      teacher={editingTeacher}
+      onClose={() => setEditingTeacher(null)}
+      onSave={handleSaveEditTeacher}
+    />
+  </>
+);
+
+const TeachersManagement = () => {
+  const navigate = useNavigate();
+
+  // Teachers State
+  const [teachers, setTeachers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filters State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedEstado, setSelectedEstado] = useState('');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Modals State
+  const [isNewTeacherModalOpen, setIsNewTeacherModalOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState(null);
+
+  // Notification State
+  const [notification, setNotification] = useState(null);
+
+  const showToast = useCallback((message, type = 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => {
+      setNotification(null);
+    }, 4000);
+  }, []);
+
+  // Load teachers from Firebase
+  const loadTeachers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await fetchTeachersApi();
+      setTeachers(data);
+    } catch (err) {
+      console.error('Error al cargar docentes desde Firebase:', err);
+      showToast('Error al conectar con la base de datos.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  // Authentication check for admin panel
+  useTeachersAuthCheck(navigate, loadTeachers);
+
+  // Real-time listener for Auth changes to reload from Firestore
+  useEffect(() => {
+    let isMounted = true;
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user && isMounted) {
+        loadTeachers();
+      }
+    });
+
+    loadTeachers();
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [loadTeachers]);
+
+  // Filter Logic
+  const filteredTeachers = useMemo(() => {
+    return teachers.filter((t) => {
+      // Text search in name, apellido, legajo, dni, especialidad, email
+      if (searchTerm) {
+        const query = searchTerm.toLowerCase().trim();
+        const matchesName = (t.nombre || '').toLowerCase().includes(query);
+        const matchesApellido = (t.apellido || '').toLowerCase().includes(query);
+        const matchesCompleto = (t.nombreCompleto || '').toLowerCase().includes(query);
+        const matchesLegajo = (t.legajo || '').toLowerCase().includes(query);
+        const matchesDni = (t.dni || '').replace(/\./g, '').includes(query.replace(/\./g, ''));
+        const matchesEspecialidad = (t.especialidad || '').toLowerCase().includes(query);
+        const matchesEmail = (t.email || '').toLowerCase().includes(query);
+
+        if (
+          !matchesName &&
+          !matchesApellido &&
+          !matchesCompleto &&
+          !matchesLegajo &&
+          !matchesDni &&
+          !matchesEspecialidad &&
+          !matchesEmail
+        ) {
+          return false;
+        }
+      }
+
+      // Estado/Condición filter (Titular, Suplente, Interino, Suspendido)
+      if (selectedEstado) {
+        if (selectedEstado.toLowerCase() === 'suspendido') {
+          if (String(t.estado || '').toLowerCase() !== 'suspendido' && !t.disabled) {
+            return false;
+          }
+        } else {
+          const tCond = String(t.condicion || t.estado || '').toLowerCase();
+          if (tCond !== selectedEstado.toLowerCase()) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [teachers, searchTerm, selectedEstado]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedEstado]);
+
+  // Pagination calculation
+  const totalItems = filteredTeachers.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const currentTeachers = filteredTeachers.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedEstado('');
+  };
+
+  // Actions
+  const handleCreateTeacher = async (teacherData) => {
+    try {
+      const created = await createTeacherApi(teacherData);
+      setTeachers((prev) => [created, ...prev]);
+      showToast(
+        `¡Docente ${created.nombreCompleto || created.nombre} registrado con legajo ${created.legajo}!`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error al registrar docente:', err);
+      showToast('Error al registrar docente.', 'error');
+    }
+  };
+
+  const handleEditTeacher = (teacher) => {
+    setEditingTeacher(teacher);
+  };
+
+  const handleSaveEditTeacher = async (teacherId, teacherData) => {
+    try {
+      const updated = await updateTeacherApi(teacherId, teacherData);
+      setTeachers((prev) => prev.map((t) => (t.id === teacherId ? updated : t)));
+      showToast(
+        `¡Datos de ${updated.nombreCompleto || updated.nombre} actualizados con éxito!`,
+        'success'
+      );
+      setEditingTeacher(null);
+    } catch (err) {
+      console.error('Error al actualizar docente:', err);
+      showToast('Error al actualizar datos del docente.', 'error');
+    }
+  };
+
+  const handleToggleStatus = async (teacher) => {
+    try {
+      const { teacher: updated, nuevoEstado } = await toggleTeacherStatusApi(teacher.id);
+      setTeachers((prev) => prev.map((t) => (t.id === teacher.id ? updated : t)));
+
+      if (nuevoEstado === 'Suspendido') {
+        showToast(`El docente ${teacher.nombreCompleto || teacher.nombre} fue deshabilitado (Suspendido).`, 'info');
+      } else {
+        showToast(`El docente ${teacher.nombreCompleto || teacher.nombre} fue habilitado como ${nuevoEstado}.`, 'success');
+      }
+    } catch (err) {
+      console.error('Error al cambiar estado del docente:', err);
+      showToast('No se pudo cambiar el estado del docente.', 'error');
+    }
+  };
+
+  const handleResetPassword = async (teacher) => {
+    try {
+      const result = await resetTeacherPasswordApi(teacher.id);
+      showToast(
+        `Contraseña restablecida al DNI (${result.dni}) para ${result.nombre}.`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error al restablecer contraseña:', err);
+      showToast('Error al restablecer contraseña.', 'error');
+    }
+  };
+
+  const handleDeleteTeacher = async (teacher) => {
+    const displayName = teacher.nombreCompleto || `${teacher.nombre} ${teacher.apellido || ''}`;
+    const confirmed = window.confirm(
+      `¿Confirmas la baja y eliminación definitiva del legajo de ${displayName} (${teacher.legajo})?\n\nEsta acción eliminará el registro del personal académico.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteTeacherApi(teacher.id, teacher.email);
+      setTeachers((prev) => prev.filter((t) => t.id !== teacher.id));
+      showToast(`Legajo de ${displayName} eliminado definitivamente.`, 'success');
+    } catch (err) {
+      console.error('Error al eliminar docente:', err);
+      showToast('No se pudo eliminar el docente.', 'error');
+    }
+  };
+
+  const handleExportNomina = () => {
+    exportTeachersPayrollCsv(filteredTeachers);
+    showToast('Exportando nómina docente en formato CSV...', 'info');
+  };
+
+  return (
+    <AdminLayout activeItem="docentes" breadcrumbs={['Cuerpo Docente']}>
+      <div className="flex flex-col w-full gap-6">
+        {/* Floating Toast Notification */}
+        <AdminToast notification={notification} onClose={() => setNotification(null)} />
+
+        {/* Section Header */}
+        <TeachersManagementHeader
+          onExportNomina={handleExportNomina}
+          onOpenNewTeacherModal={() => setIsNewTeacherModalOpen(true)}
+        />
+
+        {/* Filters Section */}
+        <TeacherFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          selectedEstado={selectedEstado}
+          onEstadoChange={setSelectedEstado}
+          onResetFilters={handleResetFilters}
+        />
+
+        {/* Indicador de sincronización activo */}
+        {isLoading && (
+          <div
+            data-testid="teachers-sync-indicator"
+            className="flex items-center gap-2 text-xs font-bold text-blue-800 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200/80 w-fit"
+          >
+            <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+            <span>Sincronizando nómina docente con base de datos...</span>
+          </div>
+        )}
+
+        {/* Teachers Table & Pagination Section */}
+        <div className="flex flex-col gap-0">
+          <TeacherTable
+            teachers={currentTeachers}
+            isLoading={isLoading}
+            onEditTeacher={handleEditTeacher}
+            onToggleStatus={handleToggleStatus}
+            onResetPassword={handleResetPassword}
+            onDeleteTeacher={handleDeleteTeacher}
+            onResetFilters={handleResetFilters}
+          />
+
+          {/* Pagination Controls */}
+          <AdminTablePagination
+            isLoading={isLoading}
+            totalItems={totalItems}
+            startIndex={startIndex}
+            pageSize={PAGE_SIZE}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemLabel="docentes registrados"
+          />
+        </div>
+
+        {/* Modals */}
+        <TeachersModals
+          isNewTeacherModalOpen={isNewTeacherModalOpen}
+          setIsNewTeacherModalOpen={setIsNewTeacherModalOpen}
+          handleCreateTeacher={handleCreateTeacher}
+          editingTeacher={editingTeacher}
+          setEditingTeacher={setEditingTeacher}
+          handleSaveEditTeacher={handleSaveEditTeacher}
+        />
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default TeachersManagement;

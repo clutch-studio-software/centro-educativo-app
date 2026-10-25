@@ -35,3 +35,12 @@ h2 {
 p {
   margin: 10px;
 }
+
+/* Ocultar barra de scroll manteniendo el desplazamiento */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}

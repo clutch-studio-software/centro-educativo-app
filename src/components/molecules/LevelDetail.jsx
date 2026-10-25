@@ -51,8 +51,8 @@ const LevelDetail = ({
       {/* Listado de características mapeado de forma DRY */}
       {features.length > 0 && (
         <ul className="space-y-4 pt-4">
-          {features.map((feature, idx) => (
-            <li key={idx} className="flex items-start gap-3">
+          {features.map((feature) => (
+            <li key={feature.id || feature.title} className="flex items-start gap-3">
               <span className={`${feature.iconBgClass || 'bg-secondary-container/20'} ${feature.iconClass || 'text-secondary-fixed'} p-2.5 rounded-xl flex-shrink-0 flex items-center justify-center`}>
                 <Icon name={feature.icon} filled={true} className="text-base" />
               </span>

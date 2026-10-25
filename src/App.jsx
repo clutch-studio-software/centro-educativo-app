@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer';
 import ChangePasswordModal from './components/organisms/ChangePasswordModal';
 import AdminPanel from './pages/AdminPanel';
@@ -12,10 +12,19 @@ import News from './pages/News';
 import NotFound from './pages/NotFound';
 import Registration from './pages/Registration';
 import Wellness from './pages/Wellness';
-
 import Privacy from './pages/Privacy';
 
+import AdminPlaceholder from './pages/admin/AdminPlaceholder';
+import TeachersManagement from './pages/admin/TeachersManagement';
+import AcademicOfferManagement from './pages/admin/AcademicOfferManagement';
+import SportsManagement from './pages/admin/SportsManagement';
+import SportsDetailManagement from './pages/admin/SportsDetailManagement';
+import UsersRbacManagement from './pages/admin/UsersRbacManagement';
+
 function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
     <>
       <ChangePasswordModal />
@@ -30,10 +39,25 @@ function App() {
         <Route path="/levels" element={<Levels />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/admin/alumnos" element={<AdminPanel />} />
+        <Route path="/admin/legacy" element={<Navigate to="/admin" replace />} />
+        <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
+        <Route path="/admin/docentes" element={<TeachersManagement />} />
+        <Route path="/admin/oferta-academica" element={<AcademicOfferManagement />} />
+        <Route path="/admin/servicios" element={<SportsManagement />} />
+        <Route path="/admin/servicios/detalle" element={<SportsDetailManagement />} />
+        <Route path="/admin/servicios/detalle/:id" element={<SportsDetailManagement />} />
+        <Route path="/admin/deportes" element={<SportsManagement />} />
+        <Route path="/admin/deportes/detalle" element={<SportsDetailManagement />} />
+        <Route path="/admin/deportes/detalle/:id" element={<SportsDetailManagement />} />
+        <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
+        <Route path="/admin/usuarios" element={<UsersRbacManagement />} />
+        <Route path="/admin/reportes" element={<AdminPlaceholder />} />
+        <Route path="/admin/*" element={<AdminPlaceholder />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <Footer />
+      {!isAdminRoute && <Footer />}
     </>
   );
 }

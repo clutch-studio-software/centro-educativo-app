@@ -32,6 +32,18 @@ const GalleryCard = ({
     return (
       <div 
         onClick={onClick}
+        onKeyDown={
+          onClick
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onClick(e);
+                }
+              }
+            : undefined
+        }
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
         className={`${spanClass} relative rounded-xl overflow-hidden group bg-surface-container-low cursor-pointer`}
       >
         {children}
@@ -42,6 +54,18 @@ const GalleryCard = ({
   return (
     <div
       onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick(e);
+              }
+            }
+          : undefined
+      }
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className={`${spanClass} relative rounded-xl overflow-hidden group bg-surface-container-low cursor-pointer`}
     >
       {/* Imagen con animación de escala al hacer hover */}
