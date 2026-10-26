@@ -3,6 +3,7 @@ import { LEVEL_OPTIONS } from '../../../data/mockSportsActivities';
 import {
   DisciplineEmojiSelector,
   DisciplineDaysSelector,
+  DisciplineScheduleByDay,
 } from './DisciplineCommonFields';
 
 export const NewDisciplineFormFields = ({
@@ -10,6 +11,8 @@ export const NewDisciplineFormFields = ({
   onChange,
   onEmojiSelect,
   onToggleDay,
+  onScheduleChange,
+  onCopyScheduleToAll,
   teachers,
   error,
 }) => {
@@ -108,25 +111,17 @@ export const NewDisciplineFormFields = ({
         onToggleDay={onToggleDay}
       />
 
-      {/* Horario y Lugar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="new-disc-horario" className="block font-semibold text-slate-700 mb-1.5">
-            Horario Detallado *
-          </label>
-          <input
-            id="new-disc-horario"
-            type="text"
-            name="horario"
-            value={formData.horario}
-            onChange={onChange}
-            placeholder="Ej: Martes y Jueves 17:00 - 18:30"
-            aria-label="Horario Detallado"
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
-            required
-          />
-        </div>
+      {/* Horarios por día seleccionado */}
+      <DisciplineScheduleByDay
+        selectedDays={formData.dias}
+        horariosPorDia={formData.horariosPorDia}
+        onScheduleChange={onScheduleChange}
+        onCopyScheduleToAll={onCopyScheduleToAll}
+        idPrefix="new-disc"
+      />
 
+      {/* Espacio Físico / Cancha y Cupo Máximo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="new-disc-lugar" className="block font-semibold text-slate-700 mb-1.5">
             Espacio Físico / Cancha
@@ -142,24 +137,23 @@ export const NewDisciplineFormFields = ({
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
           />
         </div>
-      </div>
 
-      {/* Cupo Máximo */}
-      <div>
-        <label htmlFor="new-disc-cupoMax" className="block font-semibold text-slate-700 mb-1.5">
-          Cupo Máximo de Alumnos
-        </label>
-        <input
-          id="new-disc-cupoMax"
-          type="number"
-          name="cupoMax"
-          min="5"
-          max="100"
-          value={formData.cupoMax}
-          onChange={onChange}
-          aria-label="Cupo Máximo de Alumnos"
-          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
-        />
+        <div>
+          <label htmlFor="new-disc-cupoMax" className="block font-semibold text-slate-700 mb-1.5">
+            Cupo Máximo de Alumnos
+          </label>
+          <input
+            id="new-disc-cupoMax"
+            type="number"
+            name="cupoMax"
+            min="5"
+            max="100"
+            value={formData.cupoMax}
+            onChange={onChange}
+            aria-label="Cupo Máximo de Alumnos"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+          />
+        </div>
       </div>
 
       {/* Descripción */}

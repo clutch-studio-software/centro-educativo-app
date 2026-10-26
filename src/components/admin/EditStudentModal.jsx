@@ -6,11 +6,7 @@ import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
 
 const AVAILABLE_SERVICIOS = [
   'Comedor Escolar',
-  'Transporte',
-  'Club Deportivo',
-  'Jornada Extendida',
-  'Robótica & Programación',
-  'Inglés Cambridge',
+  'Transporte Escolar',
 ];
 
 const getMatchedTutor = (tutorsList, currentStudent) => {
@@ -396,12 +392,15 @@ const StudentFieldsTab = ({
       </div>
     </div>
 
-    {/* Servicios Adicionales */}
+    {/* Servicios Institucionales */}
     <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-2.5">
-      <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-        <span className="material-symbols-outlined text-[16px] text-slate-400">local_activity</span>
-        Servicios y Actividades Adicionales
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] text-slate-400">room_service</span>
+          Servicios Institucionales
+        </h3>
+        <span className="text-[11px] text-slate-400 font-medium">Comedor y Transporte Escolar</span>
+      </div>
       <div className="flex flex-wrap gap-2 pt-1">
         {AVAILABLE_SERVICIOS.map((servicio) => {
           const isSelected = studentServicios.includes(servicio);
@@ -412,7 +411,7 @@ const StudentFieldsTab = ({
               onClick={() => handleToggleServicio(servicio)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
                 isSelected
-                  ? 'bg-lime-100 text-lime-900 border-lime-300 shadow-xs'
+                  ? 'bg-blue-100 text-blue-900 border-blue-300 shadow-xs'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
               }`}
             >
@@ -424,6 +423,9 @@ const StudentFieldsTab = ({
           );
         })}
       </div>
+      <p className="text-[11px] text-slate-500 mt-1">
+        * Las actividades extracurriculares y deportivas se gestionan e inscriben desde la sección de <strong>Actividades Extracurriculares</strong>.
+      </p>
     </div>
   </div>
 );
@@ -736,7 +738,11 @@ const getInitialStudentFormState = (student, matchedTutor) => {
     studentCurso: student?.curso || 'sin asignar',
     studentDivision: student?.division || 'sin asignar',
     studentEstado: student?.estado || 'Activo - Regular',
-    studentServicios: Array.isArray(student?.servicios) ? [...student.servicios] : ['Comedor Escolar'],
+    studentServicios: Array.isArray(student?.servicios)
+      ? student.servicios
+          .map((s) => (s === 'Transporte' ? 'Transporte Escolar' : s))
+          .filter((s) => AVAILABLE_SERVICIOS.includes(s))
+      : ['Comedor Escolar'],
     tutorNombre: matchedTutor?.nombre || (student?.tutorNombre || '').replace(' (Tutor)', ''),
     tutorDni: formatDni(matchedTutor?.dni || ''),
     tutorTelefono: matchedTutor?.telefono || student?.tutorTelefono || '',

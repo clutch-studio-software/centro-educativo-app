@@ -3,6 +3,7 @@ import { LEVEL_OPTIONS } from '../../../data/mockSportsActivities';
 import {
   DisciplineEmojiSelector,
   DisciplineDaysSelector,
+  DisciplineScheduleByDay,
 } from './DisciplineCommonFields';
 
 export const EditDisciplineFormFields = ({
@@ -10,6 +11,8 @@ export const EditDisciplineFormFields = ({
   onChange,
   onEmojiSelect,
   onToggleDay,
+  onScheduleChange,
+  onCopyScheduleToAll,
   teachers,
   error,
 }) => {
@@ -108,24 +111,17 @@ export const EditDisciplineFormFields = ({
         onToggleDay={onToggleDay}
       />
 
-      {/* Horario y Lugar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="edit-disc-horario" className="block font-semibold text-slate-700 mb-1.5">
-            Horario Detallado *
-          </label>
-          <input
-            id="edit-disc-horario"
-            type="text"
-            name="horario"
-            value={formData.horario}
-            onChange={onChange}
-            aria-label="Horario Detallado"
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
-            required
-          />
-        </div>
+      {/* Horarios por día seleccionado */}
+      <DisciplineScheduleByDay
+        selectedDays={formData.dias}
+        horariosPorDia={formData.horariosPorDia}
+        onScheduleChange={onScheduleChange}
+        onCopyScheduleToAll={onCopyScheduleToAll}
+        idPrefix="edit-disc"
+      />
 
+      {/* Espacio Físico / Cancha y Cupo Máximo */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label htmlFor="edit-disc-lugar" className="block font-semibold text-slate-700 mb-1.5">
             Espacio Físico / Cancha
@@ -136,14 +132,12 @@ export const EditDisciplineFormFields = ({
             name="lugar"
             value={formData.lugar}
             onChange={onChange}
+            placeholder="Ej: Pista de Atletismo / Polideportivo"
             aria-label="Espacio Físico / Cancha"
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
           />
         </div>
-      </div>
 
-      {/* Cupo Máximo y Estado */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
         <div>
           <label htmlFor="edit-disc-cupoMax" className="block font-semibold text-slate-700 mb-1.5">
             Cupo Máximo
@@ -160,22 +154,23 @@ export const EditDisciplineFormFields = ({
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
           />
         </div>
+      </div>
 
-        <div className="pt-4">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              name="activo"
-              checked={formData.activo}
-              onChange={onChange}
-              aria-label="Oferta Activa para Inscripciones"
-              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
-            />
-            <span className="font-semibold text-slate-800 text-xs">
-              Oferta Activa para Inscripciones
-            </span>
-          </label>
-        </div>
+      {/* Estado */}
+      <div className="pt-1">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            name="activo"
+            checked={formData.activo}
+            onChange={onChange}
+            aria-label="Oferta Activa para Inscripciones"
+            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+          />
+          <span className="font-semibold text-slate-800 text-xs">
+            Oferta Activa para Inscripciones
+          </span>
+        </label>
       </div>
 
       {/* Descripción */}

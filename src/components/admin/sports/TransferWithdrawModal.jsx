@@ -1,21 +1,55 @@
 import React, { useState } from 'react';
 import { INITIAL_DISCIPLINES } from '../../../data/mockSportsActivities';
 
-const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
+const EMPTY_DISCIPLINES = [];
+
+const TransferWithdrawModal = ({
+  isOpen,
+  student,
+  discipline,
+  allDisciplines = EMPTY_DISCIPLINES,
+  onClose,
+  onConfirm,
+}) => {
   const [actionType, setActionType] = useState('withdraw'); // 'withdraw' | 'transfer'
-  const [targetDiscipline, setTargetDiscipline] = useState('Natación');
   const [motivo, setMotivo] = useState('');
+
+  const availableTargetDisciplines = React.useMemo(() => {
+    const list =
+      Array.isArray(allDisciplines) && allDisciplines.length > 0
+        ? allDisciplines
+        : INITIAL_DISCIPLINES;
+    const currentId = discipline?.id || '';
+    const currentName = discipline?.nombre || discipline?.titulo || '';
+    return list.filter((d) => d.id !== currentId && d.nombre !== currentName);
+  }, [allDisciplines, discipline]);
+
+  const [targetDisciplineId, setTargetDisciplineId] = useState('');
+
+  React.useEffect(() => {
+    if (availableTargetDisciplines.length > 0) {
+      setTargetDisciplineId(availableTargetDisciplines[0].id);
+    }
+  }, [availableTargetDisciplines]);
 
   if (!isOpen || !student) return null;
 
+  const currentDiscName = discipline?.nombre || discipline?.titulo || 'la actividad';
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const chosenTarget =
+      availableTargetDisciplines.find((d) => d.id === targetDisciplineId) ||
+      availableTargetDisciplines[0];
+
     onConfirm({
+      student,
       studentId: student.id,
       studentName: student.nombre,
       actionType,
-      targetDiscipline: actionType === 'transfer' ? targetDiscipline : null,
-      motivo,
+      targetDiscipline: actionType === 'transfer' ? chosenTarget?.nombre || 'Otra disciplina' : null,
+      targetDisciplineId: actionType === 'transfer' ? chosenTarget?.id : null,
+      motivo: motivo?.trim() || '',
     });
     onClose();
   };
@@ -34,7 +68,7 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">Baja o Transferencia</h3>
-              <p className="text-xs text-slate-500 font-mono">{student.legajo}</p>
+              <h3 className="text-xs text-start text-slate-500 font-mono">{student.legajo}</h3>
             </div>
           </div>
           <button
@@ -50,12 +84,18 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           {/* Student Info Card */}
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${student.avatarGrad || 'from-blue-600 to-indigo-600'} text-white font-bold flex items-center justify-center text-xs shrink-0`}>
+            <div
+              className={`w-9 h-9 rounded-full bg-gradient-to-tr ${
+                student.avatarGrad || 'from-blue-600 to-indigo-600'
+              } text-white font-bold flex items-center justify-center text-xs shrink-0`}
+            >
               {student.iniciales || 'AL'}
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-slate-900 truncate">{student.nombre}</p>
-              <p className="text-[11px] text-slate-500">{student.cursoCompleto} • DNI {student.dni}</p>
+              <p className="font-bold text-start text-slate-900 truncate">{student.nombre}</p>
+              <p className="text-[11px] text-slate-500">
+                {student.cursoCompleto || student.curso} • DNI {student.dni}
+              </p>
             </div>
           </div>
 
@@ -70,7 +110,9 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
                   : 'border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <span className="material-symbols-outlined text-base block mx-auto mb-1">person_remove</span>
+              <span className="material-symbols-outlined text-base block mx-auto mb-1">
+                person_remove
+              </span>
               Dar de Baja
             </button>
 
@@ -83,24 +125,32 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
                   : 'border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <span className="material-symbols-outlined text-base block mx-auto mb-1">move_up</span>
+              <span className="material-symbols-outlined text-base block mx-auto mb-1">
+                move_up
+              </span>
               Transferir a Otra
             </button>
           </div>
 
           {actionType === 'transfer' ? (
             <div>
-              <label htmlFor="transfer-target-discipline" className="block text-slate-700 font-bold mb-1">Disciplina de Destino</label>
+              <label
+                htmlFor="transfer-target-discipline"
+                className="block text-slate-700 font-bold mb-1"
+              >
+                Disciplina de Destino
+              </label>
               <select
                 id="transfer-target-discipline"
-                value={targetDiscipline}
-                onChange={(e) => setTargetDiscipline(e.target.value)}
+                value={targetDisciplineId}
+                onChange={(e) => setTargetDisciplineId(e.target.value)}
                 aria-label="Disciplina de Destino"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
               >
-                {INITIAL_DISCIPLINES.filter((d) => d.nombre !== 'Atletismo').map((d) => (
-                  <option key={d.id} value={d.nombre}>
-                    {d.emoji} {d.nombre} ({d.niveles}) - Vacantes: {Math.max(0, d.cupoMax - d.cupoOcupado)}
+                {availableTargetDisciplines.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.emoji} {d.nombre} ({d.niveles}) - Vacantes:{' '}
+                    {Math.max(0, (d.cupoMax || 40) - (d.cupoOcupado || d.inscriptos?.length || 0))}
                   </option>
                 ))}
               </select>
@@ -108,7 +158,8 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
           ) : (
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-red-800">
               <p className="text-[11px] leading-relaxed">
-                Al confirmar la baja, el alumno será retirado del padrón activo de Atletismo y se liberará 1 plaza para la lista de espera.
+                Al confirmar la baja, el alumno será retirado del padrón activo de{' '}
+                <strong>{currentDiscName}</strong> y se liberará 1 plaza.
               </p>
             </div>
           )}
@@ -122,7 +173,7 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Indique la justificación de la gestión administrativa..."
               aria-label="Motivo u observaciones"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
+              className="w-full px-3.5 py-2 rounded-md border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
             />
           </div>
 
