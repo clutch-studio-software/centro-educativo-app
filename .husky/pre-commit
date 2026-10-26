@@ -1,1 +1,7 @@
+echo "🔍 Ejecutando validación Pre-commit (Linter + React Doctor)..."
+
+# 1. Corre el linter estándar del proyecto
 npm run lint
+
+# 2. Corre React Doctor en modo estricto (falla si encuentra errores)
+npx --yes react-doctor@latest --fail-on error
