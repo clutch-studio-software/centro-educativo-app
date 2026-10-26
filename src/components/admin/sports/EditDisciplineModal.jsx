@@ -1,46 +1,25 @@
 import React, { useState } from 'react';
 import { EditDisciplineFormFields } from './EditDisciplineFormFields';
+import {
+  parseHorariosFromDiscipline,
+  formatHorarioString,
+  buildUpdatedDiscipline,
+} from './sportsScheduleUtils';
 
 const EMPTY_TEACHERS = [];
 
-const buildUpdatedDiscipline = (discipline, formData, teachers) => {
-  const teacherObj = teachers.find(
-    (t) => (t.nombreCompleto || `${t.nombre} ${t.apellido}`) === formData.profesorNombre
-  );
-
-  const initials =
-    teacherObj?.iniciales ||
-    formData.profesorNombre
-      .split(' ')
-      .map((w) => w[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() ||
-    'DOC';
-
-  return {
-    ...discipline,
-    nombre: formData.nombre.trim(),
-    emoji: formData.emoji,
-    bgColor: formData.bgColor,
-    textColor: formData.textColor,
-    profesor: {
-      nombre: formData.profesorNombre || 'Sin asignar',
-      email: teacherObj?.email || formData.profesorEmail || '',
-      telefono: teacherObj?.telefono || discipline.profesor?.telefono || '',
-      iniciales: initials,
-    },
-    niveles: formData.niveles,
-    dias: formData.dias,
-    horario: formData.horario.trim(),
-    lugar: formData.lugar.trim() || 'Campus Deportivo',
-    cupoMax: Number(formData.cupoMax) || 25,
-    activo: formData.activo,
-    descripcion: formData.descripcion.trim(),
-  };
-};
-
 const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EMPTY_TEACHERS }) => {
+  const initialHorarios = parseHorariosFromDiscipline(discipline);
+  const initialDias = discipline.dias && discipline.dias.length > 0
+    ? discipline.dias
+    : ['Lunes', 'Miércoles'];
+
+  initialDias.forEach((d) => {
+    if (!initialHorarios[d]) {
+      initialHorarios[d] = { inicio: '16:00', fin: '17:30' };
+    }
+  });
+
   const [formData, setFormData] = useState({
     nombre: discipline.nombre || '',
     emoji: discipline.emoji || '🏃',
@@ -49,8 +28,9 @@ const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EM
     profesorNombre: discipline.profesor?.nombre || '',
     profesorEmail: discipline.profesor?.email || '',
     niveles: discipline.niveles || 'Primario y Secundario',
-    dias: discipline.dias || ['Lunes', 'Miércoles'],
-    horario: discipline.horario || '',
+    dias: initialDias,
+    horariosPorDia: initialHorarios,
+    horario: discipline.horario || formatHorarioString(initialDias, initialHorarios),
     lugar: discipline.lugar || '',
     cupoMax: discipline.cupoMax || 25,
     activo: discipline.activo ?? true,
@@ -82,7 +62,53 @@ const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EM
       const updated = current.includes(day)
         ? current.filter((d) => d !== day)
         : [...current, day];
-      return { ...prev, dias: updated };
+
+      const newHorarios = { ...prev.horariosPorDia };
+      if (!current.includes(day) && !newHorarios[day]) {
+        const existingDay = current.find((d) => newHorarios[d]?.inicio && newHorarios[d]?.fin);
+        newHorarios[day] = existingDay
+          ? { ...newHorarios[existingDay] }
+          : { inicio: '16:00', fin: '17:30' };
+      }
+
+      return {
+        ...prev,
+        dias: updated,
+        horariosPorDia: newHorarios,
+        horario: formatHorarioString(updated, newHorarios),
+      };
+    });
+  };
+
+  const handleScheduleChange = (day, field, value) => {
+    setFormData((prev) => {
+      const updatedHorarios = {
+        ...prev.horariosPorDia,
+        [day]: {
+          ...(prev.horariosPorDia?.[day] || { inicio: '16:00', fin: '17:30' }),
+          [field]: value,
+        },
+      };
+      return {
+        ...prev,
+        horariosPorDia: updatedHorarios,
+        horario: formatHorarioString(prev.dias, updatedHorarios),
+      };
+    });
+  };
+
+  const handleCopyScheduleToAll = (sourceDay) => {
+    setFormData((prev) => {
+      const template = prev.horariosPorDia?.[sourceDay] || { inicio: '16:00', fin: '17:30' };
+      const updatedHorarios = { ...prev.horariosPorDia };
+      (prev.dias || []).forEach((d) => {
+        updatedHorarios[d] = { ...template };
+      });
+      return {
+        ...prev,
+        horariosPorDia: updatedHorarios,
+        horario: formatHorarioString(prev.dias, updatedHorarios),
+      };
     });
   };
 
@@ -92,9 +118,21 @@ const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EM
       setError('Por favor ingresa el nombre de la disciplina.');
       return;
     }
-    if (!formData.horario.trim()) {
-      setError('Por favor indica los días y horarios.');
+    if (!formData.dias || formData.dias.length === 0) {
+      setError('Por favor selecciona al menos un día de clase.');
       return;
+    }
+
+    for (const day of formData.dias) {
+      const sched = formData.horariosPorDia?.[day];
+      if (!sched?.inicio || !sched?.fin) {
+        setError(`Por favor completa los horarios de inicio y fin para el día ${day}.`);
+        return;
+      }
+      if (sched.inicio >= sched.fin) {
+        setError(`El horario de fin debe ser posterior al inicio para el día ${day}.`);
+        return;
+      }
     }
 
     const updatedDiscipline = buildUpdatedDiscipline(discipline, formData, teachers);
@@ -111,14 +149,8 @@ const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EM
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
           <div className="flex items-center gap-3">
-            <span
-              className={`w-10 h-10 rounded-2xl ${formData.bgColor} ${formData.textColor} flex items-center justify-center font-bold text-xl`}
-            >
-              {formData.emoji}
-            </span>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">Editar Disciplina Deportiva</h3>
-              <p className="text-xs text-slate-500">Configuración general y oferta extracurricular</p>
+            <div className='items-center'>
+              <h1 className="text-base font-bold text-slate-900">Editar Disciplina Deportiva</h1>
             </div>
           </div>
           <button
@@ -138,6 +170,8 @@ const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EM
             onChange={handleChange}
             onEmojiSelect={handleEmojiSelect}
             onToggleDay={handleToggleDay}
+            onScheduleChange={handleScheduleChange}
+            onCopyScheduleToAll={handleCopyScheduleToAll}
             teachers={teachers}
             error={error}
           />

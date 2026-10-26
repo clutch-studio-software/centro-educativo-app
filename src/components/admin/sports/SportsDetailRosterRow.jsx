@@ -5,9 +5,6 @@ export const SportsDetailRosterRow = ({
   onViewLegajo,
   onTransferStudent,
 }) => {
-  const isPendingMedical = student.condicionTipo === 'pendiente';
-  const isScholarship = student.condicionTipo === 'becado';
-
   return (
     <tr
       key={student.id}
@@ -58,26 +55,6 @@ export const SportsDetailRosterRow = ({
       {/* Inscripción */}
       <td className="px-6 py-4 font-mono text-slate-500 font-medium">
         {student.fechaInscripcion}
-      </td>
-
-      {/* Condición Deportiva */}
-      <td className="px-6 py-4">
-        {isPendingMedical ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary-container/30 text-tertiary font-bold text-[11px]">
-            <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
-            Apto Médico Pendiente
-          </span>
-        ) : isScholarship ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container/50 text-secondary-dim text-[11px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-            Regular • Becado 100%
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container/50 text-secondary-dim text-[11px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-            Regular • Al día
-          </span>
-        )}
       </td>
 
       {/* Acciones */}

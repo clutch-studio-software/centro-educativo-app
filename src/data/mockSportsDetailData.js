@@ -772,7 +772,6 @@ export const exportSportRosterCsv = (roster, disciplineTitle = 'Atletismo') => {
     'Tutor Responsable',
     'Teléfono Tutor',
     'Fecha de Inscripción',
-    'Condición Deportiva',
     'Estado de Cuota',
     'Apto Médico',
   ];
@@ -786,8 +785,7 @@ export const exportSportRosterCsv = (roster, disciplineTitle = 'Atletismo') => {
     `"${s.tutor}"`,
     `"${s.tutorTelefono}"`,
     `"${s.fechaInscripcion}"`,
-    `"${s.condicion}"`,
-    `"${s.estadoCuota}"`,
+    `"${s.estadoCuota || 'Al Día'}"`,
     s.aptoMedico ? 'Aprobado' : 'Pendiente',
   ]);
 

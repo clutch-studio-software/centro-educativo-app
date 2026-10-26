@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { NewDisciplineFormFields } from './NewDisciplineFormFields';
+import { formatHorarioString } from './sportsScheduleUtils';
 
 const EMPTY_TEACHERS = [];
+
+const DEFAULT_INITIAL_DAYS = ['Lunes', 'Miércoles'];
+const DEFAULT_INITIAL_HORARIOS = {
+  Lunes: { inicio: '16:30', fin: '18:00' },
+  Miércoles: { inicio: '16:30', fin: '18:00' },
+};
 
 const createNewDisciplineRecord = (formData, teachers) => {
   const teacherName = formData.profesorNombre.trim() || 'Profesor a designar';
@@ -20,6 +27,11 @@ const createNewDisciplineRecord = (formData, teachers) => {
       .toUpperCase() ||
     'DOC';
 
+  const finalHorario =
+    formatHorarioString(formData.dias, formData.horariosPorDia) ||
+    formData.horario?.trim() ||
+    '';
+
   return {
     id: `disc-${Date.now()}`,
     nombre: formData.nombre.trim(),
@@ -35,7 +47,8 @@ const createNewDisciplineRecord = (formData, teachers) => {
     niveles: formData.niveles,
     nivelId: formData.niveles,
     dias: formData.dias.length > 0 ? formData.dias : ['Lunes'],
-    horario: formData.horario.trim(),
+    horariosPorDia: formData.horariosPorDia,
+    horario: finalHorario,
     lugar: formData.lugar.trim() || 'Campus Deportivo y Recreativo',
     cupoMax: Number(formData.cupoMax) || 25,
     cupoOcupado: 0,
@@ -54,8 +67,9 @@ const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS
     profesorNombre: '',
     profesorEmail: '',
     niveles: 'Primario y Secundario',
-    dias: ['Lunes', 'Miércoles'],
-    horario: '',
+    dias: DEFAULT_INITIAL_DAYS,
+    horariosPorDia: DEFAULT_INITIAL_HORARIOS,
+    horario: formatHorarioString(DEFAULT_INITIAL_DAYS, DEFAULT_INITIAL_HORARIOS),
     lugar: '',
     cupoMax: 25,
     descripcion: '',
@@ -86,7 +100,53 @@ const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS
       const updated = current.includes(day)
         ? current.filter((d) => d !== day)
         : [...current, day];
-      return { ...prev, dias: updated };
+
+      const newHorarios = { ...prev.horariosPorDia };
+      if (!current.includes(day) && !newHorarios[day]) {
+        const existingDay = current.find((d) => newHorarios[d]?.inicio && newHorarios[d]?.fin);
+        newHorarios[day] = existingDay
+          ? { ...newHorarios[existingDay] }
+          : { inicio: '16:00', fin: '17:30' };
+      }
+
+      return {
+        ...prev,
+        dias: updated,
+        horariosPorDia: newHorarios,
+        horario: formatHorarioString(updated, newHorarios),
+      };
+    });
+  };
+
+  const handleScheduleChange = (day, field, value) => {
+    setFormData((prev) => {
+      const updatedHorarios = {
+        ...prev.horariosPorDia,
+        [day]: {
+          ...(prev.horariosPorDia?.[day] || { inicio: '16:00', fin: '17:30' }),
+          [field]: value,
+        },
+      };
+      return {
+        ...prev,
+        horariosPorDia: updatedHorarios,
+        horario: formatHorarioString(prev.dias, updatedHorarios),
+      };
+    });
+  };
+
+  const handleCopyScheduleToAll = (sourceDay) => {
+    setFormData((prev) => {
+      const template = prev.horariosPorDia?.[sourceDay] || { inicio: '16:00', fin: '17:30' };
+      const updatedHorarios = { ...prev.horariosPorDia };
+      (prev.dias || []).forEach((d) => {
+        updatedHorarios[d] = { ...template };
+      });
+      return {
+        ...prev,
+        horariosPorDia: updatedHorarios,
+        horario: formatHorarioString(prev.dias, updatedHorarios),
+      };
     });
   };
 
@@ -96,9 +156,21 @@ const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS
       setError('Por favor ingresa el nombre de la disciplina deportiva o extracurricular.');
       return;
     }
-    if (!formData.horario.trim()) {
-      setError('Por favor indica los días y horarios previstos.');
+    if (!formData.dias || formData.dias.length === 0) {
+      setError('Por favor selecciona al menos un día de cursada.');
       return;
+    }
+
+    for (const day of formData.dias) {
+      const sched = formData.horariosPorDia?.[day];
+      if (!sched?.inicio || !sched?.fin) {
+        setError(`Por favor completa los horarios de inicio y fin para el día ${day}.`);
+        return;
+      }
+      if (sched.inicio >= sched.fin) {
+        setError(`El horario de fin debe ser posterior al inicio para el día ${day}.`);
+        return;
+      }
     }
 
     const newDiscipline = createNewDisciplineRecord(formData, teachers);
@@ -142,6 +214,8 @@ const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS
             onChange={handleChange}
             onEmojiSelect={handleEmojiSelect}
             onToggleDay={handleToggleDay}
+            onScheduleChange={handleScheduleChange}
+            onCopyScheduleToAll={handleCopyScheduleToAll}
             teachers={teachers}
             error={error}
           />

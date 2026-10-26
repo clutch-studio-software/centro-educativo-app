@@ -34,7 +34,7 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">Baja o Transferencia</h3>
-              <p className="text-xs text-slate-500 font-mono">{student.legajo}</p>
+              <h3 className="text-xs text-start text-slate-500 font-mono">{student.legajo}</h3>
             </div>
           </div>
           <button
@@ -54,7 +54,7 @@ const TransferWithdrawModal = ({ isOpen, student, onClose, onConfirm }) => {
               {student.iniciales || 'AL'}
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-slate-900 truncate">{student.nombre}</p>
+              <p className="font-bold text-start text-slate-900 truncate">{student.nombre}</p>
               <p className="text-[11px] text-slate-500">{student.cursoCompleto} • DNI {student.dni}</p>
             </div>
           </div>

@@ -11,10 +11,12 @@ export const SportsDetailModals = ({
   onEnrollStudent,
   studentsCount,
   maxCapacity,
+  enrolledStudents = [],
   isEditConfigModalOpen,
   discipline,
   onCloseEditConfig,
   onSaveConfig,
+  teachers,
   isReassignTeacherModalOpen,
   onCloseReassignTeacher,
   onReassignTeacher,
@@ -32,6 +34,8 @@ export const SportsDetailModals = ({
         onEnroll={onEnrollStudent}
         currentCount={studentsCount}
         maxCapacity={maxCapacity}
+        discipline={discipline}
+        enrolledStudents={enrolledStudents}
       />
 
       <EditSportsConfigModal
@@ -39,6 +43,7 @@ export const SportsDetailModals = ({
         config={discipline}
         onClose={onCloseEditConfig}
         onSave={onSaveConfig}
+        teachers={teachers}
       />
 
       <ReassignTeacherModal

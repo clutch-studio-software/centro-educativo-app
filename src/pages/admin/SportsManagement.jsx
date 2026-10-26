@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
+import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import DisciplineFilters from '../../components/admin/sports/DisciplineFilters';
 import DisciplineTable from '../../components/admin/sports/DisciplineTable';
 import DisciplinePagination from '../../components/admin/sports/DisciplinePagination';
@@ -156,17 +157,11 @@ const SportsManagement = () => {
           data-purpose="page-header"
           data-testid="sports-header"
         >
-          <div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold tracking-wider uppercase bg-amber-50 text-amber-700 border border-amber-200/60 mb-2">
-              ÁREA EXTRACURRICULAR Y BIENESTAR
-            </span>
-            <h1 className="text-2xl lg:text-[28px] font-bold text-slate-900 tracking-tight">
-              Deportes y Actividades Extracurriculares
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Gestión de disciplinas deportivas, vacantes escolares, profesores a cargo y control de inscripciones.
-            </p>
-          </div>
+          <AdminSectionTitle
+            icon="sports_soccer"
+            title="Deportes y Actividades Extracurriculares"
+            subtitle="Gestión de disciplinas deportivas, vacantes escolares, profesores a cargo y control de inscripciones."
+          />
 
           {/* Actions Toolbar */}
           <div className="flex items-center gap-3 shrink-0">

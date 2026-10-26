@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
 import { SportsDetailHeaderCard } from '../../components/admin/sports/SportsDetailHeaderCard';
@@ -11,12 +11,31 @@ import {
   INITIAL_STUDENTS_ROSTER,
   exportSportRosterCsv,
 } from '../../data/mockSportsDetailData';
+import { INITIAL_DISCIPLINES } from '../../data/mockSportsActivities';
+import { MOCK_TEACHERS } from '../../data/mockTeachers';
 
 const PAGE_SIZE = 6;
 
 const SportsDetailManagement = () => {
+  const { id } = useParams();
+
+  const initialDiscipline = useMemo(() => {
+    if (!id) return INITIAL_SPORT_DETAIL;
+    const found = INITIAL_DISCIPLINES.find((d) => d.id === id);
+    if (!found) return INITIAL_SPORT_DETAIL;
+    return {
+      ...INITIAL_SPORT_DETAIL,
+      ...found,
+      code: `DEP-${found.nombre.slice(0, 3).toUpperCase()}-2026`,
+      titulo: `${found.nombre} - Padrón y Detalle Operativo`,
+      horas: found.horario,
+      dias: found.dias,
+      cupoMax: found.cupoMax || 40,
+    };
+  }, [id]);
+
   // Discipline Operational State
-  const [discipline, setDiscipline] = useState(INITIAL_SPORT_DETAIL);
+  const [discipline, setDiscipline] = useState(initialDiscipline);
   const [students, setStudents] = useState(INITIAL_STUDENTS_ROSTER);
 
   // Filters State
@@ -118,18 +137,15 @@ const SportsDetailManagement = () => {
   const handleSaveConfig = (updatedConfig) => {
     setDiscipline((prev) => ({
       ...prev,
-      titulo: updatedConfig.nombre,
-      code: updatedConfig.codigo,
+      ...updatedConfig,
+      nombre: updatedConfig.nombre,
+      titulo: `${updatedConfig.nombre} - Padrón y Detalle Operativo`,
+      horas: updatedConfig.horario,
+      horario: updatedConfig.horario,
+      instalacion: updatedConfig.lugar,
       cupoMax: Number(updatedConfig.cupoMax) || prev.cupoMax,
-      listaEsperaCount: Number(updatedConfig.listaEsperaCount) || 0,
-      dias: updatedConfig.dias,
-      horas: updatedConfig.horas,
-      lugar: updatedConfig.lugar,
-      instalacion: updatedConfig.instalacion,
-      nivelesDetalle: updatedConfig.nivelesDetalle,
-      politica: updatedConfig.politica,
     }));
-    showToast('Configuración institucional de la disciplina actualizada.', 'success');
+    showToast('Configuración de la disciplina actualizada.', 'success');
   };
 
   const handleReassignTeacher = (newTeacher) => {
@@ -239,10 +255,12 @@ const SportsDetailManagement = () => {
           onEnrollStudent={handleEnrollStudent}
           studentsCount={students.length}
           maxCapacity={discipline.cupoMax}
+          enrolledStudents={students}
           isEditConfigModalOpen={isEditConfigModalOpen}
           discipline={discipline}
           onCloseEditConfig={() => setIsEditConfigModalOpen(false)}
           onSaveConfig={handleSaveConfig}
+          teachers={MOCK_TEACHERS}
           isReassignTeacherModalOpen={isReassignTeacherModalOpen}
           onCloseReassignTeacher={() => setIsReassignTeacherModalOpen(false)}
           onReassignTeacher={handleReassignTeacher}

@@ -25,17 +25,17 @@ export const SportsDetailBentoGrid = ({
           </div>
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-sm">
-              {discipline.profesor.iniciales || 'DA'}
+              {discipline.profesor?.iniciales || 'DOC'}
             </div>
             <div className="min-w-0">
               <h4 className="font-bold text-sm text-slate-900 truncate">
-                {discipline.profesor.nombre}
+                {discipline.profesor?.nombre || 'Sin asignar'}
               </h4>
               <p className="text-xs font-mono text-primary font-bold mt-0.5">
-                Legajo {discipline.profesor.legajo}
+                {discipline.profesor?.legajo ? `Legajo ${discipline.profesor.legajo}` : (discipline.profesor?.telefono || 'Docente')}
               </p>
               <p className="text-xs text-slate-500 truncate mt-1">
-                {discipline.profesor.email}
+                {discipline.profesor?.email || ''}
               </p>
             </div>
           </div>
@@ -66,22 +66,26 @@ export const SportsDetailBentoGrid = ({
             </div>
           </div>
           <div className="space-y-3">
-            <div className="flex items-start gap-2.5">
+            <div className="flex items-center text-start gap-2.5">
               <span className="material-symbols-outlined text-base text-tertiary-fixed-dim shrink-0 mt-0.5">
                 event
               </span>
               <div>
-                <p className="text-xs font-bold text-slate-800">{discipline.dias}</p>
-                <p className="text-xs text-slate-500 font-medium">{discipline.horas}</p>
+                <p className="text-xs font-bold text-slate-800">
+                  {Array.isArray(discipline.dias) ? discipline.dias.join(', ') : (discipline.dias || 'Días a coordinar')}
+                </p>
+                <p className="text-xs text-slate-500 font-medium">
+                  {discipline.horas || discipline.horario || 'Horario a confirmar'}
+                </p>
               </div>
             </div>
-            <div className="flex items-start gap-2.5">
+            <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined text-base text-tertiary-fixed-dim shrink-0 mt-0.5">
                 stadium
               </span>
               <div>
-                <p className="text-xs font-bold text-slate-800">{discipline.lugar}</p>
-                <p className="text-xs text-slate-500">{discipline.instalacion}</p>
+                <p className="text-xs text-start font-bold text-slate-800">{discipline.lugar || 'Campo Deportivo'}</p>
+                <p className="text-xs text-slate-500">{discipline.instalacion || discipline.descripcion || 'Instalaciones del Colegio'}</p>
               </div>
             </div>
           </div>
@@ -105,7 +109,7 @@ export const SportsDetailBentoGrid = ({
               {occupancyPercentage}%
             </span>
           </div>
-          <div className="flex items-baseline gap-1.5 mt-2">
+          <div className="items-baseline gap-1.5 mt-2">
             <span className="text-3xl font-extrabold text-slate-900 font-headline">
               {occupancyCount}
             </span>
@@ -159,8 +163,8 @@ export const SportsDetailBentoGrid = ({
               </p>
             </div>
             <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-              <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-base text-primary shrink-0 mt-0.5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-base text-xl text-primary shrink-0 mt-0.5">
                   verified_user
                 </span>
                 <p className="text-[11px] font-bold text-slate-700 leading-tight">

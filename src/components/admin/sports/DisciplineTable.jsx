@@ -61,7 +61,6 @@ const DisciplineTable = ({
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
             {disciplines.map((disc) => {
-              const isFull = disc.cupoOcupado >= disc.cupoMax;
               const isActive = disc.activo;
 
               return (
@@ -135,22 +134,11 @@ const DisciplineTable = ({
                         }`}
                       >
                         <span
-                          className={`w-3 h-3 bg-white rounded-full shadow-xs transform transition-transform duration-200 ${
+                          className={`w-3 h-3 bg-white rounded-full shadow-xs transform transition-transform duration-500 ${
                             isActive ? 'translate-x-4' : 'translate-x-0'
                           }`}
                         />
                       </button>
-                      <span
-                        className={`text-[11px] font-semibold ${
-                          isActive
-                            ? isFull
-                              ? 'text-amber-700 font-bold'
-                              : 'text-emerald-700'
-                            : 'text-slate-400'
-                        }`}
-                      >
-                        {!isActive ? 'En Pausa' : isFull ? 'Completo' : 'Activo'}
-                      </span>
                     </div>
                   </td>
 

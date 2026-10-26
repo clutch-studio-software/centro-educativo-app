@@ -175,7 +175,6 @@ export const SportsDetailRosterSection = ({
                 <th className="px-6 py-3.5" scope="col">Nivel &amp; Curso</th>
                 <th className="px-6 py-3.5" scope="col">Tutor Responsable</th>
                 <th className="px-6 py-3.5" scope="col">Inscripción</th>
-                <th className="px-6 py-3.5" scope="col">Condición Deportiva</th>
                 <th className="px-6 py-3.5 text-right" scope="col">Acciones</th>
               </tr>
             </thead>
