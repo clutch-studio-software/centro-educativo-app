@@ -8,6 +8,7 @@ import {
 import { INITIAL_DISCIPLINES } from '../../../data/mockSportsActivities';
 import { MOCK_TEACHERS } from '../../../data/mockTeachers';
 import { fetchTeachersApi } from '../../../services/teachersService';
+import { useAuth } from '../../../context/AuthContext';
 import {
   subscribeToSportActivityById,
   subscribeToSportsActivities,
@@ -22,6 +23,7 @@ const PAGE_SIZE = 6;
 
 export const useSportsDetailManagement = () => {
   const { id } = useParams();
+  const { user: currentUser } = useAuth();
 
   const initialDiscipline = useMemo(() => {
     if (!id) return INITIAL_SPORT_DETAIL;
@@ -268,6 +270,13 @@ export const useSportsDetailManagement = () => {
           ? `Transferencia de disciplina solicitada desde ${discName} hacia ${targetDiscipline || 'otra actividad'}.`
           : `Baja administrativa y desvinculación de la actividad ${discName}.`);
 
+      const authorName =
+        currentUser?.nombre ||
+        currentUser?.displayName ||
+        (currentUser?.email ? currentUser.email.split('@')[0] : 'Personal Institucional');
+      const authorRole = currentUser?.role || 'Preceptoría / Administración';
+      const authorEmail = currentUser?.email || '';
+
       const noteEntry = {
         tipo:
           actionType === 'transfer'
@@ -278,7 +287,10 @@ export const useSportsDetailManagement = () => {
             ? `Pase de ${discName} a ${targetDiscipline || 'otra disciplina'}`
             : `Baja de actividad: ${discName}`,
         motivo: justificativoText,
-        autor: 'Preceptoría y Administración',
+        autor: authorName,
+        autorRol: authorRole,
+        autorEmail: authorEmail,
+        autorUid: currentUser?.uid || null,
         categoria: 'Extracurricular',
       };
 

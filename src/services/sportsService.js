@@ -8,7 +8,7 @@ import {
   serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { ensureAdminAuth } from './teachersService';
 import { INITIAL_DISCIPLINES } from '../data/mockSportsActivities';
 import {
@@ -544,9 +544,20 @@ export const addPreceptoriaNoteToStudent = async ({
       }
     }
 
+    const currentAuthUser = auth.currentUser;
+    const authorFromAuth =
+      currentAuthUser?.displayName ||
+      currentAuthUser?.email?.split('@')[0] ||
+      'Preceptoría y Administración';
+    const authorEmailFromAuth = currentAuthUser?.email || '';
+
     const newNote = {
       id: `prec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       fecha: new Date().toISOString(),
+      autor: note?.autor || authorFromAuth,
+      autorRol: note?.autorRol || 'Preceptoría / Administración',
+      autorEmail: note?.autorEmail || authorEmailFromAuth,
+      autorUid: note?.autorUid || currentAuthUser?.uid || null,
       ...note,
     };
 
@@ -570,6 +581,91 @@ export const addPreceptoriaNoteToStudent = async ({
   } catch (err) {
     console.warn('Error al registrar nota de preceptoría:', err.message);
     return null;
+  }
+};
+
+/**
+ * Elimina una entrada del historial de preceptoría de un alumno en Firestore.
+ */
+export const deletePreceptoriaNoteFromStudent = async ({
+  studentId,
+  studentDni,
+  studentLegajo,
+  studentName,
+  noteId,
+  noteFecha,
+}) => {
+  try {
+    await ensureAdminAuth();
+
+    let targetDocRef = null;
+    let currentData = null;
+
+    if (studentId) {
+      const directRef = doc(db, 'students', String(studentId).trim());
+      const directSnap = await getDoc(directRef);
+      if (directSnap.exists()) {
+        targetDocRef = directRef;
+        currentData = directSnap.data();
+      }
+    }
+
+    if (!targetDocRef) {
+      const cleanDni = String(studentDni || '').replace(/\D/g, '');
+      const cleanLegajo = String(studentLegajo || '').trim().toLowerCase();
+      const cleanName = String(studentName || '').trim().toLowerCase();
+
+      const snap = await getDocs(collection(db, 'students'));
+      for (const dSnap of snap.docs) {
+        const dData = dSnap.data();
+        const dDni = String(dData.dni || '').replace(/\D/g, '');
+        const dLeg = String(dData.legajo || '').trim().toLowerCase();
+        const dNom = String(dData.nombre || '').trim().toLowerCase();
+
+        if (
+          (cleanDni && dDni && cleanDni === dDni) ||
+          (cleanLegajo && dLeg && cleanLegajo === dLeg) ||
+          (cleanName && dNom && cleanName === dNom)
+        ) {
+          targetDocRef = dSnap.ref;
+          currentData = dData;
+          break;
+        }
+      }
+    }
+
+    if (!targetDocRef) {
+      console.warn('No se encontró el estudiante para eliminar la entrada de preceptoría');
+      return false;
+    }
+
+    const existingNotes = Array.isArray(currentData?.entradasPreceptoria)
+      ? currentData.entradasPreceptoria
+      : [];
+
+    const updatedNotes = existingNotes.filter((n) => {
+      if (noteId && n.id) {
+        return String(n.id) !== String(noteId);
+      }
+      if (noteFecha && n.fecha) {
+        return String(n.fecha) !== String(noteFecha);
+      }
+      return true;
+    });
+
+    await setDoc(
+      targetDocRef,
+      {
+        entradasPreceptoria: updatedNotes,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return true;
+  } catch (err) {
+    console.warn('Error al eliminar nota de preceptoría:', err.message);
+    return false;
   }
 };
 

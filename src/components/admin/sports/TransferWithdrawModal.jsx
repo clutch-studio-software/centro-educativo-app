@@ -173,7 +173,7 @@ const TransferWithdrawModal = ({
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Indique la justificación de la gestión administrativa..."
               aria-label="Motivo u observaciones"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
+              className="w-full px-3.5 py-2 rounded-md border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs"
             />
           </div>
 
