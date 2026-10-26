@@ -87,7 +87,7 @@ const ScheduleVenueCard = ({
             </span>
             <div>
               <p className="text-xs text-start font-bold text-slate-800">{espacioFormatted}</p>
-              <p className="text-xs text-slate-500">{sedeFormatted}</p>
+              <p className="text-xs text-start text-slate-500">{sedeFormatted}</p>
             </div>
           </div>
         </div>

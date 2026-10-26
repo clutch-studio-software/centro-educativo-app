@@ -4,15 +4,18 @@ import {
   parseHorariosFromDiscipline,
   formatHorarioString,
   buildUpdatedDiscipline,
+  sortWeekDays,
 } from './sportsScheduleUtils';
 
 const EMPTY_TEACHERS = [];
 
 const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EMPTY_TEACHERS }) => {
   const initialHorarios = parseHorariosFromDiscipline(discipline);
-  const initialDias = discipline.dias && discipline.dias.length > 0
-    ? discipline.dias
-    : ['Lunes', 'Miércoles'];
+  const initialDias = sortWeekDays(
+    discipline.dias && discipline.dias.length > 0
+      ? discipline.dias
+      : ['Lunes', 'Miércoles']
+  );
 
   initialDias.forEach((d) => {
     if (!initialHorarios[d]) {
@@ -59,9 +62,11 @@ const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EM
   const handleToggleDay = (day) => {
     setFormData((prev) => {
       const current = prev.dias || [];
-      const updated = current.includes(day)
-        ? current.filter((d) => d !== day)
-        : [...current, day];
+      const updated = sortWeekDays(
+        current.includes(day)
+          ? current.filter((d) => d !== day)
+          : [...current, day]
+      );
 
       const newHorarios = { ...prev.horariosPorDia };
       if (!current.includes(day) && !newHorarios[day]) {

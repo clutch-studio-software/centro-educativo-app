@@ -26,12 +26,35 @@ export const parseHorariosFromDiscipline = (discipline) => {
   return result;
 };
 
+export const getDayOrderIndex = (day) => {
+  const normalized = String(day || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.startsWith('lun')) return 1;
+  if (normalized.startsWith('mar')) return 2;
+  if (normalized.startsWith('mie')) return 3;
+  if (normalized.startsWith('jue')) return 4;
+  if (normalized.startsWith('vie')) return 5;
+  if (normalized.startsWith('sab')) return 6;
+  if (normalized.startsWith('dom')) return 7;
+  return 99;
+};
+
+export const sortWeekDays = (days = []) => {
+  if (!Array.isArray(days)) return [];
+  return [...days].sort((a, b) => getDayOrderIndex(a) - getDayOrderIndex(b));
+};
+
 export const formatHorarioString = (dias = [], horariosPorDia = {}) => {
   if (!dias || dias.length === 0) return '';
+  const sortedDays = sortWeekDays(dias);
 
-  const firstDay = dias[0];
+  const firstDay = sortedDays[0];
   const firstHorario = horariosPorDia[firstDay] || { inicio: '16:00', fin: '17:30' };
-  const allSame = dias.every(
+  const allSame = sortedDays.every(
     (d) =>
       horariosPorDia[d]?.inicio === firstHorario.inicio &&
       horariosPorDia[d]?.fin === firstHorario.fin
@@ -39,13 +62,13 @@ export const formatHorarioString = (dias = [], horariosPorDia = {}) => {
 
   if (allSame) {
     const formattedDays =
-      dias.length === 1
-        ? dias[0]
-        : `${dias.slice(0, -1).join(', ')} y ${dias[dias.length - 1]}`;
+      sortedDays.length === 1
+        ? sortedDays[0]
+        : `${sortedDays.slice(0, -1).join(', ')} y ${sortedDays[sortedDays.length - 1]}`;
     return `${formattedDays} ${firstHorario.inicio} - ${firstHorario.fin}`;
   }
 
-  return dias
+  return sortedDays
     .map((d) => {
       const h = horariosPorDia[d] || { inicio: '16:00', fin: '17:30' };
       return `${d} ${h.inicio} - ${h.fin}`;

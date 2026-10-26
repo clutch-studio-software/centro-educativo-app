@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NewDisciplineFormFields } from './NewDisciplineFormFields';
-import { formatHorarioString } from './sportsScheduleUtils';
+import { formatHorarioString, sortWeekDays } from './sportsScheduleUtils';
 
 const EMPTY_TEACHERS = [];
 
@@ -97,9 +97,11 @@ const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS
   const handleToggleDay = (day) => {
     setFormData((prev) => {
       const current = prev.dias || [];
-      const updated = current.includes(day)
-        ? current.filter((d) => d !== day)
-        : [...current, day];
+      const updated = sortWeekDays(
+        current.includes(day)
+          ? current.filter((d) => d !== day)
+          : [...current, day]
+      );
 
       const newHorarios = { ...prev.horariosPorDia };
       if (!current.includes(day) && !newHorarios[day]) {

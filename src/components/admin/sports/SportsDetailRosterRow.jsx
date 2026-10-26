@@ -28,9 +28,9 @@ export const SportsDetailRosterRow = ({
           </div>
           <div className="min-w-0">
             <p className="font-bold text-slate-900 truncate">{student.nombre}</p>
-            <span className="text-[10px] text-slate-400 font-medium">
+            <p className="text-[10px] text-slate-400 font-medium">
               DNI {student.dni}
-            </span>
+            </p>
           </div>
         </div>
       </td>

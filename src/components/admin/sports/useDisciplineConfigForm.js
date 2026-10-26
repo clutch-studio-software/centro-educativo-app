@@ -3,6 +3,7 @@ import {
   parseHorariosFromDiscipline,
   formatHorarioString,
   buildUpdatedDiscipline,
+  sortWeekDays,
 } from './sportsScheduleUtils';
 import { MOCK_TEACHERS } from '../../../data/mockTeachers';
 
@@ -56,7 +57,7 @@ export const useDisciplineConfigForm = (
   onClose
 ) => {
   const [formData, setFormData] = useState(() => {
-    const dias = getInitialDias(config);
+    const dias = sortWeekDays(getInitialDias(config));
     const horarios = getInitialHorarios(config, dias);
     return {
       nombre: config?.nombre || config?.titulo?.split(' - ')[0] || '',
@@ -101,9 +102,11 @@ export const useDisciplineConfigForm = (
   const handleToggleDay = (day) => {
     setFormData((prev) => {
       const current = prev.dias || [];
-      const updated = current.includes(day)
-        ? current.filter((d) => d !== day)
-        : [...current, day];
+      const updated = sortWeekDays(
+        current.includes(day)
+          ? current.filter((d) => d !== day)
+          : [...current, day]
+      );
 
       const newHorarios = { ...prev.horariosPorDia };
       if (!current.includes(day) && !newHorarios[day]) {

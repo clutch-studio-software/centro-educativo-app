@@ -1,6 +1,6 @@
 import React from 'react';
 import { EMOJI_OPTIONS, DAY_OPTIONS } from '../../../data/mockSportsActivities';
-import { formatHorarioString } from './sportsScheduleUtils';
+import { formatHorarioString, sortWeekDays } from './sportsScheduleUtils';
 
 export const DisciplineEmojiSelector = ({ selectedEmoji, onSelectEmoji }) => {
   return (
@@ -74,7 +74,8 @@ export const DisciplineScheduleByDay = ({
     );
   }
 
-  const summary = formatHorarioString(selectedDays, horariosPorDia);
+  const sortedDays = sortWeekDays(selectedDays);
+  const summary = formatHorarioString(sortedDays, horariosPorDia);
 
   return (
     <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 space-y-3">
@@ -87,7 +88,7 @@ export const DisciplineScheduleByDay = ({
       </div>
 
       <div className="space-y-2">
-        {selectedDays.map((dia) => {
+        {sortedDays.map((dia) => {
           const schedule = horariosPorDia[dia] || { inicio: '16:00', fin: '17:30' };
           return (
             <div
