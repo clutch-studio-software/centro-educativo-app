@@ -132,3 +132,37 @@ export const isStudentLevelAllowed = (studentNivel, disciplineNiveles) => {
   return false;
 };
 
+export const isSameStudent = (s1, s2) => {
+  if (!s1 || !s2) return false;
+  const dni1 = String(s1.dni || '').replace(/\D/g, '');
+  const dni2 = String(s2.dni || '').replace(/\D/g, '');
+  if (dni1 && dni2 && dni1 === dni2) return true;
+
+  const leg1 = String(s1.legajo || '').trim().toLowerCase();
+  const leg2 = String(s2.legajo || '').trim().toLowerCase();
+  if (leg1 && leg2 && leg1 === leg2) return true;
+
+  const id1 = String(s1.id || '').trim();
+  const id2 = String(s2.id || '').trim();
+  if (id1 && id2 && id1 === id2) return true;
+
+  const nom1 = String(s1.nombre || '').trim().toLowerCase();
+  const nom2 = String(s2.nombre || '').trim().toLowerCase();
+  if (nom1 && nom2 && nom1 === nom2) return true;
+
+  return false;
+};
+
+export const getStudentEnrolledDisciplines = (student, allDisciplines = []) => {
+  if (!student || !Array.isArray(allDisciplines)) return [];
+  return allDisciplines.filter((disc) => {
+    const inscriptos = Array.isArray(disc.inscriptos) ? disc.inscriptos : [];
+    return inscriptos.some((s) => isSameStudent(s, student));
+  });
+};
+
+export const getStudentEnrolledActivitiesCount = (student, allDisciplines = []) => {
+  return getStudentEnrolledDisciplines(student, allDisciplines).length;
+};
+
+

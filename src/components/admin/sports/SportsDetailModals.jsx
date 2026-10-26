@@ -6,6 +6,7 @@ import TransferWithdrawModal from './TransferWithdrawModal';
 import EditSportsConfigModal from './EditSportsConfigModal';
 
 const EMPTY_STUDENTS = [];
+const EMPTY_DISCIPLINES = [];
 
 export const SportsDetailModals = ({
   isEnrollModalOpen,
@@ -14,6 +15,7 @@ export const SportsDetailModals = ({
   studentsCount,
   maxCapacity,
   enrolledStudents = EMPTY_STUDENTS,
+  allDisciplines = EMPTY_DISCIPLINES,
   isEditConfigModalOpen,
   discipline,
   onCloseEditConfig,
@@ -38,6 +40,7 @@ export const SportsDetailModals = ({
         maxCapacity={maxCapacity}
         discipline={discipline}
         enrolledStudents={enrolledStudents}
+        allDisciplines={allDisciplines}
       />
 
       <EditSportsConfigModal
@@ -58,6 +61,8 @@ export const SportsDetailModals = ({
       <TransferWithdrawModal
         isOpen={Boolean(transferStudent)}
         student={transferStudent}
+        discipline={discipline}
+        allDisciplines={allDisciplines}
         onClose={onCloseTransfer}
         onConfirm={onConfirmTransfer}
       />
@@ -65,6 +70,7 @@ export const SportsDetailModals = ({
       <StudentDetailsModal
         isOpen={Boolean(viewingStudent)}
         student={viewingStudent}
+        allDisciplines={allDisciplines}
         onClose={onCloseViewingStudent}
       />
     </>

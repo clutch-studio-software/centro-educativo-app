@@ -1,30 +1,23 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 export const SportsDetailHeaderCard = ({
   discipline,
   onOpenConfig,
   onOpenEnroll,
+  onOpenEditConfigModal,
+  onOpenEnrollModal,
   onToggleOffer,
 }) => {
+  const handleOpenConfig = onOpenConfig || onOpenEditConfigModal;
+  const handleOpenEnroll = onOpenEnroll || onOpenEnrollModal;
+
   return (
     <div className="mb-6">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <Link
-          to="/admin/servicios"
-          data-testid="link-back-sports"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-primary transition-colors cursor-pointer group"
-        >
-          <span className="material-symbols-outlined text-sm group-hover:-translate-x-0.5 transition-transform">
-            arrow_back
-          </span>
-          Volver al Padrón de Actividades
-        </Link>
-
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
-            onClick={onOpenConfig}
+            onClick={handleOpenConfig}
             data-testid="btn-open-config"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors text-xs font-bold shadow-xs cursor-pointer"
           >
@@ -34,7 +27,7 @@ export const SportsDetailHeaderCard = ({
 
           <button
             type="button"
-            onClick={onOpenEnroll}
+            onClick={handleOpenEnroll}
             data-testid="btn-enroll-student-top"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-dim text-white transition-all text-xs font-bold shadow-sm shadow-primary/20 cursor-pointer border-none"
           >

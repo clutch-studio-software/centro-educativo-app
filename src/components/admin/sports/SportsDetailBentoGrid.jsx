@@ -48,15 +48,12 @@ const ScheduleVenueCard = ({
   horas,
   horario,
   lugar,
-  instalacion,
-  descripcion,
 }) => {
   const diasFormatted = Array.isArray(dias)
     ? dias.join(', ')
     : (dias || 'Días a coordinar');
   const horasFormatted = horas || horario || 'Horario a confirmar';
   const espacioFormatted = lugar || 'Campo Deportivo';
-  const sedeFormatted = instalacion || descripcion || 'Instalaciones del Colegio';
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
@@ -87,7 +84,6 @@ const ScheduleVenueCard = ({
             </span>
             <div>
               <p className="text-xs text-start font-bold text-slate-800">{espacioFormatted}</p>
-              <p className="text-xs text-start text-slate-500">{sedeFormatted}</p>
             </div>
           </div>
         </div>

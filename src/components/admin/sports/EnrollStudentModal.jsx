@@ -4,6 +4,10 @@ import {
   createEnrolledStudentFromMock,
 } from './useStudentEnrollmentSearch';
 import { EnrollStudentList } from './EnrollStudentList';
+import {
+  getStudentEnrolledActivitiesCount,
+  getStudentEnrolledDisciplines,
+} from './sportsScheduleUtils';
 
 const EnrollDisciplineBanner = ({
   discipline,
@@ -109,6 +113,7 @@ const EnrollSearchToolbar = ({
   );
 };
 
+const EMPTY_DISCIPLINES = [];
 const EMPTY_ENROLLED = [];
 
 const EnrollStudentModal = ({
@@ -119,6 +124,7 @@ const EnrollStudentModal = ({
   maxCapacity = 40,
   discipline,
   enrolledStudents = EMPTY_ENROLLED,
+  allDisciplines = EMPTY_DISCIPLINES,
 }) => {
   const {
     searchTerm,
@@ -132,15 +138,33 @@ const EnrollStudentModal = ({
     eligibleStudents,
   } = useStudentEnrollmentSearch(discipline);
 
+  const [enrollError, setEnrollError] = React.useState('');
+
   if (!isOpen) return null;
 
   const isFull = currentCount >= maxCapacity;
   const vacantesDisponibles = Math.max(0, maxCapacity - currentCount);
 
+  const selectedCount = selectedStudent
+    ? getStudentEnrolledActivitiesCount(selectedStudent, allDisciplines)
+    : 0;
+  const isSelectedMaxReached = selectedCount >= 2;
+
   const handleConfirmEnroll = (e) => {
     e.preventDefault();
     if (!selectedStudent || isFull) return;
 
+    if (isSelectedMaxReached) {
+      const currentEnrolledNames = getStudentEnrolledDisciplines(selectedStudent, allDisciplines)
+        .map((d) => d.nombre)
+        .join(', ');
+      setEnrollError(
+        `El alumno ya está inscripto en 2 actividades (${currentEnrolledNames}). No puede anotarse a más de 2 actividades extracurriculares.`
+      );
+      return;
+    }
+
+    setEnrollError('');
     const newRecord = createEnrolledStudentFromMock(selectedStudent);
     onEnroll(newRecord);
     setSelectedStudent(null);
@@ -198,6 +222,13 @@ const EnrollStudentModal = ({
             onSelectNivelFilter={setSelectedNivelFilter}
           />
 
+          {enrollError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-rose-600">error</span>
+              <span>{enrollError}</span>
+            </div>
+          )}
+
           <div>
             <div className="flex items-center justify-between pb-2 text-[11px] text-slate-500 font-semibold">
               <span>Alumnos encontrados ({eligibleStudents.length})</span>
@@ -210,7 +241,11 @@ const EnrollStudentModal = ({
               selectedStudent={selectedStudent}
               isFull={isFull}
               configuredLevels={configuredLevels}
-              onSelectStudent={setSelectedStudent}
+              allDisciplines={allDisciplines}
+              onSelectStudent={(student) => {
+                setEnrollError('');
+                setSelectedStudent(student);
+              }}
             />
           </div>
         </div>
@@ -219,15 +254,23 @@ const EnrollStudentModal = ({
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="text-xs">
             {selectedStudent ? (
-              <div className="flex items-center gap-1.5 text-blue-900">
-                <span className="material-symbols-outlined text-[16px] text-blue-600">
-                  how_to_reg
-                </span>
-                <span>
-                  Alumno seleccionado:{' '}
-                  <strong className="text-slate-900">{selectedStudent.nombre}</strong> (
-                  {selectedStudent.cursoDisplay || selectedStudent.curso})
-                </span>
+              <div>
+                <div className="flex items-center gap-1.5 text-blue-900">
+                  <span className="material-symbols-outlined text-[16px] text-blue-600">
+                    how_to_reg
+                  </span>
+                  <span>
+                    Alumno seleccionado:{' '}
+                    <strong className="text-slate-900">{selectedStudent.nombre}</strong> (
+                    {selectedStudent.cursoDisplay || selectedStudent.curso})
+                  </span>
+                </div>
+                {isSelectedMaxReached && (
+                  <p className="text-rose-600 font-semibold text-[11px] mt-0.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">warning</span>
+                    Límite alcanzado: el alumno ya está inscripto en 2 actividades extracurriculares.
+                  </p>
+                )}
               </div>
             ) : (
               <span className="text-slate-500 text-[11px]">
@@ -246,11 +289,11 @@ const EnrollStudentModal = ({
             </button>
             <button
               type="button"
-              disabled={!selectedStudent || isFull}
+              disabled={!selectedStudent || isFull || isSelectedMaxReached}
               onClick={handleConfirmEnroll}
               data-testid="btn-confirm-enroll-student"
               className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer border-none flex items-center gap-1.5 ${
-                !selectedStudent || isFull
+                !selectedStudent || isFull || isSelectedMaxReached
                   ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
               }`}

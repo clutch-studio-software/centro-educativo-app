@@ -1,37 +1,90 @@
 import React from 'react';
 import { isAlreadyEnrolled } from './useStudentEnrollmentSearch';
+import { getStudentEnrolledActivitiesCount } from './sportsScheduleUtils';
+
+const EMPTY_DISCIPLINES = [];
+
+const getCardButtonClasses = (alreadyEnrolled, isMaxReached, isSelected) => {
+  if (alreadyEnrolled) {
+    return 'bg-slate-50/70 border-slate-200 opacity-60 cursor-not-allowed';
+  }
+  if (isMaxReached) {
+    return 'bg-rose-50/40 border-rose-200 opacity-70 cursor-not-allowed';
+  }
+  if (isSelected) {
+    return 'bg-blue-50/60 border-blue-500 ring-2 ring-blue-500/20 cursor-pointer shadow-xs';
+  }
+  return 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50/50 cursor-pointer';
+};
+
+const getRadioIconClasses = (isSelected, isDisabled) => {
+  if (isSelected) return 'border-blue-600 bg-blue-600 text-white';
+  if (isDisabled) return 'border-slate-300 bg-slate-200';
+  return 'border-slate-300 bg-white';
+};
+
+const EnrollStudentActivityStatusBadge = ({ alreadyEnrolled, isMaxReached, enrolledCount }) => {
+  if (alreadyEnrolled) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+        <span className="material-symbols-outlined text-[12px]">check_circle</span>
+        Ya inscripto
+      </span>
+    );
+  }
+  if (isMaxReached) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-bold">
+        <span className="material-symbols-outlined text-[12px]">block</span>
+        Límite alcanzado (2/2)
+      </span>
+    );
+  }
+  const isOne = enrolledCount === 1;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+        isOne
+          ? 'bg-amber-50 text-amber-800 border-amber-200'
+          : 'bg-slate-100 text-slate-600 border-slate-200/80'
+      }`}
+    >
+      {isOne ? '1/2 actividad' : '0/2 actividades'}
+    </span>
+  );
+};
 
 export const EnrollStudentCard = ({
   student,
   isSelected,
   alreadyEnrolled,
+  allDisciplines = EMPTY_DISCIPLINES,
   isFull,
   onSelect,
 }) => {
+  const enrolledCount = getStudentEnrolledActivitiesCount(student, allDisciplines);
+  const isMaxReached = enrolledCount >= 2;
+  const isDisabled = alreadyEnrolled || isMaxReached || isFull;
+
   return (
     <button
       type="button"
-      disabled={alreadyEnrolled || isFull}
+      disabled={isDisabled}
       onClick={() => onSelect(student)}
       aria-pressed={isSelected}
       aria-label={`Seleccionar alumno ${student.nombre}`}
-      className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 text-left w-full ${
-        alreadyEnrolled
-          ? 'bg-slate-50/70 border-slate-200 opacity-60 cursor-not-allowed'
-          : isSelected
-          ? 'bg-blue-50/60 border-blue-500 ring-2 ring-blue-500/20 cursor-pointer shadow-xs'
-          : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-slate-50/50 cursor-pointer'
-      }`}
+      className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 text-left w-full ${getCardButtonClasses(
+        alreadyEnrolled,
+        isMaxReached,
+        isSelected
+      )}`}
     >
       <div className="flex items-center gap-3 min-w-0">
         <div
-          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-            isSelected
-              ? 'border-blue-600 bg-blue-600 text-white'
-              : alreadyEnrolled
-              ? 'border-slate-300 bg-slate-200'
-              : 'border-slate-300 bg-white'
-          }`}
+          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${getRadioIconClasses(
+            isSelected,
+            alreadyEnrolled || isMaxReached
+          )}`}
         >
           {isSelected && (
             <span className="material-symbols-outlined text-[14px]">check</span>
@@ -72,17 +125,12 @@ export const EnrollStudentCard = ({
         </div>
       </div>
 
-      <div className="shrink-0 text-right">
-        {alreadyEnrolled ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-            <span className="material-symbols-outlined text-[12px]">check_circle</span>
-            Ya inscripto
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium">
-            {student.estado || 'Regular'}
-          </span>
-        )}
+      <div className="shrink-0 flex flex-col items-end gap-1">
+        <EnrollStudentActivityStatusBadge
+          alreadyEnrolled={alreadyEnrolled}
+          isMaxReached={isMaxReached}
+          enrolledCount={enrolledCount}
+        />
       </div>
     </button>
   );
@@ -91,6 +139,7 @@ export const EnrollStudentCard = ({
 export const EnrollStudentList = ({
   students,
   enrolledStudents,
+  allDisciplines = EMPTY_DISCIPLINES,
   selectedStudent,
   isFull,
   configuredLevels,
@@ -120,6 +169,7 @@ export const EnrollStudentList = ({
             student={student}
             isSelected={isSelected}
             alreadyEnrolled={alreadyEnrolled}
+            allDisciplines={allDisciplines}
             isFull={isFull}
             onSelect={onSelectStudent}
           />
@@ -130,3 +180,4 @@ export const EnrollStudentList = ({
 };
 
 export default EnrollStudentList;
+

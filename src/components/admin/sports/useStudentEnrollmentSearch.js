@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MOCK_STUDENTS } from '../../../data/mockStudents';
 import { isStudentLevelAllowed } from './sportsScheduleUtils';
+import { fetchEligibleStudentsFromFirestore } from '../../../services/sportsService';
 
 const normalizeDigits = (val) => String(val || '').replace(/\D/g, '');
 
@@ -59,10 +60,36 @@ export const createEnrolledStudentFromMock = (student) => {
   };
 };
 
-export const useStudentEnrollmentSearch = (discipline) => {
+export const useStudentEnrollmentSearch = (discipline, customStudents = null) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNivelFilter, setSelectedNivelFilter] = useState('Todos');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [firestoreStudents, setFirestoreStudents] = useState([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(Boolean(!customStudents));
+
+  useEffect(() => {
+    if (customStudents) return;
+    let isMounted = true;
+    fetchEligibleStudentsFromFirestore()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setFirestoreStudents(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setIsLoadingStudents(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [customStudents]);
+
+  const allStudents = useMemo(() => {
+    if (customStudents) return customStudents;
+    return firestoreStudents.length > 0 ? firestoreStudents : MOCK_STUDENTS;
+  }, [customStudents, firestoreStudents]);
 
   const configuredLevels = discipline?.niveles || 'Todos los niveles';
 
@@ -76,7 +103,7 @@ export const useStudentEnrollmentSearch = (discipline) => {
   }, [configuredLevels]);
 
   const eligibleStudents = useMemo(() => {
-    return MOCK_STUDENTS.filter((student) => {
+    return allStudents.filter((student) => {
       if (!isStudentLevelAllowed(student.nivel, configuredLevels)) {
         return false;
       }
@@ -104,7 +131,7 @@ export const useStudentEnrollmentSearch = (discipline) => {
 
       return true;
     });
-  }, [configuredLevels, selectedNivelFilter, searchTerm]);
+  }, [allStudents, configuredLevels, selectedNivelFilter, searchTerm]);
 
   return {
     searchTerm,
@@ -116,5 +143,7 @@ export const useStudentEnrollmentSearch = (discipline) => {
     configuredLevels,
     availableNivelFilters,
     eligibleStudents,
+    isLoadingStudents,
   };
 };
+

@@ -1,5 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 import { formatDni, calcularEdad } from '../../utils/validators';
+import { getStudentEnrolledDisciplines } from './sports/sportsScheduleUtils';
+import { subscribeToSportsActivities } from '../../services/sportsService';
 
 const formatDateDisplay = (dateString) => {
   if (!dateString) return 'No registrada';
@@ -155,13 +159,114 @@ const StudentDetailsHeader = ({ student, nivelStyle, onClose }) => {
   );
 };
 
-const StudentAcademicSection = ({ student, nivelStyle }) => {
+const StudentInstitutionalServicesBlock = ({ student }) => {
+  const institutionalServices = (Array.isArray(student.servicios) ? student.servicios : [])
+    .map((s) => (s === 'Transporte' ? 'Transporte Escolar' : s))
+    .filter((s) => ['Comedor Escolar', 'Transporte Escolar'].includes(s));
+
+  const hasServicios = institutionalServices.length > 0;
+
+  return (
+    <div className="bg-white p-3 rounded-md border border-slate-200/70 flex flex-col gap-1.5">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+        Servicios Institucionales
+      </span>
+      {hasServicios ? (
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          {institutionalServices.map((srv) => (
+            <span
+              key={srv}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[13px] text-blue-500">
+                {srv.includes('Comedor') ? 'restaurant' : 'directions_bus'}
+              </span>
+              {srv}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <span className="text-xs text-slate-400 italic">
+          Sin servicios institucionales (Comedor o Transporte Escolar) contratados.
+        </span>
+      )}
+    </div>
+  );
+};
+
+const StudentExtracurricularBlock = ({ enrolledDisciplines = [] }) => {
+  const hasDisciplines = enrolledDisciplines.length > 0;
+
+  return (
+    <div className="bg-white p-3 rounded-md border border-slate-200/70 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+          Actividades Extracurriculares & Deportivas
+        </span>
+        <span
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+            hasDisciplines
+              ? 'bg-blue-50 text-blue-700 border-blue-200'
+              : 'bg-slate-100 text-slate-500 border-slate-200'
+          }`}
+        >
+          {enrolledDisciplines.length}/2 permitidas
+        </span>
+      </div>
+
+      {hasDisciplines ? (
+        <div className="space-y-2 pt-0.5">
+          {enrolledDisciplines.map((disc) => (
+            <div
+              key={disc.id || disc.nombre}
+              className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3 text-xs"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xl select-none">{disc.emoji || '🏃'}</span>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-xs text-slate-900 truncate">
+                    {disc.nombre || disc.titulo}
+                  </h4>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px] text-slate-400">
+                        schedule
+                      </span>
+                      {Array.isArray(disc.dias) ? disc.dias.join(', ') : disc.dias || 'Días a confirmar'} ·{' '}
+                      {disc.horario || disc.horas || '16:00 - 17:30'}
+                    </span>
+                    {disc.profesor?.nombre && (
+                      <span className="flex items-center gap-1 text-slate-600">
+                        <span className="material-symbols-outlined text-[13px] text-slate-400">
+                          person
+                        </span>
+                        Prof. {disc.profesor.nombre}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                Inscripto
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400 italic m-0">
+          El alumno no se encuentra inscripto en actividades extracurriculares (0/2 permitidas). Las inscripciones se gestionan desde el panel de Actividades Extracurriculares.
+        </p>
+      )}
+    </div>
+  );
+};
+
+const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines }) => {
   const cursoDisplay = student.curso && student.curso !== 'sin asignar' ? student.curso : 'Sin asignar';
   const divisionDisplay =
     student.division && student.division !== 'sin asignar'
       ? `División ${student.division}`
       : 'Sin asignar';
-  const hasServicios = Array.isArray(student.servicios) && student.servicios.length > 0;
 
   return (
     <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3">
@@ -202,30 +307,8 @@ const StudentAcademicSection = ({ student, nivelStyle }) => {
         </div>
       </div>
 
-      <div className="bg-white p-3 rounded-md border border-slate-200/70 flex flex-col gap-1.5">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-          Servicios Extracurriculares Contratados
-        </span>
-        {hasServicios ? (
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {student.servicios.map((srv) => (
-              <span
-                key={srv}
-                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-[13px] text-blue-500">
-                  verified
-                </span>
-                {srv}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <span className="text-xs text-slate-400 italic">
-            Sin servicios adicionales contratados para este ciclo.
-          </span>
-        )}
-      </div>
+      <StudentInstitutionalServicesBlock student={student} />
+      <StudentExtracurricularBlock enrolledDisciplines={enrolledDisciplines} />
     </div>
   );
 };
@@ -343,13 +426,168 @@ const StudentTutorSection = ({ tutorInfo }) => (
   </div>
 );
 
+const formatEntryDate = (fecha) => {
+  if (!fecha) return 'Fecha no registrada';
+  try {
+    return new Date(fecha).toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(fecha);
+  }
+};
+
+const StudentPreceptoriaSection = ({ entradas = [] }) => {
+  const hasEntradas = Array.isArray(entradas) && entradas.length > 0;
+
+  return (
+    <div
+      data-testid="student-details-preceptorado-section"
+      className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] text-indigo-500">
+            assignment
+          </span>
+          Entradas de Preceptoría
+        </h3>
+        <span
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+            hasEntradas
+              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              : 'bg-slate-200/70 text-slate-400 border-transparent'
+          }`}
+        >
+          {hasEntradas ? `${entradas.length} ${entradas.length === 1 ? 'registro' : 'registros'}` : '0 registros'}
+        </span>
+      </div>
+
+      {hasEntradas ? (
+        <div className="space-y-2.5">
+          {entradas.map((entry) => (
+            <div
+              key={entry.id || entry.fecha || entry.titulo}
+              className="p-3 bg-white border border-slate-200/80 rounded-md flex flex-col gap-1.5 shadow-2xs text-xs"
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {entry.tipo || 'Observación'}
+                  </span>
+                  <strong className="text-slate-900 font-semibold text-xs">
+                    {entry.titulo || 'Registro administrativo'}
+                  </strong>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px]">schedule</span>
+                  {formatEntryDate(entry.fecha)}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-medium m-0">
+                <strong className="text-slate-500 font-semibold">Justificativo: </strong>
+                {entry.motivo || 'Sin justificación especificada.'}
+              </p>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">person_outline</span>
+                  {entry.autor || 'Preceptoría y Administración'}
+                </span>
+                {entry.categoria && (
+                  <span className="text-[10px] font-semibold text-slate-500">
+                    Área: {entry.categoria}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-5 bg-white border border-dashed border-slate-200 rounded-md flex flex-col items-center justify-center text-center gap-2">
+          <div className="w-10 h-10 rounded-md bg-indigo-50 text-indigo-500 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[20px]">fact_check</span>
+          </div>
+          <p className="text-xs font-semibold text-slate-700 m-0">
+            Sin observaciones o registros de preceptoría por el momento.
+          </p>
+          <p className="text-[11px] text-slate-400 max-w-sm m-0">
+            En esta sección se registrarán las asistencias especiales, actas de convivencia, sanciones y notificaciones disciplinarias.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const EMPTY_DISCIPLINES = [];
+
 const StudentDetailsModal = ({
   isOpen,
   student,
   tutors = [],
+  allDisciplines = EMPTY_DISCIPLINES,
   onClose,
   onEditStudent,
 }) => {
+  const [studentDocData, setStudentDocData] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen || !student?.id) return;
+    let isMounted = true;
+
+    const unsub = onSnapshot(
+      doc(db, 'students', String(student.id)),
+      (snap) => {
+        if (isMounted && snap.exists()) {
+          setStudentDocData(snap.data());
+        }
+      },
+      () => {}
+    );
+
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, [isOpen, student?.id]);
+
+  const entradasPreceptoria = useMemo(() => {
+    const fromDoc = studentDocData?.entradasPreceptoria;
+    if (Array.isArray(fromDoc) && fromDoc.length > 0) return fromDoc;
+    if (Array.isArray(student?.entradasPreceptoria)) return student.entradasPreceptoria;
+    return [];
+  }, [studentDocData, student?.entradasPreceptoria]);
+
+  const hasExternalDisciplines = Array.isArray(allDisciplines) && allDisciplines.length > 0;
+  const [subscribedDisciplines, setSubscribedDisciplines] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen || hasExternalDisciplines) return;
+
+    const unsubscribe = subscribeToSportsActivities((list) => {
+      if (Array.isArray(list) && list.length > 0) {
+        setSubscribedDisciplines(list);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [isOpen, hasExternalDisciplines]);
+
+  const activeDisciplines = hasExternalDisciplines ? allDisciplines : subscribedDisciplines;
+
+  const enrolledDisciplines = useMemo(() => {
+    if (!student) return [];
+    return getStudentEnrolledDisciplines(student, activeDisciplines);
+  }, [student, activeDisciplines]);
+
   if (!isOpen || !student) return null;
 
   const edad = calcularEdad(student.fechaNacimiento);
@@ -376,7 +614,11 @@ const StudentDetailsModal = ({
           className="p-5 sm:p-6 overflow-y-auto space-y-5 no-scrollbar text-left flex-1"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          <StudentAcademicSection student={student} nivelStyle={nivelStyle} />
+          <StudentAcademicSection
+            student={student}
+            nivelStyle={nivelStyle}
+            enrolledDisciplines={enrolledDisciplines}
+          />
           <StudentPersonalSection student={student} edad={edad} />
           <StudentTutorSection tutorInfo={tutorInfo} />
 
@@ -412,37 +654,8 @@ const StudentDetailsModal = ({
             </div>
           </div>
 
-          {/* SECCIÓN 5: Entradas de Preceptorado (Placeholder) */}
-          <div
-            data-testid="student-details-preceptorado-section"
-            className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px] text-indigo-500">
-                  assignment
-                </span>
-                Entradas de Preceptoría
-              </h3>
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded-md">
-                0 registros
-              </span>
-            </div>
-
-            <div className="p-5 bg-white border border-dashed border-slate-200 rounded-md flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-10 h-10 rounded-md bg-indigo-50 text-indigo-500 flex items-center justify-center">
-                <span className="material-symbols-outlined text-[20px]">
-                  fact_check
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-slate-700 m-0">
-                Sin observaciones o registros de preceptoría por el momento.
-              </p>
-              <p className="text-[11px] text-slate-400 max-w-sm m-0">
-                En esta sección se registrarán las asistencias especiales, actas de convivencia, sanciones y notificaciones disciplinarias.
-              </p>
-            </div>
-          </div>
+          {/* SECCIÓN 5: Entradas de Preceptoría */}
+          <StudentPreceptoriaSection entradas={entradasPreceptoria} />
         </div>
 
         {/* Footer */}

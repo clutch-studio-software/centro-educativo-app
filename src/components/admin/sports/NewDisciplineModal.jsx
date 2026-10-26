@@ -58,7 +58,13 @@ const createNewDisciplineRecord = (formData, teachers) => {
   };
 };
 
-const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS }) => {
+const NewDisciplineModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  onCreate,
+  teachers = EMPTY_TEACHERS,
+}) => {
   const [formData, setFormData] = useState({
     nombre: '',
     emoji: '🏃',
@@ -176,7 +182,10 @@ const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS
     }
 
     const newDiscipline = createNewDisciplineRecord(formData, teachers);
-    onSave(newDiscipline);
+    const saveFn = onSave || onCreate;
+    if (typeof saveFn === 'function') {
+      saveFn(newDiscipline);
+    }
     onClose();
   };
 
@@ -193,7 +202,7 @@ const NewDisciplineModal = ({ isOpen, onClose, onSave, teachers = EMPTY_TEACHERS
               {formData.emoji}
             </span>
             <div>
-              <h3 className="text-base font-bold text-slate-900">+ Nueva Disciplina / Actividad</h3>
+              <h3 className="text-base font-bold text-slate-900">Nueva Disciplina / Actividad</h3>
               <p className="text-xs text-slate-500">
                 Configuración de oferta extracurricular, cupos y responsable.
               </p>

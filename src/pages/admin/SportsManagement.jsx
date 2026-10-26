@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
@@ -9,149 +9,46 @@ import DisciplinePagination from '../../components/admin/sports/DisciplinePagina
 import DisciplineDetailsModal from '../../components/admin/sports/DisciplineDetailsModal';
 import NewDisciplineModal from '../../components/admin/sports/NewDisciplineModal';
 import EditDisciplineModal from '../../components/admin/sports/EditDisciplineModal';
-import {
-  INITIAL_DISCIPLINES,
-  exportSportsRosterCsv,
-} from '../../data/mockSportsActivities';
-import { MOCK_TEACHERS } from '../../data/mockTeachers';
-
-const PAGE_SIZE = 8;
+import { useSportsManagement } from '../../components/admin/sports/useSportsManagement';
 
 const SportsManagement = () => {
   const navigate = useNavigate();
-
-  // Sports & Disciplines State
-  const [disciplines, setDisciplines] = useState(INITIAL_DISCIPLINES);
-  const [teachers] = useState(MOCK_TEACHERS);
-
-  // Filters State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLevel, setSelectedLevel] = useState('');
-  const [selectedDay, setSelectedDay] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Modals State
-  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [editingDiscipline, setEditingDiscipline] = useState(null);
-  const [viewingDiscipline, setViewingDiscipline] = useState(null);
-
-  // Toast Notification State
-  const [notification, setNotification] = useState(null);
-
-  const showToast = useCallback((message, type = 'info') => {
-    setNotification({ message, type });
-    setTimeout(() => {
-      setNotification(null);
-    }, 4000);
-  }, []);
-
-  // Filter Logic
-  const filteredDisciplines = useMemo(() => {
-    return disciplines.filter((disc) => {
-      // Search term (name, teacher, location)
-      if (searchTerm) {
-        const query = searchTerm.toLowerCase().trim();
-        const matchesName = (disc.nombre || '').toLowerCase().includes(query);
-        const matchesTeacher = (disc.profesor?.nombre || '').toLowerCase().includes(query);
-        const matchesLocation = (disc.lugar || '').toLowerCase().includes(query);
-        if (!matchesName && !matchesTeacher && !matchesLocation) {
-          return false;
-        }
-      }
-
-      // Level filter
-      if (selectedLevel) {
-        const levelStr = String(disc.niveles || '').toLowerCase();
-        const queryLevel = selectedLevel.toLowerCase();
-        if (queryLevel === 'todos los niveles') {
-          // match all
-        } else if (!levelStr.includes(queryLevel) && !levelStr.includes('todos')) {
-          return false;
-        }
-      }
-
-      // Day filter
-      if (selectedDay) {
-        const hasDay = (disc.dias || []).some(
-          (d) => d.toLowerCase() === selectedDay.toLowerCase()
-        );
-        const matchesHorario = (disc.horario || '').toLowerCase().includes(selectedDay.toLowerCase());
-        if (!hasDay && !matchesHorario) {
-          return false;
-        }
-      }
-
-      // Status filter
-      if (selectedStatus) {
-        if (selectedStatus === 'Activos') {
-          if (!disc.activo) return false;
-        } else if (selectedStatus === 'Completos') {
-          if (disc.cupoOcupado < disc.cupoMax) return false;
-        } else if (selectedStatus === 'En Pausa') {
-          if (disc.activo) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [disciplines, searchTerm, selectedLevel, selectedDay, selectedStatus]);
-
-  // Reset page when filters change
-  const handleResetFilters = () => {
-    setSearchTerm('');
-    setSelectedLevel('');
-    setSelectedDay('');
-    setSelectedStatus('');
-    setCurrentPage(1);
-    showToast('Filtros restablecidos.', 'info');
-  };
-
-  // Pagination calculation
-  const totalItems = filteredDisciplines.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const currentDisciplines = filteredDisciplines.slice(startIndex, startIndex + PAGE_SIZE);
-
-  // Handlers
-  const handleToggleStatus = (discipline) => {
-    const nextStatus = !discipline.activo;
-    setDisciplines((prev) =>
-      prev.map((d) => (d.id === discipline.id ? { ...d, activo: nextStatus } : d))
-    );
-    showToast(
-      `La disciplina "${discipline.nombre}" ha sido ${nextStatus ? 'activada' : 'pausada'}.`,
-      nextStatus ? 'success' : 'info'
-    );
-  };
-
-  const handleCreateDiscipline = (newDiscipline) => {
-    setDisciplines((prev) => [newDiscipline, ...prev]);
-    showToast(`¡Disciplina "${newDiscipline.nombre}" creada con éxito!`, 'success');
-  };
-
-  const handleSaveEditDiscipline = (discId, updatedDiscipline) => {
-    setDisciplines((prev) =>
-      prev.map((d) => (d.id === discId ? updatedDiscipline : d))
-    );
-    showToast(`Disciplina "${updatedDiscipline.nombre}" actualizada.`, 'success');
-    setEditingDiscipline(null);
-  };
-
-  const handleExportPayroll = () => {
-    exportSportsRosterCsv(filteredDisciplines);
-    showToast('Descargando padrón deportivo en formato CSV...', 'success');
-  };
+  const {
+    disciplines,
+    teachers,
+    notification,
+    setNotification,
+    searchTerm,
+    setSearchTerm,
+    selectedLevel,
+    setSelectedLevel,
+    selectedDay,
+    setSelectedDay,
+    selectedStatus,
+    setSelectedStatus,
+    currentPage,
+    setCurrentPage,
+    isNewModalOpen,
+    setIsNewModalOpen,
+    editingDiscipline,
+    setEditingDiscipline,
+    viewingDiscipline,
+    setViewingDiscipline,
+    totalItems,
+    totalPages,
+    currentDisciplines,
+    handleResetFilters,
+    handleToggleStatus,
+    handleCreateDiscipline,
+    handleSaveEditDiscipline,
+    handleExportPayroll,
+  } = useSportsManagement();
 
   return (
     <AdminLayout activeItem="servicios" breadcrumbs={['Deportes y Extracurriculares']}>
       <div className="max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-200">
-        {/* Floating Toast Notification */}
         <AdminToast notification={notification} onClose={() => setNotification(null)} />
 
-        {/* Header Section */}
         <section
           className="flex flex-col md:flex-row md:items-center justify-between gap-4"
           data-purpose="page-header"
@@ -163,7 +60,6 @@ const SportsManagement = () => {
             subtitle="Gestión de disciplinas deportivas, vacantes escolares, profesores a cargo y control de inscripciones."
           />
 
-          {/* Actions Toolbar */}
           <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
@@ -186,12 +82,11 @@ const SportsManagement = () => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                 <path d="M12 4.5v15m7.5-7.5h-15" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span>+ Nueva Disciplina</span>
+              <span>Nueva Disciplina</span>
             </button>
           </div>
         </section>
 
-        {/* Institutional Rule / Policy Banner */}
         <section
           className="bg-blue-50/70 border border-blue-100/90 rounded-2xl p-4 flex items-center gap-3.5 text-blue-900"
           data-purpose="rule-banner"
@@ -214,7 +109,6 @@ const SportsManagement = () => {
           </div>
         </section>
 
-        {/* Filter and Search Bar */}
         <DisciplineFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -227,7 +121,6 @@ const SportsManagement = () => {
           onResetFilters={handleResetFilters}
         />
 
-        {/* Disciplines Grid Catalog Table */}
         <DisciplineTable
           disciplines={currentDisciplines}
           onViewDetails={(disc) => {
@@ -238,22 +131,20 @@ const SportsManagement = () => {
           onResetFilters={handleResetFilters}
         />
 
-        {/* Pagination Footer */}
         <DisciplinePagination
-          totalItems={totalItems}
-          startIndex={startIndex}
-          pageSize={PAGE_SIZE}
           currentPage={currentPage}
           totalPages={totalPages}
+          totalItems={totalItems}
           onPageChange={setCurrentPage}
         />
 
-        {/* Modals */}
         <NewDisciplineModal
           isOpen={isNewModalOpen}
           onClose={() => setIsNewModalOpen(false)}
           onSave={handleCreateDiscipline}
+          onCreate={handleCreateDiscipline}
           teachers={teachers}
+          existingDisciplines={disciplines}
         />
 
         <EditDisciplineModal
@@ -265,10 +156,12 @@ const SportsManagement = () => {
         />
 
         <DisciplineDetailsModal
-          isOpen={Boolean(viewingDiscipline)}
           discipline={viewingDiscipline}
           onClose={() => setViewingDiscipline(null)}
-          onEdit={(disc) => setEditingDiscipline(disc)}
+          onEdit={(disc) => {
+            setViewingDiscipline(null);
+            setEditingDiscipline(disc);
+          }}
         />
       </div>
     </AdminLayout>
