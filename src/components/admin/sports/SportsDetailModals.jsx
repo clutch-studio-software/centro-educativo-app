@@ -5,13 +5,15 @@ import ReassignTeacherModal from './ReassignTeacherModal';
 import TransferWithdrawModal from './TransferWithdrawModal';
 import EditSportsConfigModal from './EditSportsConfigModal';
 
+const EMPTY_STUDENTS = [];
+
 export const SportsDetailModals = ({
   isEnrollModalOpen,
   onCloseEnroll,
   onEnrollStudent,
   studentsCount,
   maxCapacity,
-  enrolledStudents = [],
+  enrolledStudents = EMPTY_STUDENTS,
   isEditConfigModalOpen,
   discipline,
   onCloseEditConfig,
