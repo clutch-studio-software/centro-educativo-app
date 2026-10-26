@@ -12,8 +12,6 @@ export const SportsDetailRosterSection = ({
   onSelectNivel,
   selectedCurso,
   onSelectCurso,
-  selectedEstadoCuota,
-  onSelectEstadoCuota,
   onResetFilters,
   onExportCsv,
   onViewLegajo,
@@ -32,12 +30,12 @@ export const SportsDetailRosterSection = ({
       <div className="p-6 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="text-base font-bold text-slate-900 font-headline">
+            <h3 className="text-base text-[17px] text-start font-bold text-slate-900 font-headline">
               Padrón de Alumnos Inscriptos
             </h3>
-            <p className="text-xs text-slate-500 font-medium">
+            <h3 className="text-xs text-slate-500 font-medium">
               Alumnos matriculados en la disciplina con control de apto médico y arancel.
-            </p>
+            </h3>
           </div>
 
           <div className="flex items-center gap-2">
@@ -80,11 +78,10 @@ export const SportsDetailRosterSection = ({
                 key={nivel}
                 type="button"
                 onClick={() => onSelectNivel(nivel)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none ${
-                  selectedNivel === nivel
-                    ? 'bg-primary text-white font-bold shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface bg-transparent'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none ${selectedNivel === nivel
+                  ? 'bg-primary text-white font-bold shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface bg-transparent'
+                  }`}
               >
                 {nivel}
               </button>
@@ -114,28 +111,6 @@ export const SportsDetailRosterSection = ({
               <option value="4° Año">4° Año</option>
               <option value="5° Año">5° Año</option>
               <option value="6° Año">6° Año</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">
-              expand_more
-            </span>
-          </div>
-
-          {/* Filter by Estado de Arancel */}
-          <div className="relative">
-            <label htmlFor="sports-roster-cuota" className="sr-only">
-              Filtrar por estado de cuota
-            </label>
-            <select
-              id="sports-roster-cuota"
-              value={selectedEstadoCuota}
-              onChange={(e) => onSelectEstadoCuota(e.target.value)}
-              aria-label="Filtrar por estado de cuota"
-              className="appearance-none bg-surface-container-low text-on-surface text-xs font-medium py-2 pl-3 pr-8 rounded-xl focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer border-none"
-            >
-              <option value="Estado de Cuota: Todos">Estado de Cuota: Todos</option>
-              <option value="Al Día">Al Día</option>
-              <option value="Pendiente">Pendiente</option>
-              <option value="Becado">Becado</option>
             </select>
             <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">
               expand_more
@@ -175,7 +150,6 @@ export const SportsDetailRosterSection = ({
                 <th className="px-6 py-3.5" scope="col">Nivel &amp; Curso</th>
                 <th className="px-6 py-3.5" scope="col">Tutor Responsable</th>
                 <th className="px-6 py-3.5" scope="col">Inscripción</th>
-                <th className="px-6 py-3.5" scope="col">Condición Deportiva</th>
                 <th className="px-6 py-3.5 text-right" scope="col">Acciones</th>
               </tr>
             </thead>
@@ -223,11 +197,10 @@ export const SportsDetailRosterSection = ({
               onClick={() => onPageChange(pageNum)}
               data-testid={`pagination-page-${pageNum}`}
               aria-label={`Página ${pageNum}`}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${
-                validCurrentPage === pageNum
-                  ? 'bg-primary text-on-primary shadow-sm'
-                  : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high'
-              }`}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer border-none ${validCurrentPage === pageNum
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'bg-surface-container-low text-on-surface hover:bg-surface-container-high'
+                }`}
             >
               {pageNum}
             </button>

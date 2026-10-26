@@ -5,16 +5,22 @@ import ReassignTeacherModal from './ReassignTeacherModal';
 import TransferWithdrawModal from './TransferWithdrawModal';
 import EditSportsConfigModal from './EditSportsConfigModal';
 
+const EMPTY_STUDENTS = [];
+const EMPTY_DISCIPLINES = [];
+
 export const SportsDetailModals = ({
   isEnrollModalOpen,
   onCloseEnroll,
   onEnrollStudent,
   studentsCount,
   maxCapacity,
+  enrolledStudents = EMPTY_STUDENTS,
+  allDisciplines = EMPTY_DISCIPLINES,
   isEditConfigModalOpen,
   discipline,
   onCloseEditConfig,
   onSaveConfig,
+  teachers,
   isReassignTeacherModalOpen,
   onCloseReassignTeacher,
   onReassignTeacher,
@@ -32,6 +38,9 @@ export const SportsDetailModals = ({
         onEnroll={onEnrollStudent}
         currentCount={studentsCount}
         maxCapacity={maxCapacity}
+        discipline={discipline}
+        enrolledStudents={enrolledStudents}
+        allDisciplines={allDisciplines}
       />
 
       <EditSportsConfigModal
@@ -39,6 +48,7 @@ export const SportsDetailModals = ({
         config={discipline}
         onClose={onCloseEditConfig}
         onSave={onSaveConfig}
+        teachers={teachers}
       />
 
       <ReassignTeacherModal
@@ -51,6 +61,8 @@ export const SportsDetailModals = ({
       <TransferWithdrawModal
         isOpen={Boolean(transferStudent)}
         student={transferStudent}
+        discipline={discipline}
+        allDisciplines={allDisciplines}
         onClose={onCloseTransfer}
         onConfirm={onConfirmTransfer}
       />
@@ -58,6 +70,7 @@ export const SportsDetailModals = ({
       <StudentDetailsModal
         isOpen={Boolean(viewingStudent)}
         student={viewingStudent}
+        allDisciplines={allDisciplines}
         onClose={onCloseViewingStudent}
       />
     </>

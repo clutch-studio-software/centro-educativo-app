@@ -115,7 +115,7 @@ export const EDAD_LIMITES_POR_NIVEL = {
 export const calcularEdad = (fechaNacimiento) => {
   if (!fechaNacimiento) return null;
   const nacimiento = new Date(fechaNacimiento);
-  if (isNaN(nacimiento.getTime())) return null;
+  if (Number.isNaN(nacimiento.getTime())) return null;
 
   const hoy = new Date();
   let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -138,7 +138,7 @@ export const validarEdadPorNivel = (fechaNacimiento, nivel) => {
   }
 
   const edad = calcularEdad(fechaNacimiento);
-  if (edad === null || isNaN(edad) || edad < 0 || edad > 100) {
+  if (edad === null || Number.isNaN(edad) || edad < 0 || edad > 100) {
     return { esValido: false, edad: null, error: 'Por favor ingresa una fecha de nacimiento válida.' };
   }
 

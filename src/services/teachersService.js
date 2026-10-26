@@ -18,21 +18,31 @@ const STORAGE_KEY = 'school_teachers_data';
  * para no violar las reglas de seguridad de Firestore (Missing or insufficient permissions).
  */
 export const ensureAdminAuth = async () => {
-  if (auth.currentUser) {
-    return auth.currentUser;
-  }
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  const adminKey = import.meta.env.VITE_DEV_ADMIN_KEY;
 
-  // En entorno de desarrollo, auto-autenticar con credenciales de admin configuradas
-  if (import.meta.env.DEV) {
-    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-    const adminKey = import.meta.env.VITE_DEV_ADMIN_KEY;
-    if (adminEmail && adminKey) {
+  if (auth.currentUser) {
+    if (!adminEmail || auth.currentUser.email === adminEmail) {
+      return auth.currentUser;
+    }
+    if (import.meta.env.DEV && adminEmail && adminKey) {
       try {
         const cred = await signInWithEmailAndPassword(auth, adminEmail, adminKey);
         return cred.user;
       } catch (err) {
         console.warn('Auto sign-in user_admin falló:', err.message);
       }
+    }
+    return auth.currentUser;
+  }
+
+  // En entorno de desarrollo, auto-autenticar con credenciales de admin configuradas
+  if (import.meta.env.DEV && adminEmail && adminKey) {
+    try {
+      const cred = await signInWithEmailAndPassword(auth, adminEmail, adminKey);
+      return cred.user;
+    } catch (err) {
+      console.warn('Auto sign-in user_admin falló:', err.message);
     }
   }
 

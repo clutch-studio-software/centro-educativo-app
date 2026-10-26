@@ -58,5 +58,15 @@ service cloud.firestore {
       // Modificaciones autorizadas exclusivamente a administradores
       allow write: if isAdmin();
     }
+
+    // Colección sportsActivities (Disciplinas deportivas y actividades extracurriculares)
+    match /sportsActivities/{docId} {
+      // Lectura para cualquier usuario institucional autenticado
+      allow read: if isAuthenticated();
+      
+      // Modificaciones autorizadas exclusivamente a administradores
+      allow write: if isAdmin();
+    }
   }
 }
+
