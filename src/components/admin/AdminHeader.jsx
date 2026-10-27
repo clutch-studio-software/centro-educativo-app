@@ -5,9 +5,8 @@ const AdminHeader = ({ onToggleMobile, isCollapsed = false, breadcrumbs = [] }) 
   return (
     <header
       data-testid="admin-header"
-      className={`fixed top-0 left-0 ${
-        isCollapsed ? 'lg:left-20' : 'lg:left-72'
-      } right-0 h-16 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-[0_2px_15px_rgba(0,0,0,0.02)] z-40 flex items-center justify-between px-4 sm:px-8 transition-all duration-300 ease-in-out`}
+      className={`fixed top-0 left-0 ${isCollapsed ? 'lg:left-20' : 'lg:left-72'
+        } right-0 h-16 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-[0_2px_15px_rgba(0,0,0,0.02)] z-40 flex items-center justify-between px-4 sm:px-8 transition-all duration-300 ease-in-out`}
     >
       <div className="flex items-center gap-3.5 flex-1 max-w-2xl">
         {/* Mobile menu trigger */}
@@ -28,7 +27,7 @@ const AdminHeader = ({ onToggleMobile, isCollapsed = false, breadcrumbs = [] }) 
           className="flex items-center gap-2 text-xs text-slate-400 font-medium"
           aria-label="Ruta actual"
         >
-          <Link to="/" data-testid="breadcrumb-home" className="hover:text-blue-600 transition-colors">
+          <Link to="/admin/dashboard" data-testid="breadcrumb-home" className="hover:text-blue-600 transition-colors">
             Inicio
           </Link>
           <span className="text-slate-300">/</span>

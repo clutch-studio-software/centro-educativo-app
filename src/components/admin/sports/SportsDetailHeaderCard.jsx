@@ -7,6 +7,7 @@ export const SportsDetailHeaderCard = ({
   onOpenEditConfigModal,
   onOpenEnrollModal,
   onToggleOffer,
+  onDeleteDiscipline,
 }) => {
   const handleOpenConfig = onOpenConfig || onOpenEditConfigModal;
   const handleOpenEnroll = onOpenEnroll || onOpenEnrollModal;
@@ -34,6 +35,18 @@ export const SportsDetailHeaderCard = ({
             <span className="material-symbols-outlined text-sm">person_add</span>
             Inscribir Alumno
           </button>
+
+          {onDeleteDiscipline && (
+            <button
+              type="button"
+              onClick={onDeleteDiscipline}
+              data-testid="btn-delete-discipline-top"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-colors text-xs font-bold shadow-xs cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm text-rose-500">delete</span>
+              Eliminar Actividad
+            </button>
+          )}
         </div>
       </div>
 

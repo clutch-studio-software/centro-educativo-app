@@ -28,7 +28,19 @@ export const ensureAdminAuth = async () => {
     return auth.currentUser;
   }
 
-  if (import.meta.env.DEV) {
+  const savedUser = localStorage.getItem('school_user');
+  if (savedUser) {
+    const restoredUser = await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe();
+        resolve(user || auth.currentUser);
+      });
+      setTimeout(() => resolve(auth.currentUser), 1500);
+    });
+    if (restoredUser) return restoredUser;
+  }
+
+  if (import.meta.env.DEV && !savedUser) {
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
     const adminKey = import.meta.env.VITE_DEV_ADMIN_KEY;
     if (adminEmail && adminKey) {
@@ -41,13 +53,7 @@ export const ensureAdminAuth = async () => {
     }
   }
 
-  return new Promise((resolve) => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(user);
-    });
-    setTimeout(() => resolve(auth.currentUser), 2000);
-  });
+  return auth.currentUser;
 };
 
 /**
@@ -226,32 +232,28 @@ export const createRbacUserApi = async (userData) => {
     cleanEstado = 'Activo';
   }
 
-  let targetUid = `usr-${Date.now()}`;
+  // Crear usuario en Firebase Auth y Firestore mediante Cloud Function
+  const cfResult = await callAdminFunction('cf_createAdministrativeUser', {
+    email: cleanEmail,
+    name: nombreCompleto,
+    role: normRole === 'Directivo' ? 'user_admin' : normRole,
+    dni: cleanDni,
+    nombre: cleanNombre,
+    apellido: cleanApellido,
+    nombreCompleto,
+    telefono: userData.telefono || '',
+    cargo: userData.cargo || `Personal ${normRole}`,
+    condicion: cleanCondicion,
+    legajo,
+    estado: cleanEstado,
+    customPermissions: userData.customPermissions || [],
+  });
 
-  // Intentar crear mediante Cloud Function si está disponible
-  try {
-    const cfResult = await callAdminFunction('cf_createAdministrativeUser', {
-      email: cleanEmail,
-      name: nombreCompleto,
-      role: normRole === 'Directivo' ? 'user_admin' : normRole === 'Docente' ? 'teacher' : normRole,
-      dni: cleanDni,
-      nombre: cleanNombre,
-      apellido: cleanApellido,
-      nombreCompleto,
-      telefono: userData.telefono || '',
-      cargo: userData.cargo || `Personal ${normRole}`,
-      condicion: cleanCondicion,
-      legajo,
-      estado: cleanEstado,
-      customPermissions: userData.customPermissions || [],
-    });
-
-    if (cfResult?.uid) {
-      targetUid = cfResult.uid;
-    }
-  } catch (cfErr) {
-    console.warn('Cloud Function cf_createAdministrativeUser no disponible, creando directo en Firestore/local:', cfErr.message);
+  if (!cfResult?.uid) {
+    throw new Error('El servidor no retornó un identificador de usuario válido.');
   }
+
+  const targetUid = cfResult.uid;
 
   const newUser = {
     id: targetUid,
@@ -429,6 +431,21 @@ export const resetRbacUserPasswordApi = async (userId) => {
  * Elimina definitivamente un usuario del sistema.
  */
 export const deleteRbacUserApi = async (userId, userEmail) => {
+  // Desvincular de deportes y cursos si correspondiera
+  try {
+    const currentUsers = getStoredRbacUsers();
+    const current = currentUsers.find((u) => u.id === userId);
+    const teacherName = current?.nombreCompleto || current?.nombre;
+    const { unassignTeacherFromAllSportsActivities } = await import('./sportsService');
+    const { unassignTeacherFromAllCourses } = await import('./academicService');
+    await Promise.all([
+      unassignTeacherFromAllSportsActivities(userId, userEmail, teacherName),
+      unassignTeacherFromAllCourses(userId, teacherName),
+    ]);
+  } catch (cleanErr) {
+    console.warn('Aviso al desvincular usuario de deportes y cursos:', cleanErr.message);
+  }
+
   try {
     await ensureAdminAuth();
     await deleteDoc(doc(db, 'users', userId));

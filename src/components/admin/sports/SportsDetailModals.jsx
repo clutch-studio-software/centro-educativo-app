@@ -4,6 +4,7 @@ import EnrollStudentModal from './EnrollStudentModal';
 import ReassignTeacherModal from './ReassignTeacherModal';
 import TransferWithdrawModal from './TransferWithdrawModal';
 import EditSportsConfigModal from './EditSportsConfigModal';
+import DeleteDisciplineModal from './DeleteDisciplineModal';
 
 const EMPTY_STUDENTS = [];
 const EMPTY_DISCIPLINES = [];
@@ -29,6 +30,10 @@ export const SportsDetailModals = ({
   onConfirmTransfer,
   viewingStudent,
   onCloseViewingStudent,
+  isDeleteModalOpen = false,
+  isDeleting = false,
+  onCloseDeleteModal,
+  onConfirmDeleteDiscipline,
 }) => {
   return (
     <>
@@ -72,6 +77,14 @@ export const SportsDetailModals = ({
         student={viewingStudent}
         allDisciplines={allDisciplines}
         onClose={onCloseViewingStudent}
+      />
+
+      <DeleteDisciplineModal
+        isOpen={isDeleteModalOpen}
+        discipline={discipline}
+        isDeleting={isDeleting}
+        onClose={onCloseDeleteModal}
+        onConfirm={onConfirmDeleteDiscipline}
       />
     </>
   );

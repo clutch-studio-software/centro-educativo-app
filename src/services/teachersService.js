@@ -18,26 +18,27 @@ const STORAGE_KEY = 'school_teachers_data';
  * para no violar las reglas de seguridad de Firestore (Missing or insufficient permissions).
  */
 export const ensureAdminAuth = async () => {
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-  const adminKey = import.meta.env.VITE_DEV_ADMIN_KEY;
-
   if (auth.currentUser) {
-    if (!adminEmail || auth.currentUser.email === adminEmail) {
-      return auth.currentUser;
-    }
-    if (import.meta.env.DEV && adminEmail && adminKey) {
-      try {
-        const cred = await signInWithEmailAndPassword(auth, adminEmail, adminKey);
-        return cred.user;
-      } catch (err) {
-        console.warn('Auto sign-in user_admin falló:', err.message);
-      }
-    }
     return auth.currentUser;
   }
 
-  // En entorno de desarrollo, auto-autenticar con credenciales de admin configuradas
-  if (import.meta.env.DEV && adminEmail && adminKey) {
+  // Si existe una sesión persistida en el navegador, esperar a que Firebase Auth la restaure
+  const savedUser = localStorage.getItem('school_user');
+  if (savedUser) {
+    const restoredUser = await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe();
+        resolve(user || auth.currentUser);
+      });
+      setTimeout(() => resolve(auth.currentUser), 1500);
+    });
+    if (restoredUser) return restoredUser;
+  }
+
+  // Solo en entorno DEV y si NO hay sesión activa de ningún usuario
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  const adminKey = import.meta.env.VITE_DEV_ADMIN_KEY;
+  if (import.meta.env.DEV && adminEmail && adminKey && !savedUser) {
     try {
       const cred = await signInWithEmailAndPassword(auth, adminEmail, adminKey);
       return cred.user;
@@ -46,14 +47,7 @@ export const ensureAdminAuth = async () => {
     }
   }
 
-  // Esperar a que la sesión persistida se restaure si está disponible
-  return new Promise((resolve) => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(user);
-    });
-    setTimeout(() => resolve(auth.currentUser), 2500);
-  });
+  return auth.currentUser;
 };
 
 export const getStoredTeachers = () => {
@@ -234,7 +228,9 @@ export const createTeacherApi = async (teacherData) => {
   await ensureAdminAuth();
 
   const year = new Date().getFullYear();
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  const randomArray = new Uint32Array(1);
+  crypto.getRandomValues(randomArray);
+  const randomNum = 1000 + (randomArray[0] % 9000);
   const legajo = teacherData.legajo || `#DOC-${year}-${randomNum}`;
 
   const cleanNombre = (teacherData.nombre || '').trim();
@@ -537,6 +533,20 @@ export const deleteTeacherApi = async (teacherId, teacherEmail = null) => {
     if (current?.email) {
       emailToDelete = current.email;
     }
+  }
+
+  // Desvincular de deportes y cursos académicos
+  try {
+    const current = getStoredTeachers().find((t) => t.id === teacherId);
+    const teacherName = current?.nombreCompleto || current?.nombre;
+    const { unassignTeacherFromAllSportsActivities } = await import('./sportsService');
+    const { unassignTeacherFromAllCourses } = await import('./academicService');
+    await Promise.all([
+      unassignTeacherFromAllSportsActivities(teacherId, emailToDelete, teacherName),
+      unassignTeacherFromAllCourses(teacherId, teacherName),
+    ]);
+  } catch (cleanErr) {
+    console.warn('Aviso al desvincular docente de actividades y cursos:', cleanErr.message);
   }
 
   // 1. Intentar vía Cloud Function (elimina físicamente de Auth y Firestore)

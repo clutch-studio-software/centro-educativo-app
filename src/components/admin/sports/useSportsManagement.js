@@ -10,6 +10,7 @@ import {
   createSportActivityApi,
   updateSportActivityApi,
   toggleSportActivityStatusApi,
+  deleteSportActivityApi,
 } from '../../../services/sportsService';
 
 const PAGE_SIZE = 8;
@@ -17,7 +18,7 @@ const PAGE_SIZE = 8;
 export const useSportsManagement = () => {
   // Sports & Disciplines State
   const [disciplines, setDisciplines] = useState(INITIAL_DISCIPLINES);
-  const [teachers, setTeachers] = useState(MOCK_TEACHERS);
+  const [teachers, setTeachers] = useState([]);
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +33,8 @@ export const useSportsManagement = () => {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [editingDiscipline, setEditingDiscipline] = useState(null);
   const [viewingDiscipline, setViewingDiscipline] = useState(null);
+  const [deletingDiscipline, setDeletingDiscipline] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Toast Notification State
   const [notification, setNotification] = useState(null);
@@ -54,12 +57,13 @@ export const useSportsManagement = () => {
 
     fetchTeachersApi()
       .then((realTeachers) => {
-        if (isMounted && Array.isArray(realTeachers) && realTeachers.length > 0) {
+        if (isMounted && Array.isArray(realTeachers)) {
           setTeachers(realTeachers);
         }
       })
       .catch((err) => {
-        console.warn('Docentes de respaldo cargados:', err.message);
+        console.warn('Docentes no disponibles:', err.message);
+        if (isMounted) setTeachers([]);
       });
 
     return () => {
@@ -168,6 +172,30 @@ export const useSportsManagement = () => {
     }
   };
 
+  const handleDeleteDiscipline = async (disc) => {
+    const target = disc || deletingDiscipline;
+    if (!target?.id) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteSportActivityApi(target.id);
+      setDisciplines((prev) => prev.filter((d) => d.id !== target.id));
+      setDeletingDiscipline(null);
+      const affectedMsg =
+        res?.unregisteredCount > 0
+          ? ` Se dio de baja automáticamente a ${res.unregisteredCount} alumno(s), liberando su cupo extracurricular.`
+          : '.';
+      showToast(
+        `Actividad "${target.nombre}" eliminada correctamente.${affectedMsg}`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Error al eliminar actividad extracurricular:', err);
+      showToast(`Error al eliminar la actividad: ${err.message}`, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleExportPayroll = () => {
     exportSportsRosterCsv(filteredDisciplines);
     showToast('Descargando padrón deportivo en formato CSV...', 'success');
@@ -194,6 +222,10 @@ export const useSportsManagement = () => {
     setEditingDiscipline,
     viewingDiscipline,
     setViewingDiscipline,
+    deletingDiscipline,
+    setDeletingDiscipline,
+    isDeleting,
+    handleDeleteDiscipline,
     totalItems,
     totalPages,
     currentDisciplines,

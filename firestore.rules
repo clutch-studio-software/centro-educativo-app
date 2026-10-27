@@ -1,18 +1,57 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Funciones auxiliares de autorización institucional
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: Firebase Auth UID
+    // Fields:
+    //   - role: string (required: 'user_admin', 'Directivo', 'Administrativo', 'Docente', 'Enfermeria', 'Preceptoria', 'Padre')
+    //   - email: string (required)
+    //   - nombre: string (optional)
+    //   - dni: string (optional)
+    //   - telefono: string (optional)
+    //   - domicilio: string (optional)
+    //   - studentIds: list of student IDs linked to parent (optional)
+    //
+    // Collection: students
+    // Document ID: Student UID / generated ID
+    // Fields:
+    //   - nombre: string (required)
+    //   - apellido: string (optional)
+    //   - dni: string (optional)
+    //   - legajo / studentID_login: string (optional)
+    //   - nivel: string ('Inicial', 'Primario', 'Secundario')
+    //   - curso: string (optional)
+    //   - division: string (optional)
+    //   - parentId: string (UID of the linked tutor/parent)
+    //   - status: string (e.g. 'active', 'inactive')
+    //   - entradasEnfermeria: list of medical/first aid attention records (optional)
+    //   - entradasPreceptoria: list of attendance/conduct/sanction records (optional)
+    //   - servicios: list of enrolled services (optional)
+    //
+    // Collection: news
+    // Document ID: News ID
+    // Fields:
+    //   - title, content, date, category, image, createdAt: timestamp
+    //
+    // Collection: academicOffer
+    // Document ID: Offer ID (e.g., 'primary', 'secondary')
+    // Fields:
+    //   - levels, courses, divisions, catalog
+    //
+    // Collection: sportsActivities
+    // Document ID: Discipline ID
+    // Fields:
+    //   - name, category, schedule, enrolledStudents
+    // ===============================================================
+
+    // Helper functions for institutional authorization
     function isAuthenticated() {
       return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.role == 'user_admin' || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'user_admin')
-      );
     }
 
     function isOwner(userId) {
@@ -23,22 +62,57 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == parentId;
     }
 
-    // Colección users (Perfiles de padres, personal docente y administradores)
+    function isStaffRole(role) {
+      return role in [
+        'user_admin', 'directivo', 'Directivo', 'administrador', 'admin', 'director',
+        'administrativo', 'Administrativo', 'staff', 'Staff', 'secretaria', 'secretaría',
+        'docente', 'Docente', 'teacher', 'profesor', 'profesora', 'maestro',
+        'enfermeria', 'Enfermeria', 'enfermería', 'Enfermería', 'salud', 'medico', 'médico',
+        'preceptoria', 'Preceptoria', 'preceptoría', 'Preceptoría', 'preceptor', 'preceptora', 'celador'
+      ];
+    }
+
+    function isAdminRole(role) {
+      return role in [
+        'user_admin', 'directivo', 'Directivo', 'administrador', 'admin', 'director'
+      ];
+    }
+
+    function isStaff() {
+      return isAuthenticated() && (
+        isStaffRole(request.auth.token.role) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         isStaffRole(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role))
+      );
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        isAdminRole(request.auth.token.role) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         isAdminRole(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role))
+      );
+    }
+
+    // Colección users (Perfiles de padres, personal docente, salud, preceptoría y directivos)
     match /users/{userId} {
       // Escritura únicamente permitida a administradores autorizados
       allow write: if isAdmin();
       
-      // Lectura permitida al propio usuario dueño del documento o a un administrador
-      allow read: if isOwner(userId) || isAdmin();
+      // Lectura permitida al propio usuario dueño del documento o a personal institucional autorizado
+      allow read: if isOwner(userId) || isStaff();
     }
     
     // Colección students (Datos y perfiles académicos de alumnos)
     match /students/{studentId} {
-      // Creación, modificación y eliminación reservada a administradores
-      allow create, update, delete: if isAdmin();
+      // Creación y eliminación reservada a administradores autorizados
+      allow create, delete: if isAdmin();
+
+      // Modificación permitida a administradores y personal institucional (ej. registro médico de enfermería, seguimiento de preceptoría)
+      allow update: if isStaff();
       
-      // Lectura permitida al propio alumno, al padre/tutor vinculado, o a un administrador
-      allow read: if isOwner(studentId) || isParentOf(resource.data.parentId) || isAdmin();
+      // Lectura permitida al propio alumno, al padre/tutor vinculado, o al personal institucional autorizado
+      allow read: if isOwner(studentId) || isParentOf(resource.data.parentId) || isStaff();
     }
 
     // Colección news (Noticias del portal escolar - acceso público)
@@ -69,4 +143,3 @@ service cloud.firestore {
     }
   }
 }
-
