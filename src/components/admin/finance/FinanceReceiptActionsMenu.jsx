@@ -32,9 +32,11 @@ const FinanceReceiptActionsMenu = ({
   return (
     <div
       ref={menuRef}
+      role="presentation"
       className="relative inline-block text-left"
       onClick={(e) => e.stopPropagation()}
     >
+
       <button
         type="button"
         id={`btn-actions-${receipt.id}`}
@@ -47,9 +49,8 @@ const FinanceReceiptActionsMenu = ({
       >
         <span>Acciones</span>
         <span
-          className={`material-symbols-outlined text-[16px] text-slate-500 transition-transform duration-200 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
+          className={`material-symbols-outlined text-[16px] text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''
+            }`}
           aria-hidden="true"
         >
           expand_more

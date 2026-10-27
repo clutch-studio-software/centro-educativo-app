@@ -539,8 +539,9 @@ export const subscribeToMonthReceipts = (month, onUpdate, onError) => {
 export const approvePaymentApi = async (receiptId, explicitReceiptNumber = null) => {
   await ensureAdminAuth();
 
-  const receiptNumber =
-    explicitReceiptNumber || `#REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+const receiptNumber =
+    explicitReceiptNumber || `#REC-2026-${1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000)}`;
+
 
   const docRef = doc(db, RECEIPTS_COLLECTION, receiptId);
   await updateDoc(docRef, {
