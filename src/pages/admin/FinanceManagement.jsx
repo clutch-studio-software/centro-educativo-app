@@ -7,7 +7,7 @@ import FinanceTabs from '../../components/admin/finance/FinanceTabs';
 import FinanceFilterBar from '../../components/admin/finance/FinanceFilterBar';
 import FinanceReceiptsTable from '../../components/admin/finance/FinanceReceiptsTable';
 import FinancePagination from '../../components/admin/finance/FinancePagination';
-import FinancePendingNotice from '../../components/admin/finance/FinancePendingNotice';
+import FinanceTariffsView from '../../components/admin/finance/tariffs/FinanceTariffsView';
 import FinanceValidateReceiptModal from '../../components/admin/finance/FinanceValidateReceiptModal';
 import FinanceRejectReceiptModal from '../../components/admin/finance/FinanceRejectReceiptModal';
 import FinanceVoucherModal from '../../components/admin/finance/FinanceVoucherModal';
@@ -72,24 +72,14 @@ const FinanceManagement = () => {
         {/* Notificación Toast flotante */}
         <AdminToast notification={notification} onClose={() => setNotification(null)} />
 
-        {/* Encabezado Principal y Acciones */}
-        <FinanceHeader onExportBalance={handleExportBalance} />
-
-        {/* Quick KPI Strip Bento */}
-        <div className="my-6">
-          <FinanceKpiCards
+        {/* Pestañas de Navegación Primaria */}
+        <div className="mb-4">
+          <FinanceTabs
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
             pendingCount={pendingCount}
-            pendingAmount={pendingAmount}
-            onReviewPending={handleReviewPending}
           />
         </div>
-
-        {/* Pestañas de Navegación Primaria */}
-        <FinanceTabs
-          activeTab={activeTab}
-          onSelectTab={setActiveTab}
-          pendingCount={pendingCount}
-        />
 
         {/* Vista Tab 1: Comprobantes y Recibos */}
         {activeTab === 'comprobantes' && (
@@ -98,6 +88,18 @@ const FinanceManagement = () => {
             data-testid="view-comprobantes"
             className="flex flex-col gap-5 animate-in fade-in duration-200"
           >
+            {/* Encabezado Principal y Acciones */}
+            <FinanceHeader onExportBalance={handleExportBalance} />
+
+            {/* Quick KPI Strip Bento */}
+            <div className="my-2">
+              <FinanceKpiCards
+                pendingCount={pendingCount}
+                pendingAmount={pendingAmount}
+                onReviewPending={handleReviewPending}
+              />
+            </div>
+
             {/* Barra de Filtros */}
             <FinanceFilterBar
               searchTerm={searchTerm}
@@ -137,12 +139,10 @@ const FinanceManagement = () => {
           </div>
         )}
 
-        {/* Vista Tab 2: Parametrización de Aranceles (Pendiente según requerimiento) */}
+        {/* Vista Tab 2: Parametrización de Aranceles */}
         {activeTab === 'aranceles' && (
           <div id="view-aranceles" data-testid="view-aranceles" className="animate-in fade-in duration-200">
-            <FinancePendingNotice
-              onBackToComprobantes={() => setActiveTab('comprobantes')}
-            />
+            <FinanceTariffsView onNotify={setNotification} />
           </div>
         )}
 

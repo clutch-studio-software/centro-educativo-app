@@ -41,15 +41,9 @@ const FinanceTabs = ({ activeTab, onSelectTab, pendingCount = 14 }) => {
         }`}
       >
         <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
-          tune
+          price_change
         </span>
         <span>Parametrización de Aranceles &amp; Tarifas</span>
-        <span
-          data-testid="tab-aranceles-pending-badge"
-          className="px-2 py-0.5 rounded-full bg-slate-300 text-slate-700 text-[10px] font-bold uppercase tracking-wider"
-        >
-          Próximamente
-        </span>
       </button>
     </div>
   );
