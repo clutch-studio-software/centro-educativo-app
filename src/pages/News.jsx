@@ -297,7 +297,7 @@ const CreateNewsModal = ({
             {/* Origen de Imagen (Selector) */}
             <fieldset className="flex flex-col gap-2 md:col-span-2 border-0 p-0 m-0">
               <legend className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Imagen de Portada</legend>
-              
+
               <div className="flex gap-4 mb-2">
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 cursor-pointer">
                   <input
@@ -328,11 +328,10 @@ const CreateNewsModal = ({
                       type="button"
                       key={img.key}
                       onClick={() => setSelectedPredefined(img.key)}
-                      className={`group flex flex-col gap-1.5 items-center p-1.5 rounded-xl border-2 transition-all cursor-pointer bg-white ${
-                        selectedPredefined === img.key
+                      className={`group flex flex-col gap-1.5 items-center p-1.5 rounded-xl border-2 transition-all cursor-pointer bg-white ${selectedPredefined === img.key
                           ? 'border-orange-500 bg-orange-50/20'
                           : 'border-transparent hover:border-slate-200'
-                      }`}
+                        }`}
                     >
                       <div className="w-full h-12 rounded-lg overflow-hidden relative">
                         <img
@@ -533,10 +532,10 @@ const NewsLoadMoreSection = ({ hasMore, isLoadingMore, onLoadMore }) => {
 
 const News = () => {
   const { user } = useAuth();
-  
+
   // Admin detection state
   const [isAdmin, setIsAdmin] = useState(false);
-  
+
   // Dynamic news list from Firestore
   const [articles, setArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -607,7 +606,7 @@ const News = () => {
   };
 
   useEffect(() => {
-    fetchNews();
+    void fetchNews();
   }, []);
 
   // Resolve featured article (newest marked as featured, or the first article if none)
