@@ -225,7 +225,7 @@ const StudentExtracurricularBlock = ({ enrolledDisciplines = [] }) => {
           {enrolledDisciplines.map((disc) => (
             <div
               key={disc.id || disc.nombre}
-              className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3 text-xs"
+              className="p-2.5 bg-slate-50/80 border border-slate-200/80 rounded-md flex items-center justify-between gap-3 text-xs"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="text-xl select-none">{disc.emoji || '🏃'}</span>

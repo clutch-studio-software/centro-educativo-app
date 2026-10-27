@@ -73,7 +73,7 @@ async function generateUniqueStudentIdLogin() {
     let unique = false;
     let studentID = '';
     while (!unique) {
-        const randomDigits = Math.floor(10000 + Math.random() * 90000); // 5 dígitos aleatorios
+        const randomDigits = crypto.randomInt(10000, 100000); // 5 dígitos aleatorios
         studentID = `EST-${year}-${randomDigits}`;
         const snapshot = await db.collection('students')
             .where('studentID_login', '==', studentID)
