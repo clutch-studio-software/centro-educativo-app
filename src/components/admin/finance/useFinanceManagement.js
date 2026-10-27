@@ -1,10 +1,15 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { INITIAL_RECEIPTS, FINANCE_STATUSES } from '../../../data/mockFinanceData';
+import {
+  INITIAL_RECEIPTS,
+  FINANCE_STATUSES,
+  FINANCE_MONTHS,
+} from '../../../data/mockFinanceData';
 import {
   subscribeToMonthReceipts,
   approvePaymentApi,
   rejectPaymentApi,
   recalculateAllBalancesApi,
+  fetchMonthTotalApi,
 } from '../../../services/financeService';
 
 export const useFinanceManagement = () => {
@@ -255,6 +260,52 @@ export const useFinanceManagement = () => {
     [receipts]
   );
 
+  const monthlyCollection = useMemo(
+    () => receipts.reduce((acc, curr) => acc + (Number(curr.declaredAmount) || 0), 0),
+    [receipts]
+  );
+
+  const previousMonth = useMemo(() => {
+    const idx = FINANCE_MONTHS.indexOf(selectedMonth);
+    if (idx !== -1 && idx + 1 < FINANCE_MONTHS.length) {
+      return FINANCE_MONTHS[idx + 1];
+    }
+    return null;
+  }, [selectedMonth]);
+
+  const [previousMonthTotal, setPreviousMonthTotal] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!previousMonth) {
+      setPreviousMonthTotal(null);
+      return;
+    }
+
+    fetchMonthTotalApi(previousMonth)
+      .then((total) => {
+        if (isMounted) {
+          setPreviousMonthTotal(total);
+        }
+      })
+      .catch((err) => {
+        console.warn('Aviso obteniendo total del mes previo:', err.message);
+        if (isMounted) setPreviousMonthTotal(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [previousMonth]);
+
+  const collectionTrend = useMemo(() => {
+    if (!previousMonth || previousMonthTotal === null || previousMonthTotal <= 0) {
+      return null;
+    }
+    const diff = monthlyCollection - previousMonthTotal;
+    return Number(((diff / previousMonthTotal) * 100).toFixed(1));
+  }, [monthlyCollection, previousMonth, previousMonthTotal]);
+
   return {
     receipts,
     activeTab,
@@ -279,6 +330,9 @@ export const useFinanceManagement = () => {
     pendingAmount,
     approvedCount,
     rejectedCount,
+    monthlyCollection,
+    previousMonth,
+    collectionTrend,
     validatingReceipt,
     setValidatingReceipt,
     rejectingReceipt,

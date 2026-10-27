@@ -1,17 +1,71 @@
 import React from 'react';
 import { formatCurrency } from '../../../utils/financeUtils';
+import { FINANCE_MONTHS } from '../../../data/mockFinanceData';
+
+const resolvePreviousMonth = (previousMonth, selectedMonth) => {
+  if (previousMonth !== undefined) return previousMonth;
+  const idx = FINANCE_MONTHS.indexOf(selectedMonth);
+  return idx !== -1 && idx + 1 < FINANCE_MONTHS.length ? FINANCE_MONTHS[idx + 1] : null;
+};
+
+const getTrendMetadata = (collectionTrend) => {
+  if (typeof collectionTrend !== 'number') {
+    return {
+      text: '0.0%',
+      icon: 'trending_flat',
+      badgeClass: 'bg-slate-100 text-slate-700',
+    };
+  }
+
+  if (collectionTrend > 0) {
+    return {
+      text: `+${collectionTrend.toFixed(1)}%`,
+      icon: 'arrow_upward',
+      badgeClass: 'bg-emerald-100 text-emerald-800',
+    };
+  }
+
+  if (collectionTrend < 0) {
+    return {
+      text: `${collectionTrend.toFixed(1)}%`,
+      icon: 'arrow_downward',
+      badgeClass: 'bg-rose-100 text-rose-800',
+    };
+  }
+
+  return {
+    text: '0.0%',
+    icon: 'trending_flat',
+    badgeClass: 'bg-slate-100 text-slate-700',
+  };
+};
 
 const FinanceKpiCards = ({
+  monthlyCollection,
+  selectedMonth = 'Octubre 2026',
+  previousMonth,
+  collectionTrend,
   pendingCount = 14,
   pendingAmount = 1890000,
   onReviewPending,
 }) => {
   const formattedPendingAmount = formatCurrency(pendingAmount);
+  const formattedMonthlyCollection =
+    monthlyCollection != null
+      ? formatCurrency(monthlyCollection)
+      : '$18.420.500';
+
+  const computedPreviousMonth = resolvePreviousMonth(previousMonth, selectedMonth);
+  const trend = getTrendMetadata(collectionTrend);
+
+  const previousPeriodLabel = computedPreviousMonth
+    ? `vs. período ${computedPreviousMonth}`
+    : 'vs. período anterior (sin datos)';
 
   return (
     <div
       data-testid="finance-kpis-strip"
-      className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      className="grid grid-cols-1 md:grid-cols-2 gap-4"
     >
       {/* KPI 1: Recaudación del Mes */}
       <div
@@ -31,7 +85,7 @@ const FinanceKpiCards = ({
                 data-testid="kpi-monthly-collection-value"
                 className="font-headline font-extrabold text-2xl lg:text-3xl text-slate-900 tracking-tight"
               >
-                $18.420.500
+                {formattedMonthlyCollection}
               </span>
               <span className="text-xs font-bold text-slate-400">ARS</span>
             </div>
@@ -46,13 +100,16 @@ const FinanceKpiCards = ({
         <div className="mt-4 flex items-center gap-2">
           <span
             data-testid="kpi-monthly-collection-trend"
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${trend.badgeClass}`}
           >
-            <span className="material-symbols-outlined text-[14px]">arrow_upward</span>
-            +8.4%
+            <span className="material-symbols-outlined text-[14px]">{trend.icon}</span>
+            {trend.text}
           </span>
-          <span className="text-xs text-slate-500 font-medium">
-            vs. período Septiembre 2026
+          <span
+            data-testid="kpi-monthly-collection-previous-period"
+            className="text-xs text-slate-500 font-medium"
+          >
+            {previousPeriodLabel}
           </span>
         </div>
       </div>

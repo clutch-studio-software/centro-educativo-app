@@ -37,6 +37,9 @@ const FinanceManagement = () => {
     pendingAmount,
     approvedCount,
     rejectedCount,
+    monthlyCollection,
+    previousMonth,
+    collectionTrend,
     validatingReceipt,
     setValidatingReceipt,
     rejectingReceipt,
@@ -109,6 +112,10 @@ const FinanceManagement = () => {
             {/* Quick KPI Strip Bento */}
             <div className="my-2">
               <FinanceKpiCards
+                monthlyCollection={monthlyCollection}
+                selectedMonth={selectedMonth}
+                previousMonth={previousMonth}
+                collectionTrend={collectionTrend}
                 pendingCount={pendingCount}
                 pendingAmount={pendingAmount}
                 onReviewPending={handleReviewPending}

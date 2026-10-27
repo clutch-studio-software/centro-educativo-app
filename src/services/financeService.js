@@ -773,3 +773,36 @@ export const recalculateAllBalancesApi = async (month) => {
   return updatedReceipts;
 };
 
+/**
+ * Obtiene el monto total facturado/declarado de un mes para calcular comparativas reales.
+ */
+export const fetchMonthTotalApi = async (month) => {
+  if (!month) return 0;
+  try {
+    await ensureAdminAuth();
+    const receiptsRef = collection(db, RECEIPTS_COLLECTION);
+    const q = query(receiptsRef, where('month', '==', month));
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      return snap.docs.reduce(
+        (sum, d) => sum + (Number(d.data().declaredAmount) || 0),
+        0
+      );
+    }
+
+    const seeded = await fetchOrSeedMonthReceiptsApi(month);
+    return (seeded || []).reduce(
+      (sum, r) => sum + (Number(r.declaredAmount) || 0),
+      0
+    );
+  } catch (err) {
+    console.warn(`Aviso calculando total del mes ${month}:`, err.message);
+    return INITIAL_RECEIPTS.reduce(
+      (sum, r) => sum + (Number(r.declaredAmount) || 0),
+      0
+    );
+  }
+};
+
+
