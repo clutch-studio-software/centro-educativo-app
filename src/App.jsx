@@ -20,6 +20,7 @@ import AcademicOfferManagement from './pages/admin/AcademicOfferManagement';
 import SportsManagement from './pages/admin/SportsManagement';
 import SportsDetailManagement from './pages/admin/SportsDetailManagement';
 import UsersRbacManagement from './pages/admin/UsersRbacManagement';
+import FinanceManagement from './pages/admin/FinanceManagement';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 
 function App() {
@@ -54,7 +55,7 @@ function App() {
           <Route path="/admin/deportes" element={<SportsManagement />} />
           <Route path="/admin/deportes/detalle" element={<SportsDetailManagement />} />
           <Route path="/admin/deportes/detalle/:id" element={<SportsDetailManagement />} />
-          <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
+          <Route path="/admin/finanzas" element={<FinanceManagement />} />
           <Route path="/admin/usuarios" element={<UsersRbacManagement />} />
           <Route path="/admin/reportes" element={<AdminPlaceholder />} />
           <Route path="/admin/*" element={<AdminPlaceholder />} />
