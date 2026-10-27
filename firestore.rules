@@ -141,5 +141,38 @@ service cloud.firestore {
       // Modificaciones autorizadas exclusivamente a administradores
       allow write: if isAdmin();
     }
+
+    // Colección tariffs_config (Configuración centralizada de aranceles y tarifas)
+    match /tariffs_config/{docId} {
+      // Lectura para cualquier usuario autenticado o personal institucional
+      allow read: if isAuthenticated();
+      
+      // Modificaciones autorizadas a personal institucional o administradores
+      allow write: if isStaff() || isAdmin();
+    }
+
+    // Colección tariff_audit_logs (Trazabilidad y auditoría de cambios de precios)
+    match /tariff_audit_logs/{auditId} {
+      // Lectura y creación permitida a personal institucional o administradores
+      allow read: if isStaff() || isAdmin();
+      allow create: if isStaff() || isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Colección finance_receipts (Gestión institucional de comprobantes y recibos de aranceles)
+    match /finance_receipts/{receiptId} {
+      // Lectura para personal institucional o tutor titular
+      allow read: if isStaff() || (isAuthenticated() && (resource.data.tutorUid == request.auth.uid || resource.data.parentId == request.auth.uid));
+
+      // Creación para usuarios autenticados (tutores al subir comprobante o personal)
+      allow create: if isAuthenticated();
+
+      // Conciliación, aprobación y rechazo por personal institucional o administradores
+      allow update: if isStaff() || isAdmin();
+
+      // Eliminación únicamente por administradores
+      allow delete: if isAdmin();
+    }
   }
 }

@@ -165,4 +165,57 @@ export const getStudentEnrolledActivitiesCount = (student, allDisciplines = []) 
   return getStudentEnrolledDisciplines(student, allDisciplines).length;
 };
 
+export const createNewDisciplineRecord = (formData, teachers = []) => {
+  const teacherName = formData.profesorNombre?.trim() || 'Profesor a designar';
+  const teacherObj = teachers.find(
+    (t) => (t.nombreCompleto || `${t.nombre} ${t.apellido}`) === formData.profesorNombre
+  );
+
+  const initials =
+    teacherObj?.iniciales ||
+    teacherName
+      .split(' ')
+      .filter((w) => !w.toLowerCase().startsWith('prof') && !w.toLowerCase().startsWith('sensei'))
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() ||
+    'DOC';
+
+  const finalHorario =
+    formatHorarioString(formData.dias, formData.horariosPorDia) ||
+    formData.horario?.trim() ||
+    '';
+
+  return {
+    id: `disc-${Date.now()}`,
+    nombre: formData.nombre.trim(),
+    emoji: formData.emoji || '🏃',
+    bgColor: formData.bgColor || 'bg-orange-50',
+    textColor: formData.textColor || 'text-orange-600',
+    profesor: {
+      nombre: teacherName,
+      iniciales: initials,
+      email:
+        formData.profesorEmail?.trim() ||
+        `${teacherName.toLowerCase().replace(/[^a-z]/g, '')}@colegio.edu.ar`,
+      telefono: teacherObj?.telefono || '+54 11 4455-0000',
+    },
+    niveles: formData.niveles || 'Primario y Secundario',
+    nivelId: formData.niveles || 'Primario y Secundario',
+    dias: Array.isArray(formData.dias) && formData.dias.length > 0 ? formData.dias : ['Lunes'],
+    horariosPorDia: formData.horariosPorDia,
+    horario: finalHorario,
+    lugar: formData.lugar?.trim() || 'Campus Deportivo y Recreativo',
+    cupoMax: Number(formData.cupoMax) || 25,
+    cupoOcupado: 0,
+    activo: true,
+    descripcion:
+      formData.descripcion?.trim() ||
+      'Actividad deportiva y extracurricular de formación integral.',
+    inscriptos: [],
+  };
+};
+
+
 
