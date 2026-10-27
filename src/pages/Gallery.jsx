@@ -308,7 +308,7 @@ const Gallery = () => {
     if (!formData.name.trim()) {
       newErrors.name = 'El nombre completo es requerido.';
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@.]+$/
     if (!formData.email) {
       newErrors.email = 'El correo electrónico es requerido.';
     } else if (!emailRegex.test(formData.email)) {
