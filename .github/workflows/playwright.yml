@@ -3,25 +3,36 @@ on:
   push:
     branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, master, develop]
+    branches: [ main, master, develop ]
+
 jobs:
   test:
-    timeout-minutes: 60
+    timeout-minutes: 15 # Bajado de 60 a 15 para no gastar minutos de CI si algo se cuelga
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test:e2e
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm' # 1. Cachea node_modules para que "npm ci" tarde segundos
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium # 2. Instala SOLO Chromium y evita los 436 MB de paquetes de Ubuntu
+
+      - name: Run Playwright tests
+        run: npm run test:e2e # 3. Corregido: ejecuta tu script de package.json (o usa "npx playwright test --project=chromium")
+        env:
+          # Si tu test usa credenciales de admin o variables de entorno, pásalas aquí desde GitHub Secrets:
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
