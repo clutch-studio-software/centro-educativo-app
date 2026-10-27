@@ -1,0 +1,8 @@
+{
+  "ignore": {
+    "files": [
+      "playwright-report/**",
+      "test-results/**"
+    ]
+  }
+}
