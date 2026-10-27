@@ -34,7 +34,7 @@ export const useAcademicOfferData = (showToast) => {
   useEffect(() => {
     let isMounted = true;
 
-    Promise.all([
+    void Promise.all([
       fetchAcademicCourses().catch((err) => {
         console.warn('Error al cargar cursos desde Firestore, usando respaldo:', err);
         return INITIAL_COURSES;
@@ -98,8 +98,7 @@ export const useAcademicOfferData = (showToast) => {
       prev.map((c) => (c.id === course.id ? { ...c, activo: updatedStatus } : c))
     );
     showToast(
-      `La división "${course.nombre} (${course.division || 'A'})" ha sido ${
-        updatedStatus ? 'activada' : 'pausada'
+      `La división "${course.nombre} (${course.division || 'A'})" ha sido ${updatedStatus ? 'activada' : 'pausada'
       }.`,
       updatedStatus ? 'success' : 'info'
     );
@@ -206,11 +205,11 @@ export const useAcademicOfferData = (showToast) => {
       const nextCourses = courses.map((c) =>
         c.id === courseId
           ? {
-              ...c,
-              ...updatedCourseData,
-              nombre: cleanNombre,
-              division: cleanDivision,
-            }
+            ...c,
+            ...updatedCourseData,
+            nombre: cleanNombre,
+            division: cleanDivision,
+          }
           : c
       );
       setCourses(nextCourses);
@@ -220,7 +219,7 @@ export const useAcademicOfferData = (showToast) => {
         const affectedIds = new Set(affectedStudents.map((s) => s.id));
         const nivelCap = updatedCourseData.nivelId
           ? updatedCourseData.nivelId.charAt(0).toUpperCase() +
-            updatedCourseData.nivelId.slice(1)
+          updatedCourseData.nivelId.slice(1)
           : '';
         const newCursoDisplay = nivelCap
           ? `${nivelCap} - ${cleanNombre} ${cleanDivision}`
@@ -246,10 +245,9 @@ export const useAcademicOfferData = (showToast) => {
       }
 
       showToast(
-        `División "${cleanNombre} (${cleanDivision})" actualizada.${
-          hasNameOrDivisionChanged && affectedStudents.length > 0
-            ? ` ${affectedStudents.length} alumno(s) reasociados a la nueva división.`
-            : ''
+        `División "${cleanNombre} (${cleanDivision})" actualizada.${hasNameOrDivisionChanged && affectedStudents.length > 0
+          ? ` ${affectedStudents.length} alumno(s) reasociados a la nueva división.`
+          : ''
         }`,
         'success'
       );
@@ -260,7 +258,7 @@ export const useAcademicOfferData = (showToast) => {
           { ...updatedCourseData, nombre: cleanNombre, division: cleanDivision },
           hasNameOrDivisionChanged ? affectedStudents : []
         );
-        syncAcademicCatalog(nextCourses);
+        await syncAcademicCatalog(nextCourses);
       } catch (err) {
         console.error('Error al actualizar en Firestore:', err);
         showToast('Error al persistir cambios en Firebase.', 'warning');
@@ -299,7 +297,7 @@ export const useAcademicOfferData = (showToast) => {
 
     try {
       await deleteAcademicCourse(course.id, affectedStudents);
-      syncAcademicCatalog(remainingCourses);
+      await syncAcademicCatalog(remainingCourses);
     } catch (err) {
       console.error('Error al eliminar división en Firestore:', err);
       showToast('Error al eliminar en Firebase.', 'error');
