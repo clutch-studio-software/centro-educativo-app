@@ -106,7 +106,7 @@ const AcademicOfferManagement = () => {
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <AdminSectionTitle
               icon="menu_book"
-              title="Gestión del Plantel Docente y Académico"
+              title="Gestión de Niveles Académicos"
               subtitle="Administración centralizada de divisiones, turnos, matrícula de alumnos y oferta pedagógica."
             />
 

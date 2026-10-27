@@ -3,9 +3,11 @@ import {
   parseHorariosFromDiscipline,
   formatHorarioString,
   buildUpdatedDiscipline,
+  createNewDisciplineRecord,
   sortWeekDays,
 } from './sportsScheduleUtils';
-import { MOCK_TEACHERS } from '../../../data/mockTeachers';
+
+const EMPTY_TEACHERS = [];
 
 const getInitialDias = (config) => {
   if (Array.isArray(config?.dias) && config.dias.length > 0) {
@@ -31,12 +33,16 @@ const getInitialHorarios = (config, dias) => {
   return initialHorarios;
 };
 
-const validateForm = (formData) => {
-  if (!formData.nombre.trim()) {
-    return 'Por favor ingresa el nombre de la disciplina.';
+const validateDisciplineForm = (formData, isCreate = false) => {
+  if (!formData.nombre?.trim()) {
+    return isCreate
+      ? 'Por favor ingresa el nombre de la disciplina deportiva o extracurricular.'
+      : 'Por favor ingresa el nombre de la disciplina.';
   }
   if (!formData.dias || formData.dias.length === 0) {
-    return 'Por favor selecciona al menos un día de clase.';
+    return isCreate
+      ? 'Por favor selecciona al menos un día de cursada.'
+      : 'Por favor selecciona al menos un día de clase.';
   }
   for (const day of formData.dias) {
     const sched = formData.horariosPorDia?.[day];
@@ -51,19 +57,64 @@ const validateForm = (formData) => {
 };
 
 export const useDisciplineConfigForm = (
-  config,
-  teachers = MOCK_TEACHERS,
-  onSave,
-  onClose
+  configOrOptions,
+  legacyTeachers = EMPTY_TEACHERS,
+  legacyOnSave,
+  legacyOnClose
 ) => {
+  const options =
+    configOrOptions &&
+    typeof configOrOptions === 'object' &&
+    ('config' in configOrOptions || 'isCreate' in configOrOptions)
+      ? configOrOptions
+      : {
+          config: configOrOptions,
+          teachers: legacyTeachers,
+          onSave: legacyOnSave,
+          onClose: legacyOnClose,
+        };
+
+  const {
+    config,
+    teachers = EMPTY_TEACHERS,
+    onSave,
+    onCreate,
+    onClose,
+    isCreate = false,
+  } = options;
+
   const [formData, setFormData] = useState(() => {
+    if (isCreate) {
+      const defaultDays = ['Lunes', 'Miércoles'];
+      const defaultHorarios = {
+        Lunes: { inicio: '16:30', fin: '18:00' },
+        Miércoles: { inicio: '16:30', fin: '18:00' },
+      };
+      return {
+        nombre: '',
+        emoji: '🏃',
+        bgColor: 'bg-orange-50',
+        textColor: 'text-orange-600',
+        profesorNombre: '',
+        profesorEmail: '',
+        niveles: 'Primario y Secundario',
+        dias: defaultDays,
+        horariosPorDia: defaultHorarios,
+        horario: formatHorarioString(defaultDays, defaultHorarios),
+        lugar: '',
+        cupoMax: 25,
+        activo: true,
+        descripcion: '',
+      };
+    }
+
     const dias = sortWeekDays(getInitialDias(config));
     const horarios = getInitialHorarios(config, dias);
     return {
       nombre: config?.nombre || config?.titulo?.split(' - ')[0] || '',
       emoji: config?.emoji || '🏃',
-      bgColor: config?.bgColor || 'bg-orange-50',
-      textColor: config?.textColor || 'text-orange-600',
+      bgColor: config?.bgColor || 'bg-blue-50',
+      textColor: config?.textColor || 'text-blue-600',
       profesorNombre: config?.profesor?.nombre || '',
       profesorEmail: config?.profesor?.email || '',
       niveles: config?.niveles || 'Primario y Secundario',
@@ -74,7 +125,7 @@ export const useDisciplineConfigForm = (
         config?.horas ||
         formatHorarioString(dias, horarios),
       lugar: config?.lugar || config?.instalacion || '',
-      cupoMax: config?.cupoMax || 40,
+      cupoMax: config?.cupoMax || 25,
       activo: config?.activo ?? true,
       descripcion: config?.descripcion || config?.politica || '',
     };
@@ -96,6 +147,7 @@ export const useDisciplineConfigForm = (
       emoji: opt.emoji,
       bgColor: opt.bg,
       textColor: opt.text,
+      ...(isCreate && !prev.nombre ? { nombre: opt.label } : {}),
     }));
   };
 
@@ -163,16 +215,33 @@ export const useDisciplineConfigForm = (
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    const validationError = validateForm(formData);
+    if (e?.preventDefault) e.preventDefault();
+    const validationError = validateDisciplineForm(formData, isCreate);
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    const updatedDiscipline = buildUpdatedDiscipline(config, formData, teachers);
-    onSave(updatedDiscipline);
-    onClose();
+    if (isCreate) {
+      const newDiscipline = createNewDisciplineRecord(formData, teachers);
+      const saveFn = onSave || onCreate;
+      if (typeof saveFn === 'function') {
+        saveFn(newDiscipline);
+      }
+    } else {
+      const updatedDiscipline = buildUpdatedDiscipline(config, formData, teachers);
+      if (typeof onSave === 'function') {
+        if (config?.id && onSave.length >= 2) {
+          onSave(config.id, updatedDiscipline);
+        } else {
+          onSave(updatedDiscipline, config?.id);
+        }
+      }
+    }
+
+    if (typeof onClose === 'function') {
+      onClose();
+    }
   };
 
   return {
@@ -186,3 +255,5 @@ export const useDisciplineConfigForm = (
     handleSubmit,
   };
 };
+
+export default useDisciplineConfigForm;
