@@ -44,10 +44,31 @@ const FinanceVoucherModal = ({ receipt, onClose }) => {
 
         {/* Voucher Paper Card */}
         <div className="p-6 overflow-y-auto space-y-4">
-          <div
-            data-testid="voucher-receipt-card"
-            className="p-5 rounded-md bg-slate-50 border border-slate-200/90 shadow-xs flex flex-col gap-4 text-xs font-sans relative"
-          >
+          {!receipt.bankingVoucher ? (
+            <div
+              data-testid="voucher-missing-card"
+              className="p-8 rounded-md bg-slate-50 border border-dashed border-slate-200 text-center flex flex-col items-center justify-center gap-3"
+            >
+              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[26px]">
+                  upload_file
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-800">
+                No se cargó un comprobante aún
+              </h4>
+              <p className="text-xs text-slate-500 max-w-sm">
+                El tutor todavía no ha enviado el comprobante de transferencia bancaria correspondiente a este período.
+              </p>
+              <div className="mt-2 text-[11px] text-slate-400">
+                Tutor: <strong className="text-slate-700">{receipt.tutor}</strong> · {receipt.familyCode}
+              </div>
+            </div>
+          ) : (
+            <div
+              data-testid="voucher-receipt-card"
+              className="p-5 rounded-md bg-slate-50 border border-slate-200/90 shadow-xs flex flex-col gap-4 text-xs font-sans relative"
+            >
             {/* Header Voucher */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2">
@@ -160,7 +181,8 @@ const FinanceVoucherModal = ({ receipt, onClose }) => {
               </span>
             </div>
           </div>
-        </div>
+        )}
+      </div>
 
         {/* Footer */}
         <div className="px-6 py-4 bg-slate-50 flex items-center justify-end gap-2.5 border-t border-slate-200">

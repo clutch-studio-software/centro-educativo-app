@@ -100,8 +100,20 @@ const FinanceReceiptRow = ({
 
         {/* Fecha de Carga */}
         <td className="py-3.5 px-4 text-slate-700 text-xs whitespace-nowrap">
-          <span data-testid={`upload-date-${receipt.id}`}>{receipt.uploadDate}</span>
-          <span className="block text-[10px] text-slate-400">{receipt.uploadTime}</span>
+          {receipt.bankingVoucher ? (
+            <>
+              <span data-testid={`upload-date-${receipt.id}`}>{receipt.uploadDate}</span>
+              <span className="block text-[10px] text-slate-400">{receipt.uploadTime}</span>
+            </>
+          ) : (
+            <span
+              data-testid={`upload-date-pending-${receipt.id}`}
+              className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-medium"
+            >
+              <span className="material-symbols-outlined text-[13px]">hourglass_empty</span>
+              Sin comprobante
+            </span>
+          )}
         </td>
 
         {/* Monto Declarado */}

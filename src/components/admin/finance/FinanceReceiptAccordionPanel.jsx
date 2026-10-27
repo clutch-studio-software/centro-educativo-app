@@ -5,15 +5,17 @@ import { formatCurrency } from '../../../utils/financeUtils';
 const FinanceReceiptAccordionPanel = ({ receipt, onViewVoucher }) => {
   const formattedDeclaredAmount = formatCurrency(receipt.declaredAmount);
 
+  const hasVoucher = Boolean(receipt.bankingVoucher && receipt.bankingVoucher.attachmentName);
+
   const voucherStatusColor =
-    receipt.bankingVoucher.voucherStatus === 'Conciliado OK'
+    receipt.bankingVoucher?.voucherStatus === 'Conciliado OK'
       ? 'text-emerald-700'
-      : receipt.bankingVoucher.voucherStatus === 'Observado'
+      : receipt.bankingVoucher?.voucherStatus === 'Observado'
         ? 'text-red-700'
         : 'text-amber-700';
 
   const isFullPayment =
-    receipt.bankingVoucher.paymentType?.toLowerCase().includes('completo') ?? true;
+    receipt.bankingVoucher?.paymentType?.toLowerCase().includes('completo') ?? true;
 
   return (
     <tr
@@ -61,20 +63,21 @@ const FinanceReceiptAccordionPanel = ({ receipt, onViewVoucher }) => {
             <div className="lg:col-span-5 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="font-headline font-bold text-xs text-slate-800 flex items-center gap-2 uppercase tracking-wide">
-                  <span className="material-symbols-outlined text-[17px] text-emerald-600">
-                    receipt_long
+                  <span className={`material-symbols-outlined text-[17px] ${hasVoucher ? 'text-emerald-600' : 'text-amber-500'}`}>
+                    {hasVoucher ? 'receipt_long' : 'pending_actions'}
                   </span>
                   Comprobante Bancario Adjunto
                 </span>
-                <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${voucherStatusColor}`}>
-                  {receipt.bankingVoucher.voucherStatus !== 'Conciliado OK' && (
+                <span className={`inline-flex items-center gap-1 text-[11px] font-bold ${hasVoucher ? voucherStatusColor : 'text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full'}`}>
+                  {hasVoucher && receipt.bankingVoucher.voucherStatus !== 'Conciliado OK' && (
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                   )}
-                  {receipt.bankingVoucher.voucherStatus}
+                  {hasVoucher ? receipt.bankingVoucher.voucherStatus : 'Sin comprobante'}
                 </span>
               </div>
 
-              <div className="rounded-md bg-white p-4 shadow-xs border border-slate-200/80 flex flex-col justify-between h-full gap-4">
+              {hasVoucher ? (
+                <div className="rounded-md bg-white p-4 shadow-xs border border-slate-200/80 flex flex-col justify-between h-full gap-4">
                 <div className="space-y-3">
                   {/* Tarjeta de Archivo Adjunto */}
                   <div className="p-3 rounded-md bg-slate-50 border border-slate-200 flex items-center justify-between">
@@ -205,6 +208,29 @@ const FinanceReceiptAccordionPanel = ({ receipt, onViewVoucher }) => {
                   </button>
                 </div>
               </div>
+              ) : (
+                <div
+                  data-testid={`voucher-empty-state-${receipt.id}`}
+                  className="rounded-md bg-white p-6 shadow-xs border border-dashed border-slate-200 flex flex-col items-center justify-center text-center h-full min-h-[220px] gap-3"
+                >
+                  <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[26px]">
+                      upload_file
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-slate-800">
+                      No se cargó un comprobante aún
+                    </h4>
+                    <p className="text-[11px] text-slate-500 max-w-xs leading-relaxed">
+                      El tutor todavía no ha enviado el comprobante de transferencia bancaria correspondiente a este período.
+                    </p>
+                  </div>
+                  <div className="mt-1 px-3 py-1.5 rounded-md bg-slate-50 border border-slate-100 text-[10px] text-slate-400 font-medium">
+                    A la espera de carga desde el perfil del tutor
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

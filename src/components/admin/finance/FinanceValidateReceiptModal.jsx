@@ -73,48 +73,65 @@ const FinanceValidateReceiptModal = ({ receipt, onClose, onConfirm }) => {
             <span className="font-bold text-slate-800 block">
               Comprobante Bancario Adjunto
             </span>
-            <div className="p-3 rounded-md bg-white border border-slate-200 flex flex-col gap-2.5 text-xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="material-symbols-outlined text-blue-600 text-[18px]">
-                    attach_file
-                  </span>
-                  <span className="font-semibold text-slate-800 truncate">
-                    {receipt.bankingVoucher.attachmentName}
+            {receipt.bankingVoucher ? (
+              <div className="p-3 rounded-md bg-white border border-slate-200 flex flex-col gap-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="material-symbols-outlined text-blue-600 text-[18px]">
+                      attach_file
+                    </span>
+                    <span className="font-semibold text-slate-800 truncate">
+                      {receipt.bankingVoucher.attachmentName}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold shrink-0">
+                    {receipt.bankingVoucher.paymentType}
                   </span>
                 </div>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-bold shrink-0">
-                  {receipt.bankingVoucher.paymentType}
-                </span>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Pagador:</span>
-                  <span className="font-medium text-slate-800">
-                    {receipt.bankingVoucher.payerName}
-                  </span>
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Pagador:</span>
+                    <span className="font-medium text-slate-800">
+                      {receipt.bankingVoucher.payerName}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">CUIL:</span>
+                    <span className="font-mono text-slate-800">
+                      {receipt.bankingVoucher.payerCuil}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Fecha Operación:</span>
+                    <span className="text-slate-800">
+                      {receipt.bankingVoucher.operationDate}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">Monto Declarado:</span>
+                    <span className="font-bold text-slate-900">
+                      {formattedAmount} ARS
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">CUIL:</span>
-                  <span className="font-mono text-slate-800">
-                    {receipt.bankingVoucher.payerCuil}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Fecha Operación:</span>
-                  <span className="text-slate-800">
-                    {receipt.bankingVoucher.operationDate}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Monto Declarado:</span>
-                  <span className="font-bold text-slate-900">
-                    {formattedAmount} ARS
+              </div>
+            ) : (
+              <div
+                data-testid="modal-no-voucher-notice"
+                className="p-3.5 rounded-md bg-amber-50/80 border border-amber-200/80 flex items-start gap-2.5 text-amber-900 text-xs"
+              >
+                <span className="material-symbols-outlined text-[20px] text-amber-600 shrink-0">
+                  warning
+                </span>
+                <div className="space-y-0.5">
+                  <span className="font-bold block">No se cargó un comprobante aún</span>
+                  <span className="text-[11px] text-amber-800 leading-relaxed block">
+                    El tutor todavía no ha adjuntado el comprobante de transferencia bancaria. Al validar, se emitirá el recibo oficial de forma administrativa sin conciliación automática previa.
                   </span>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="p-3 rounded-md bg-blue-50/80 border border-blue-200/70 text-xs text-slate-700 flex items-center gap-2">

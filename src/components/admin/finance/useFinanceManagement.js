@@ -1,5 +1,10 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { INITIAL_RECEIPTS, FINANCE_STATUSES } from '../../../data/mockFinanceData';
+import {
+  subscribeToMonthReceipts,
+  approvePaymentApi,
+  rejectPaymentApi,
+} from '../../../services/financeService';
 
 export const useFinanceManagement = () => {
   const [receipts, setReceipts] = useState(INITIAL_RECEIPTS);
@@ -7,15 +12,44 @@ export const useFinanceManagement = () => {
   const [expandedRowId, setExpandedRowId] = useState('fam-0118'); // open by default as in HTML
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(FINANCE_STATUSES.TODOS);
-  const [selectedMonth, setSelectedMonth] = useState('Octubre 2026');
+  const [selectedMonth, setSelectedMonthState] = useState('Octubre 2026');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
+
+  const setSelectedMonth = useCallback((month) => {
+    setSelectedMonthState(month);
+    setCurrentPage(1);
+  }, []);
 
   // Modals state
   const [validatingReceipt, setValidatingReceipt] = useState(null);
   const [rejectingReceipt, setRejectingReceipt] = useState(null);
   const [viewingVoucher, setViewingVoucher] = useState(null);
   const [notification, setNotification] = useState(null);
+
+  // Suscripción en tiempo real a Firebase Firestore por mes
+  useEffect(() => {
+    let isMounted = true;
+    const unsubscribe = subscribeToMonthReceipts(
+      selectedMonth,
+      (liveReceipts) => {
+        if (!isMounted) return;
+        if (Array.isArray(liveReceipts) && liveReceipts.length > 0) {
+          setReceipts(liveReceipts);
+        }
+      },
+      (err) => {
+        console.warn(`Aviso leyendo comprobantes para ${selectedMonth}:`, err.message);
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [selectedMonth]);
 
   const showNotification = useCallback((typeOrObj, maybeMessage) => {
     const notif =
@@ -33,8 +67,9 @@ export const useFinanceManagement = () => {
   }, []);
 
   const handleApprovePayment = useCallback(
-    (receiptId) => {
+    async (receiptId) => {
       const receiptNumber = `#REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      // Actualización optimista local
       setReceipts((prev) =>
         prev.map((item) => {
           if (item.id === receiptId) {
@@ -52,23 +87,36 @@ export const useFinanceManagement = () => {
         })
       );
       setValidatingReceipt(null);
-      showNotification(
-        'success',
-        `¡Pago aprobado! Se generó el Recibo Oficial ${receiptNumber} y fue enviado al tutor.`
-      );
+
+      // Persistir en Firebase Firestore
+      try {
+        await approvePaymentApi(receiptId, receiptNumber);
+        showNotification(
+          'success',
+          `¡Pago aprobado! Se generó el Recibo Oficial ${receiptNumber} y fue registrado en Firebase.`
+        );
+      } catch (err) {
+        console.error('Error aprobando pago en Firestore:', err);
+        showNotification(
+          'error',
+          `Aprobado localmente, pero hubo un error en Firebase: ${err.message}`
+        );
+      }
     },
     [showNotification]
   );
 
   const handleRejectPayment = useCallback(
-    (receiptId, reason) => {
+    async (receiptId, reason) => {
+      const finalReason = reason || 'Comprobante observado por el área de tesorería.';
+      // Actualización optimista local
       setReceipts((prev) =>
         prev.map((item) => {
           if (item.id === receiptId) {
             return {
               ...item,
               status: 'rechazado',
-              rejectionReason: reason || 'Comprobante observado por el área de tesorería.',
+              rejectionReason: finalReason,
               bankingVoucher: {
                 ...item.bankingVoucher,
                 voucherStatus: 'Observado',
@@ -79,10 +127,21 @@ export const useFinanceManagement = () => {
         })
       );
       setRejectingReceipt(null);
-      showNotification(
-        'error',
-        'Comprobante observado/rechazado. Se envió la notificación de regularización al tutor.'
-      );
+
+      // Persistir en Firebase Firestore
+      try {
+        await rejectPaymentApi(receiptId, finalReason);
+        showNotification(
+          'error',
+          'Comprobante observado/rechazado en Firebase. Se envió la notificación de regularización.'
+        );
+      } catch (err) {
+        console.error('Error rechazando pago en Firestore:', err);
+        showNotification(
+          'error',
+          `Rechazado localmente, pero hubo un error en Firebase: ${err.message}`
+        );
+      }
     },
     [showNotification]
   );
@@ -115,7 +174,7 @@ export const useFinanceManagement = () => {
     setSelectedStatus(FINANCE_STATUSES.TODOS);
     setSelectedMonth('Octubre 2026');
     setCurrentPage(1);
-  }, []);
+  }, [setSelectedMonth]);
 
   // Filtered receipts
   const filteredReceipts = useMemo(() => {

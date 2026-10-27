@@ -121,18 +121,30 @@ const FinanceReceiptActionsMenu = ({
             </button>
           )}
 
-          {/* Opción general: Ver Comprobante Adjunto */}
-          <button
-            type="button"
-            data-testid={`menu-opt-voucher-${receipt.id}`}
-            onClick={() => handleAction(onViewVoucher)}
-            className="flex items-center gap-2.5 px-3.5 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer border-none bg-transparent w-full text-left border-t border-slate-100"
-          >
-            <span className="material-symbols-outlined text-[18px] text-slate-500">
-              attach_file
-            </span>
-            <span className="font-medium">Ver Comprobante</span>
-          </button>
+          {/* Opción general: Ver Comprobante Adjunto o aviso si no cargó */}
+          {receipt.bankingVoucher ? (
+            <button
+              type="button"
+              data-testid={`menu-opt-voucher-${receipt.id}`}
+              onClick={() => handleAction(onViewVoucher)}
+              className="flex items-center gap-2.5 px-3.5 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer border-none bg-transparent w-full text-left border-t border-slate-100"
+            >
+              <span className="material-symbols-outlined text-[18px] text-slate-500">
+                attach_file
+              </span>
+              <span className="font-medium">Ver Comprobante</span>
+            </button>
+          ) : (
+            <div
+              data-testid={`menu-opt-no-voucher-${receipt.id}`}
+              className="px-3.5 py-2 text-slate-400 flex items-center gap-2 text-[11px] italic border-t border-slate-100 select-none"
+            >
+              <span className="material-symbols-outlined text-[15px] text-amber-500">
+                hourglass_empty
+              </span>
+              <span>Sin comprobante cargado</span>
+            </div>
+          )}
         </div>
       )}
     </div>

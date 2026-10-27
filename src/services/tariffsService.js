@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   setDoc,
   addDoc,
@@ -169,6 +170,24 @@ export const saveTariffsWithAuditLogApi = async ({
   }
 
   return auditEntry;
+};
+
+/**
+ * Obtiene la configuración actual de aranceles desde Firestore.
+ */
+export const fetchTariffsConfig = async () => {
+  try {
+    await ensureAdminAuth();
+    const configDocRef = doc(db, TARIFFS_CONFIG_COLLECTION, 'current');
+    const docSnap = await getDoc(configDocRef);
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+    return null;
+  } catch (err) {
+    console.warn('Aviso obteniendo configuración de tarifas:', err.message);
+    return null;
+  }
 };
 
 /**
