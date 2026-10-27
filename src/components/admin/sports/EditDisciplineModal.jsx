@@ -1,149 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { EditDisciplineFormFields } from './EditDisciplineFormFields';
-import {
-  parseHorariosFromDiscipline,
-  formatHorarioString,
-  buildUpdatedDiscipline,
-  sortWeekDays,
-} from './sportsScheduleUtils';
+import { useDisciplineConfigForm } from './useDisciplineConfigForm';
 
 const EMPTY_TEACHERS = [];
 
 const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EMPTY_TEACHERS }) => {
-  const initialHorarios = parseHorariosFromDiscipline(discipline);
-  const initialDias = sortWeekDays(
-    discipline.dias && discipline.dias.length > 0
-      ? discipline.dias
-      : ['Lunes', 'Miércoles']
-  );
-
-  initialDias.forEach((d) => {
-    if (!initialHorarios[d]) {
-      initialHorarios[d] = { inicio: '16:00', fin: '17:30' };
-    }
+  const {
+    formData,
+    error,
+    handleChange,
+    handleEmojiSelect,
+    handleToggleDay,
+    handleScheduleChange,
+    handleCopyScheduleToAll,
+    handleSubmit,
+  } = useDisciplineConfigForm({
+    config: discipline,
+    teachers,
+    onSave,
+    onClose,
   });
-
-  const [formData, setFormData] = useState({
-    nombre: discipline.nombre || '',
-    emoji: discipline.emoji || '🏃',
-    bgColor: discipline.bgColor || 'bg-blue-50',
-    textColor: discipline.textColor || 'text-blue-600',
-    profesorNombre: discipline.profesor?.nombre || '',
-    profesorEmail: discipline.profesor?.email || '',
-    niveles: discipline.niveles || 'Primario y Secundario',
-    dias: initialDias,
-    horariosPorDia: initialHorarios,
-    horario: discipline.horario || formatHorarioString(initialDias, initialHorarios),
-    lugar: discipline.lugar || '',
-    cupoMax: discipline.cupoMax || 25,
-    activo: discipline.activo ?? true,
-    descripcion: discipline.descripcion || '',
-  });
-
-  const [error, setError] = useState('');
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
-
-  const handleEmojiSelect = (opt) => {
-    setFormData((prev) => ({
-      ...prev,
-      emoji: opt.emoji,
-      bgColor: opt.bg,
-      textColor: opt.text,
-    }));
-  };
-
-  const handleToggleDay = (day) => {
-    setFormData((prev) => {
-      const current = prev.dias || [];
-      const updated = sortWeekDays(
-        current.includes(day)
-          ? current.filter((d) => d !== day)
-          : [...current, day]
-      );
-
-      const newHorarios = { ...prev.horariosPorDia };
-      if (!current.includes(day) && !newHorarios[day]) {
-        const existingDay = current.find((d) => newHorarios[d]?.inicio && newHorarios[d]?.fin);
-        newHorarios[day] = existingDay
-          ? { ...newHorarios[existingDay] }
-          : { inicio: '16:00', fin: '17:30' };
-      }
-
-      return {
-        ...prev,
-        dias: updated,
-        horariosPorDia: newHorarios,
-        horario: formatHorarioString(updated, newHorarios),
-      };
-    });
-  };
-
-  const handleScheduleChange = (day, field, value) => {
-    setFormData((prev) => {
-      const updatedHorarios = {
-        ...prev.horariosPorDia,
-        [day]: {
-          ...(prev.horariosPorDia?.[day] || { inicio: '16:00', fin: '17:30' }),
-          [field]: value,
-        },
-      };
-      return {
-        ...prev,
-        horariosPorDia: updatedHorarios,
-        horario: formatHorarioString(prev.dias, updatedHorarios),
-      };
-    });
-  };
-
-  const handleCopyScheduleToAll = (sourceDay) => {
-    setFormData((prev) => {
-      const template = prev.horariosPorDia?.[sourceDay] || { inicio: '16:00', fin: '17:30' };
-      const updatedHorarios = { ...prev.horariosPorDia };
-      (prev.dias || []).forEach((d) => {
-        updatedHorarios[d] = { ...template };
-      });
-      return {
-        ...prev,
-        horariosPorDia: updatedHorarios,
-        horario: formatHorarioString(prev.dias, updatedHorarios),
-      };
-    });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.nombre.trim()) {
-      setError('Por favor ingresa el nombre de la disciplina.');
-      return;
-    }
-    if (!formData.dias || formData.dias.length === 0) {
-      setError('Por favor selecciona al menos un día de clase.');
-      return;
-    }
-
-    for (const day of formData.dias) {
-      const sched = formData.horariosPorDia?.[day];
-      if (!sched?.inicio || !sched?.fin) {
-        setError(`Por favor completa los horarios de inicio y fin para el día ${day}.`);
-        return;
-      }
-      if (sched.inicio >= sched.fin) {
-        setError(`El horario de fin debe ser posterior al inicio para el día ${day}.`);
-        return;
-      }
-    }
-
-    const updatedDiscipline = buildUpdatedDiscipline(discipline, formData, teachers);
-    onSave(discipline.id, updatedDiscipline);
-    onClose();
-  };
 
   return (
     <div
@@ -154,7 +30,7 @@ const EditDisciplineModalContent = ({ discipline, onClose, onSave, teachers = EM
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className='items-center'>
+            <div className="items-center">
               <h1 className="text-base font-bold text-slate-900">Editar Disciplina Deportiva</h1>
             </div>
           </div>
