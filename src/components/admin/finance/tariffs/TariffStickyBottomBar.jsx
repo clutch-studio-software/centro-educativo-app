@@ -6,10 +6,14 @@ const TariffStickyBottomBar = ({
   onReset,
   onSave,
   onOpenAudit,
-  auditLogs
+  auditLogs = [],
 }) => {
-  const lastAuditLog = auditLogs[0]
-  console.log(lastAuditLog)
+  const lastAuditLog = auditLogs?.[0];
+  const lastAuditDate = lastAuditLog?.formattedDate
+    ? lastAuditLog.formattedDate.split(',')[0]
+    : 'Sin registros';
+  const lastAuditUser = lastAuditLog?.user?.name || 'Administración';
+
   return (
     <aside
       aria-label="Barra de guardado de tarifas"
@@ -32,9 +36,9 @@ const TariffStickyBottomBar = ({
           </div>
           <span className="text-[11px] text-slate-500 font-medium">
             Última modificación guardada:{' '}
-            <span className="font-semibold text-slate-800">{lastAuditLog?.formattedDate.split(',')[0]}</span>{' '}
+            <span className="font-semibold text-slate-800">{lastAuditDate}</span>{' '}
             por{' '}
-            <span className="font-semibold text-blue-700">{lastAuditLog?.user?.name}</span>
+            <span className="font-semibold text-blue-700">{lastAuditUser}</span>
           </span>
         </div>
       </div>

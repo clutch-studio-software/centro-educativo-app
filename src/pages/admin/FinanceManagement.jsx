@@ -45,6 +45,7 @@ const FinanceManagement = () => {
     setViewingVoucher,
     notification,
     setNotification,
+    showNotification,
     handleApprovePayment,
     handleRejectPayment,
     handleExportBalance,
@@ -69,8 +70,16 @@ const FinanceManagement = () => {
         <div className="absolute -top-24 -left-20 w-96 h-96 bg-blue-300/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -top-20 right-10 w-80 h-80 bg-emerald-300/10 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Notificación Toast flotante */}
-        <AdminToast notification={notification} onClose={() => setNotification(null)} />
+        {/* Notificación Toast flotante que no se superpone con los botones inferiores */}
+        <AdminToast
+          notification={notification}
+          onClose={() => setNotification(null)}
+          className={
+            activeTab === 'aranceles'
+              ? 'bottom-28 sm:bottom-24 right-4 sm:right-6'
+              : 'bottom-6 right-6'
+          }
+        />
 
         {/* Pestañas de Navegación Primaria */}
         <div className="mb-4">
@@ -142,7 +151,7 @@ const FinanceManagement = () => {
         {/* Vista Tab 2: Parametrización de Aranceles */}
         {activeTab === 'aranceles' && (
           <div id="view-aranceles" data-testid="view-aranceles" className="animate-in fade-in duration-200">
-            <FinanceTariffsView onNotify={setNotification} />
+            <FinanceTariffsView onNotify={showNotification} />
           </div>
         )}
 

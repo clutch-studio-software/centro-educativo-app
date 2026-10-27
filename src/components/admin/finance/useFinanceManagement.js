@@ -17,10 +17,14 @@ export const useFinanceManagement = () => {
   const [viewingVoucher, setViewingVoucher] = useState(null);
   const [notification, setNotification] = useState(null);
 
-  const showNotification = useCallback((type, message) => {
-    setNotification({ type, message });
+  const showNotification = useCallback((typeOrObj, maybeMessage) => {
+    const notif =
+      typeof typeOrObj === 'object' && typeOrObj !== null
+        ? typeOrObj
+        : { type: typeOrObj, message: maybeMessage };
+    setNotification(notif);
     setTimeout(() => {
-      setNotification((prev) => (prev?.message === message ? null : prev));
+      setNotification((prev) => (prev?.message === notif.message ? null : prev));
     }, 4500);
   }, []);
 
