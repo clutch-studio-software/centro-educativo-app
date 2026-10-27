@@ -69,7 +69,7 @@ const getInitials = (name) => {
 
 const checkIsItemActive = (item, pathname, activeItem) => {
   if (item.path === '/admin/dashboard') {
-    return pathname === '/admin/dashboard' || pathname === '/admin/alumnos';
+    return pathname === '/admin' || pathname === '/admin/dashboard';
   }
   if (pathname === item.path) {
     return true;

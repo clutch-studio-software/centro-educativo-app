@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer';
 import ChangePasswordModal from './components/organisms/ChangePasswordModal';
-import StudentsManagement from './pages/StudentsManagement';
+import AdminPanel from './pages/StudentsManagement';
 import Contact from './pages/Contact';
 import EmploymentRequest from './pages/EmploymentRequest';
 import Gallery from './pages/Gallery';
@@ -20,6 +20,7 @@ import AcademicOfferManagement from './pages/admin/AcademicOfferManagement';
 import SportsManagement from './pages/admin/SportsManagement';
 import SportsDetailManagement from './pages/admin/SportsDetailManagement';
 import UsersRbacManagement from './pages/admin/UsersRbacManagement';
+import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 
 function App() {
   const location = useLocation();
@@ -38,21 +39,27 @@ function App() {
         <Route path="/wellness" element={<Wellness />} />
         <Route path="/levels" element={<Levels />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin/alumnos" element={<StudentsManagement />} />
-        <Route path="/admin/legacy" element={<Navigate to="/admin" replace />} />
-        <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
-        <Route path="/admin/docentes" element={<TeachersManagement />} />
-        <Route path="/admin/oferta-academica" element={<AcademicOfferManagement />} />
-        <Route path="/admin/servicios" element={<SportsManagement />} />
-        <Route path="/admin/servicios/detalle" element={<SportsDetailManagement />} />
-        <Route path="/admin/servicios/detalle/:id" element={<SportsDetailManagement />} />
-        <Route path="/admin/deportes" element={<SportsManagement />} />
-        <Route path="/admin/deportes/detalle" element={<SportsDetailManagement />} />
-        <Route path="/admin/deportes/detalle/:id" element={<SportsDetailManagement />} />
-        <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
-        <Route path="/admin/usuarios" element={<UsersRbacManagement />} />
-        <Route path="/admin/reportes" element={<AdminPlaceholder />} />
-        <Route path="/admin/*" element={<AdminPlaceholder />} />
+
+        {/* Rutas administrativas protegidas: sólo personal institucional autenticado */}
+        <Route element={<AdminProtectedRoute />}>
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/alumnos" element={<AdminPanel />} />
+          <Route path="/admin/legacy" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/dashboard" element={<AdminPlaceholder />} />
+          <Route path="/admin/docentes" element={<TeachersManagement />} />
+          <Route path="/admin/oferta-academica" element={<AcademicOfferManagement />} />
+          <Route path="/admin/servicios" element={<SportsManagement />} />
+          <Route path="/admin/servicios/detalle" element={<SportsDetailManagement />} />
+          <Route path="/admin/servicios/detalle/:id" element={<SportsDetailManagement />} />
+          <Route path="/admin/deportes" element={<SportsManagement />} />
+          <Route path="/admin/deportes/detalle" element={<SportsDetailManagement />} />
+          <Route path="/admin/deportes/detalle/:id" element={<SportsDetailManagement />} />
+          <Route path="/admin/finanzas" element={<AdminPlaceholder />} />
+          <Route path="/admin/usuarios" element={<UsersRbacManagement />} />
+          <Route path="/admin/reportes" element={<AdminPlaceholder />} />
+          <Route path="/admin/*" element={<AdminPlaceholder />} />
+        </Route>
+
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
