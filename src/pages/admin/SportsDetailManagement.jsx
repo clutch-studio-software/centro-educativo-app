@@ -44,6 +44,10 @@ const SportsDetailManagement = () => {
     vacantesDisponibles,
     isAlmostFull,
     isFull,
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    isDeleting,
+    handleDeleteDiscipline,
     handleToggleOffer,
     handleEnrollStudent,
     handleSaveConfig,
@@ -78,6 +82,7 @@ const SportsDetailManagement = () => {
           onOpenConfig={() => setIsEditConfigModalOpen(true)}
           onOpenEditConfigModal={() => setIsEditConfigModalOpen(true)}
           onToggleOffer={handleToggleOffer}
+          onDeleteDiscipline={() => setIsDeleteModalOpen(true)}
           isFull={isFull}
         />
 
@@ -134,6 +139,10 @@ const SportsDetailManagement = () => {
           onConfirmTransfer={handleTransferOrWithdraw}
           viewingStudent={viewingStudent}
           onCloseViewingStudent={() => setViewingStudent(null)}
+          isDeleteModalOpen={isDeleteModalOpen}
+          isDeleting={isDeleting}
+          onCloseDeleteModal={() => setIsDeleteModalOpen(false)}
+          onConfirmDeleteDiscipline={handleDeleteDiscipline}
         />
       </div>
     </AdminLayout>

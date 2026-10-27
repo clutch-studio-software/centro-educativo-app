@@ -12,6 +12,7 @@ import {
   normalizeAcademicText,
 } from '../utils/academicUtils';
 import { fetchAdminDashboardData } from '../services/adminService';
+import { fetchTeachersApi } from '../services/teachersService';
 import {
   fetchAcademicCourses,
   createAcademicCourse,
@@ -24,12 +25,12 @@ import {
 export const useAcademicOfferData = (showToast) => {
   const [courses, setCourses] = useState(INITIAL_COURSES);
   const [subjects, setSubjects] = useState(INITIAL_SUBJECTS);
-  const [teachers] = useState(MOCK_TEACHERS);
-  const [students, setStudents] = useState(MOCK_STUDENTS);
+  const [teachers, setTeachers] = useState([]);
+  const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCourseId, setSelectedCourseId] = useState('curso-ns-1');
 
-  // Sync with Firestore courses and students
+  // Sync with Firestore courses, teachers and students
   useEffect(() => {
     let isMounted = true;
 
@@ -42,17 +43,45 @@ export const useAcademicOfferData = (showToast) => {
         console.warn('Error al cargar estudiantes desde Firestore, usando respaldo:', err);
         return null;
       }),
-    ]).then(([firestoreCourses, adminData]) => {
+      fetchTeachersApi().catch((err) => {
+        console.warn('Error al cargar docentes desde Firestore:', err);
+        return [];
+      }),
+    ]).then(([firestoreCourses, adminData, teacherList]) => {
       if (!isMounted) return;
+
+      const realTeachers = Array.isArray(teacherList) ? teacherList : [];
+      setTeachers(realTeachers);
+
+      const activeTeachersNames = new Set(
+        realTeachers.flatMap((t) => [
+          (t.nombreCompleto || `${t.nombre || ''} ${t.apellido || ''}`).trim().toLowerCase(),
+          (t.nombre || '').trim().toLowerCase(),
+        ]).filter(Boolean)
+      );
+      const activeTeacherIds = new Set(realTeachers.map((t) => t.id));
+
       if (firestoreCourses && firestoreCourses.length > 0) {
-        setCourses(firestoreCourses);
+        const sanitizedCourses = firestoreCourses.map((c) => {
+          const hasDocenteId = c.docenteId && activeTeacherIds.has(c.docenteId);
+          const rawDocente = String(c.docenteTitular || '').replace(/^(Prof\.|Ing\.|Lic\.|Dra\.|Dr\.)\s*/i, '').trim().toLowerCase();
+          const hasDocenteName = rawDocente && activeTeachersNames.has(rawDocente);
+
+          if (!hasDocenteId && !hasDocenteName) {
+            return { ...c, docenteTitular: null, docenteId: null };
+          }
+          return c;
+        });
+
+        setCourses(sanitizedCourses);
         setSelectedCourseId((prev) => {
-          const exists = firestoreCourses.some((c) => c.id === prev);
-          return exists ? prev : firestoreCourses[0].id;
+          const exists = sanitizedCourses.some((c) => c.id === prev);
+          return exists ? prev : sanitizedCourses[0].id;
         });
       }
-      if (adminData?.students && adminData.students.length > 0) {
-        setStudents(adminData.students);
+
+      if (adminData) {
+        setStudents(Array.isArray(adminData.students) ? adminData.students : []);
       }
       setIsLoading(false);
     });

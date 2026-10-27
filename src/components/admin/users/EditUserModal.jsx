@@ -31,79 +31,102 @@ const getInitialUserFormData = (user) => {
 
 const EMPTY_ROLE_PERMISSIONS = {};
 
-const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => (
-  <>
-    {/* Selector de Rol Institucional */}
+const EditUserRoleDropdown = ({ formData, setFormData, errors }) => {
+  const currentRole = RBAC_ROLES.find((r) => r.id === formData.role) || RBAC_ROLES[0];
+
+  return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor="edit-user-role" className="text-xs font-bold text-slate-700">
+      <label htmlFor="edit-user-role" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
         Rol Institucional Asignado *
       </label>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {RBAC_ROLES.map((role) => {
-          const isSelected = formData.role === role.id;
-          return (
-            <button
-              key={role.id}
-              type="button"
-              onClick={() => setFormData((p) => ({ ...p, role: role.id }))}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-left ${isSelected
-                  ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-xs ring-1 ring-blue-500/30'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-            >
-              <span className="material-symbols-outlined text-[18px] text-blue-600">
-                {role.icon}
-              </span>
-              <span>{role.name}</span>
-            </button>
-          );
-        })}
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
+          <span className="material-symbols-outlined text-[20px]">
+            {currentRole?.icon || 'badge'}
+          </span>
+        </div>
+        <select
+          id="edit-user-role"
+          name="role"
+          value={formData.role}
+          onChange={(e) => {
+            const nextRole = e.target.value;
+            setFormData((prev) => ({
+              ...prev,
+              role: nextRole,
+              cargo: prev.cargo && !prev.cargo.startsWith('Personal ') ? prev.cargo : '',
+            }));
+          }}
+          className="w-full bg-slate-50 pl-11 pr-10 py-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 border border-slate-200 focus:border-blue-500 transition-all cursor-pointer appearance-none"
+        >
+          {RBAC_ROLES.map((role) => (
+            <option key={role.id} value={role.id}>
+              {role.name} ({role.subtitle || role.displayName})
+            </option>
+          ))}
+        </select>
+        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+          <span className="material-symbols-outlined text-[20px]">
+            expand_more
+          </span>
+        </div>
       </div>
+      {currentRole?.description && (
+        <p className="text-[11px] text-slate-500 px-1 mt-0.5">
+          {currentRole.description}
+        </p>
+      )}
       {errors.role && (
         <span className="text-[11px] text-red-500 font-medium px-2">{errors.role}</span>
       )}
     </div>
+  );
+};
 
-    {/* Nombre y Apellido */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="edit-user-nombre" className="text-xs font-bold text-slate-700">
-          Nombre *
-        </label>
-        <input
-          id="edit-user-nombre"
-          type="text"
-          name="nombre"
-          value={formData.nombre}
-          onChange={handleChange}
-          className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-            }`}
-        />
-        {errors.nombre && (
-          <span className="text-[11px] text-red-500 font-medium px-2">{errors.nombre}</span>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="edit-user-apellido" className="text-xs font-bold text-slate-700">
-          Apellido *
-        </label>
-        <input
-          id="edit-user-apellido"
-          type="text"
-          name="apellido"
-          value={formData.apellido}
-          onChange={handleChange}
-          className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-            }`}
-        />
-        {errors.apellido && (
-          <span className="text-[11px] text-red-500 font-medium px-2">{errors.apellido}</span>
-        )}
-      </div>
+const EditUserPersonalFields = ({ formData, handleChange, errors }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="edit-user-nombre" className="text-xs font-bold text-slate-700">
+        Nombre *
+      </label>
+      <input
+        id="edit-user-nombre"
+        type="text"
+        name="nombre"
+        value={formData.nombre}
+        onChange={handleChange}
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.nombre ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+        }`}
+      />
+      {errors.nombre && (
+        <span className="text-[11px] text-red-500 font-medium px-2">{errors.nombre}</span>
+      )}
     </div>
 
-    {/* DNI y Teléfono */}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor="edit-user-apellido" className="text-xs font-bold text-slate-700">
+        Apellido *
+      </label>
+      <input
+        id="edit-user-apellido"
+        type="text"
+        name="apellido"
+        value={formData.apellido}
+        onChange={handleChange}
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.apellido ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+        }`}
+      />
+      {errors.apellido && (
+        <span className="text-[11px] text-red-500 font-medium px-2">{errors.apellido}</span>
+      )}
+    </div>
+  </div>
+);
+
+const EditUserContactFields = ({ formData, handleChange, errors }) => (
+  <>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="edit-user-dni" className="text-xs font-bold text-slate-700">
@@ -115,8 +138,9 @@ const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => 
           name="dni"
           value={formData.dni}
           onChange={handleChange}
-          className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-            }`}
+          className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+            errors.dni ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+          }`}
         />
         {errors.dni && (
           <span className="text-[11px] text-red-500 font-medium px-2">{errors.dni}</span>
@@ -138,7 +162,6 @@ const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => 
       </div>
     </div>
 
-    {/* Email */}
     <div className="flex flex-col gap-1.5">
       <label htmlFor="edit-user-email" className="text-xs font-bold text-slate-700">
         Correo Electrónico Institucional *
@@ -149,15 +172,21 @@ const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => 
         name="email"
         value={formData.email}
         onChange={handleChange}
-        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
-          }`}
+        className={`bg-slate-50 px-4 py-2.5 rounded-full text-xs font-medium text-slate-800 focus:outline-none focus:bg-white border ${
+          errors.email ? 'border-red-500' : 'border-slate-200 focus:border-blue-500'
+        }`}
       />
       {errors.email && (
         <span className="text-[11px] text-red-500 font-medium px-2">{errors.email}</span>
       )}
     </div>
+  </>
+);
 
-    {/* Cargo y Estado */}
+const EditUserStatusFields = ({ formData, handleChange }) => {
+  const isDocente = formData.role === 'Docente';
+
+  return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="edit-user-cargo" className="text-xs font-bold text-slate-700">
@@ -173,7 +202,7 @@ const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => 
         />
       </div>
 
-      {formData.role === 'Docente' ? (
+      {isDocente ? (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="edit-user-condicion" className="text-xs font-bold text-slate-700">
             Condición Docente / Revista *
@@ -212,16 +241,14 @@ const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => 
           </select>
         </div>
       )}
-    </div>
 
-    {formData.role === 'Docente' && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {isDocente && (
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="edit-user-estado" className="text-xs font-bold text-slate-700">
+          <label htmlFor="edit-user-docente-estado" className="text-xs font-bold text-slate-700">
             Estado de la Cuenta
           </label>
           <select
-            id="edit-user-estado"
+            id="edit-user-docente-estado"
             name="estado"
             value={formData.estado}
             onChange={handleChange}
@@ -234,8 +261,17 @@ const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => 
             ))}
           </select>
         </div>
-      </div>
-    )}
+      )}
+    </div>
+  );
+};
+
+const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => (
+  <>
+    <EditUserRoleDropdown formData={formData} setFormData={setFormData} errors={errors} />
+    <EditUserPersonalFields formData={formData} handleChange={handleChange} errors={errors} />
+    <EditUserContactFields formData={formData} handleChange={handleChange} errors={errors} />
+    <EditUserStatusFields formData={formData} handleChange={handleChange} />
   </>
 );
 

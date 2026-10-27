@@ -54,7 +54,25 @@ const getFunctionsBaseUrl = () => {
  * Si en entorno DEV no hay sesión activa, autentica automáticamente con el usuario administrador oficial.
  */
 export const getAdminAuthToken = async () => {
-  if (!auth.currentUser && import.meta.env.DEV) {
+  if (auth.currentUser) {
+    return await auth.currentUser.getIdToken(true);
+  }
+
+  const savedUser = localStorage.getItem('school_user');
+  if (savedUser) {
+    await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe();
+        resolve(user);
+      });
+      setTimeout(resolve, 1500);
+    });
+    if (auth.currentUser) {
+      return await auth.currentUser.getIdToken(true);
+    }
+  }
+
+  if (!auth.currentUser && import.meta.env.DEV && !savedUser) {
     try {
       await signInWithEmailAndPassword(auth, import.meta.env.VITE_ADMIN_EMAIL, import.meta.env.VITE_DEV_ADMIN_KEY);
     } catch (err) {
@@ -66,7 +84,7 @@ export const getAdminAuthToken = async () => {
     return await auth.currentUser.getIdToken(true);
   }
 
-  throw new Error('No hay una sesión de administrador activa en Firebase Auth. Por favor inicia sesión con un usuario Admin.');
+  throw new Error('No hay una sesión institucional activa en Firebase Auth.');
 };
 
 /**
@@ -100,6 +118,16 @@ export const callAdminFunction = async (endpoint, payload) => {
  */
 export const fetchAdminDashboardData = async () => {
   try {
+    if (!auth.currentUser && localStorage.getItem('school_user')) {
+      await new Promise((resolve) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          unsubscribe();
+          resolve(user);
+        });
+        setTimeout(resolve, 1500);
+      });
+    }
+
     const usersSnap = await getDocs(collection(db, 'users'));
     const studentsSnap = await getDocs(collection(db, 'students'));
 
@@ -229,6 +257,131 @@ export const resetUserPasswordToDniApi = async ({ userId, userType }) => {
 };
 
 /**
+ * Restablece la contraseña de un alumno a su número de DNI por defecto.
+ */
+export const resetStudentPasswordToDniApi = async ({ studentId, studentDni, studentNombre }) => {
+  if (!studentId) {
+    throw new Error('Identificador de alumno no especificado.');
+  }
+
+  let cleanDni = String(studentDni || '').replace(/\D/g, '');
+  if (!cleanDni) {
+    try {
+      const snap = await getDoc(doc(db, 'students', String(studentId).trim()));
+      if (snap.exists()) {
+        cleanDni = String(snap.data()?.dni || '').replace(/\D/g, '');
+      }
+    } catch (e) {
+      console.warn('No se pudo consultar el DNI del alumno:', e.message);
+    }
+  }
+
+  try {
+    const studentRef = doc(db, 'students', String(studentId).trim());
+    await updateDoc(studentRef, {
+      mustChangePassword: true,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (dbErr) {
+    console.warn('Advertencia al marcar mustChangePassword en Firestore para estudiante:', dbErr.message);
+  }
+
+  try {
+    await callAdminFunction('cf_resetUserPasswordToDni', {
+      userId: String(studentId).trim(),
+      userType: 'student',
+    });
+  } catch (cfErr) {
+    console.warn('Fallo en Cloud Function cf_resetUserPasswordToDni (student):', cfErr.message);
+  }
+
+  return {
+    success: true,
+    dni: cleanDni,
+    nombre: studentNombre || 'Estudiante',
+  };
+};
+
+/**
+ * Restablece la contraseña de un tutor/padre a su número de DNI por defecto.
+ */
+export const resetTutorPasswordToDniApi = async ({
+  parentId,
+  parentDni,
+  parentEmail,
+  parentNombre,
+}) => {
+  let resolvedParentId = parentId ? String(parentId).trim() : null;
+
+  if (!resolvedParentId && (parentEmail || parentDni)) {
+    try {
+      const cleanEmail = String(parentEmail || '').trim().toLowerCase();
+      const cleanDni = String(parentDni || '').replace(/\D/g, '');
+      const usersSnap = await getDocs(collection(db, 'users'));
+
+      for (const uDoc of usersSnap.docs) {
+        const uData = uDoc.data();
+        const uEmail = String(uData.email || '').trim().toLowerCase();
+        const uDni = String(uData.dni || '').replace(/\D/g, '');
+
+        if (
+          (cleanEmail && uEmail && uEmail === cleanEmail) ||
+          (cleanDni && uDni && uDni === cleanDni)
+        ) {
+          resolvedParentId = uDoc.id;
+          break;
+        }
+      }
+    } catch (searchErr) {
+      console.warn('Error al buscar tutor en Firestore:', searchErr.message);
+    }
+  }
+
+  if (!resolvedParentId) {
+    throw new Error(
+      'No se encontró la cuenta de usuario del tutor para restablecer la contraseña. Verifique que el tutor esté registrado en la plataforma.'
+    );
+  }
+
+  let cleanDni = String(parentDni || '').replace(/\D/g, '');
+  if (!cleanDni) {
+    try {
+      const snap = await getDoc(doc(db, 'users', resolvedParentId));
+      if (snap.exists()) {
+        cleanDni = String(snap.data()?.dni || '').replace(/\D/g, '');
+      }
+    } catch (e) {
+      console.warn('No se pudo consultar el DNI del tutor:', e.message);
+    }
+  }
+
+  try {
+    const parentRef = doc(db, 'users', resolvedParentId);
+    await updateDoc(parentRef, {
+      mustChangePassword: true,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (dbErr) {
+    console.warn('Advertencia al marcar mustChangePassword en Firestore para tutor:', dbErr.message);
+  }
+
+  try {
+    await callAdminFunction('cf_resetUserPasswordToDni', {
+      userId: resolvedParentId,
+      userType: 'parent',
+    });
+  } catch (cfErr) {
+    console.warn('Fallo en Cloud Function cf_resetUserPasswordToDni (parent):', cfErr.message);
+  }
+
+  return {
+    success: true,
+    dni: cleanDni,
+    nombre: parentNombre || 'Tutor',
+  };
+};
+
+/**
  * Actualiza los campos editables del perfil de un usuario o estudiante en Firestore.
  */
 export const updateUserProfileApi = async ({ targetId, targetType, fields }) => {
@@ -354,6 +507,14 @@ export const updateStudentAndTutorApi = async ({
  * Elimina definitivamente un estudiante en Firestore y lo desvincula de su tutor.
  */
 export const deleteStudentApi = async ({ studentId }) => {
+  // Desvincular de actividades extracurriculares
+  try {
+    const { removeStudentFromAllSportsActivities } = await import('./sportsService');
+    await removeStudentFromAllSportsActivities(studentId);
+  } catch (sportsErr) {
+    console.warn('Aviso al desvincular estudiante de deportes:', sportsErr.message);
+  }
+
   try {
     // 1. Intentar vía Cloud Function
     return await callAdminFunction('cf_updateUserProfile', {

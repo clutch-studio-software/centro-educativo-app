@@ -4,19 +4,20 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   writeBatch,
   serverTimestamp,
   onSnapshot,
 } from 'firebase/firestore';
-import { db, auth } from './firebase';
-import { ensureAdminAuth } from './teachersService';
-import { INITIAL_DISCIPLINES } from '../data/mockSportsActivities';
+import { db, auth } from './firebase.js';
+import { ensureAdminAuth } from './teachersService.js';
+import { INITIAL_DISCIPLINES } from '../data/mockSportsActivities.js';
 import {
   INITIAL_SPORT_DETAIL,
   INITIAL_STUDENTS_ROSTER,
-} from '../data/mockSportsDetailData';
-import { MOCK_STUDENTS } from '../data/mockStudents';
-import { sortWeekDays } from '../components/admin/sports/sportsScheduleUtils';
+} from '../data/mockSportsDetailData.js';
+import { MOCK_STUDENTS } from '../data/mockStudents.js';
+import { sortWeekDays } from '../components/admin/sports/sportsScheduleUtils.js';
 
 const SPORTS_COLLECTION = 'sportsActivities';
 
@@ -89,8 +90,7 @@ const seedInitialSportsIfEmpty = async () => {
     const batch = writeBatch(db);
     INITIAL_DISCIPLINES.forEach((disc) => {
       const docRef = doc(db, SPORTS_COLLECTION, disc.id);
-      const isFirst = disc.id === 'disc-1';
-      const initialRoster = isFirst ? INITIAL_STUDENTS_ROSTER : [];
+      const initialRoster = [];
 
       batch.set(
         docRef,
@@ -133,7 +133,7 @@ export const fetchSportsActivities = async () => {
       return INITIAL_DISCIPLINES.map((d) =>
         normalizeSportActivity(d.id, {
           ...d,
-          inscriptos: d.id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+          inscriptos: [],
         })
       );
     }
@@ -149,7 +149,7 @@ export const fetchSportsActivities = async () => {
     return INITIAL_DISCIPLINES.map((d) =>
       normalizeSportActivity(d.id, {
         ...d,
-        inscriptos: d.id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+        inscriptos: [],
       })
     );
   }
@@ -169,7 +169,7 @@ export const subscribeToSportsActivities = (onUpdate, onError) => {
             INITIAL_DISCIPLINES.map((d) =>
               normalizeSportActivity(d.id, {
                 ...d,
-                inscriptos: d.id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+                inscriptos: [],
               })
             )
           );
@@ -206,11 +206,10 @@ export const fetchSportActivityById = async (id) => {
     // Si no existe aún en Firestore, buscar en mock inicial
     const found = INITIAL_DISCIPLINES.find((d) => d.id === id);
     if (found) {
-      const isMain = id === 'disc-1';
       return normalizeSportActivity(id, {
         ...INITIAL_SPORT_DETAIL,
         ...found,
-        inscriptos: isMain ? INITIAL_STUDENTS_ROSTER : [],
+        inscriptos: [],
       });
     }
 
@@ -222,7 +221,7 @@ export const fetchSportActivityById = async (id) => {
       return normalizeSportActivity(id, {
         ...INITIAL_SPORT_DETAIL,
         ...found,
-        inscriptos: id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+        inscriptos: [],
       });
     }
     return null;
@@ -246,7 +245,7 @@ export const subscribeToSportActivityById = (id, onUpdate, onError) => {
             normalizeSportActivity(id, {
               ...INITIAL_SPORT_DETAIL,
               ...found,
-              inscriptos: id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+              inscriptos: [],
             })
           );
         }
@@ -342,6 +341,58 @@ export const toggleSportActivityStatusApi = async (id, currentStatus) => {
   );
 
   return nextStatus;
+};
+
+/**
+ * Elimina definitivamente una disciplina extracurricular de Firestore.
+ * Da de baja a todos los alumnos inscriptos, asentando la constancia en el historial de preceptoría
+ * y liberando su cupo para futuras inscripciones (respetando el límite institucional de 2 actividades).
+ */
+export const deleteSportActivityApi = async (disciplineId) => {
+  await ensureAdminAuth();
+  const docRef = doc(db, SPORTS_COLLECTION, disciplineId);
+  const snap = await getDoc(docRef);
+
+  if (!snap.exists()) {
+    throw new Error('La actividad extracurricular no existe o ya ha sido eliminada.');
+  }
+
+  const current = snap.data();
+  const activityName = current?.nombre || 'Actividad extracurricular';
+  const inscriptos = Array.isArray(current?.inscriptos) ? current.inscriptos : [];
+
+  // Registrar baja automática en preceptoría para cada estudiante inscripto
+  await Promise.all(
+    inscriptos.map(async (student) => {
+      try {
+        await addPreceptoriaNoteToStudent({
+          studentId: student.id || student.studentId || student.alumnoId,
+          studentDni: student.dni,
+          studentLegajo: student.legajo,
+          studentName: student.nombre,
+          note: {
+            tipo: 'Extracurricular',
+            categoria: 'Baja de Actividad',
+            titulo: `Baja de actividad: ${activityName}`,
+            descripcion: `Baja automática debido a la eliminación de la disciplina "${activityName}". Su cupo extracurricular ha quedado liberado.`,
+            gravedad: 'Informativa',
+          },
+        });
+      } catch (noteErr) {
+        console.warn('Error al asentar nota de baja en preceptoría para alumno:', student.nombre, noteErr.message);
+      }
+    })
+  );
+
+  // Eliminar el documento de la actividad en Firestore
+  await deleteDoc(docRef);
+
+  return {
+    success: true,
+    deletedId: disciplineId,
+    activityName,
+    unregisteredCount: inscriptos.length,
+  };
 };
 
 /**
@@ -585,6 +636,96 @@ export const addPreceptoriaNoteToStudent = async ({
 };
 
 /**
+ * Agrega un registro / atención de Enfermería al perfil del estudiante en Firestore (inmutable)
+ */
+export const addEnfermeriaNoteToStudent = async ({
+  studentId,
+  studentDni,
+  studentLegajo,
+  studentName,
+  note,
+}) => {
+  try {
+    await ensureAdminAuth();
+
+    let targetDocRef = null;
+    let currentData = null;
+
+    if (studentId) {
+      const directRef = doc(db, 'students', String(studentId).trim());
+      const directSnap = await getDoc(directRef);
+      if (directSnap.exists()) {
+        targetDocRef = directRef;
+        currentData = directSnap.data();
+      }
+    }
+
+    if (!targetDocRef) {
+      const cleanDni = String(studentDni || '').replace(/\D/g, '');
+      const cleanLegajo = String(studentLegajo || '').trim().toLowerCase();
+      const cleanName = String(studentName || '').trim().toLowerCase();
+
+      const snap = await getDocs(collection(db, 'students'));
+      for (const dSnap of snap.docs) {
+        const dData = dSnap.data();
+        const dDni = String(dData.dni || '').replace(/\D/g, '');
+        const dLeg = String(dData.legajo || '').trim().toLowerCase();
+        const dNom = String(dData.nombre || '').trim().toLowerCase();
+
+        if (
+          (cleanDni && dDni && cleanDni === dDni) ||
+          (cleanLegajo && dLeg && cleanLegajo === dLeg) ||
+          (cleanName && dNom && cleanName === dNom)
+        ) {
+          targetDocRef = dSnap.ref;
+          currentData = dData;
+          break;
+        }
+      }
+    }
+
+    const currentAuthUser = auth.currentUser;
+    const authorFromAuth =
+      currentAuthUser?.displayName ||
+      currentAuthUser?.email?.split('@')[0] ||
+      'Enfermería Escolar';
+    const authorEmailFromAuth = currentAuthUser?.email || '';
+
+    const newNote = {
+      id: `enf-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      fecha: new Date().toISOString(),
+      autor: note?.autor || authorFromAuth,
+      autorRol: note?.autorRol || 'Enfermería Escolar',
+      autorEmail: note?.autorEmail || authorEmailFromAuth,
+      autorUid: note?.autorUid || currentAuthUser?.uid || null,
+      categoria: 'Enfermería',
+      ...note,
+    };
+
+    if (targetDocRef) {
+      const existingNotes = Array.isArray(currentData?.entradasEnfermeria)
+        ? currentData.entradasEnfermeria
+        : [];
+      const updatedNotes = [newNote, ...existingNotes];
+
+      await setDoc(
+        targetDocRef,
+        {
+          entradasEnfermeria: updatedNotes,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+
+    return newNote;
+  } catch (err) {
+    console.warn('Error al registrar nota de enfermería:', err.message);
+    return null;
+  }
+};
+
+/**
  * Elimina una entrada del historial de preceptoría de un alumno en Firestore.
  */
 export const deletePreceptoriaNoteFromStudent = async ({
@@ -746,9 +887,86 @@ export const fetchEligibleStudentsFromFirestore = async () => {
       });
     });
 
-    return realStudents.length > 0 ? realStudents : MOCK_STUDENTS;
+    return realStudents;
   } catch (err) {
     console.warn('Error al cargar alumnos desde Firestore, usando respaldo:', err.message);
-    return MOCK_STUDENTS;
+    return [];
+  }
+};
+
+/**
+ * Desvincula a un estudiante de todas las actividades extracurriculares
+ */
+export const removeStudentFromAllSportsActivities = async (studentId, studentDni = null) => {
+  try {
+    await ensureAdminAuth();
+    const snap = await getDocs(collection(db, SPORTS_COLLECTION));
+    const batch = writeBatch(db);
+    let updatedCount = 0;
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const inscriptos = Array.isArray(data.inscriptos) ? data.inscriptos : [];
+      const filtered = inscriptos.filter((s) => {
+        if (s.id && s.id === studentId) return false;
+        if (s.studentId && s.studentId === studentId) return false;
+        if (s.alumnoId && s.alumnoId === studentId) return false;
+        if (studentDni && s.dni && String(s.dni).replace(/\D/g, '') === String(studentDni).replace(/\D/g, '')) return false;
+        return true;
+      });
+
+      if (filtered.length !== inscriptos.length) {
+        batch.update(docSnap.ref, {
+          inscriptos: filtered,
+          cupoOcupado: filtered.length,
+          updatedAt: serverTimestamp(),
+        });
+        updatedCount++;
+      }
+    });
+
+    if (updatedCount > 0) {
+      await batch.commit();
+    }
+  } catch (err) {
+    console.warn('Error al desvincular estudiante de actividades:', err.message);
+  }
+};
+
+/**
+ * Desvincula a un docente de todas las actividades extracurriculares
+ */
+export const unassignTeacherFromAllSportsActivities = async (teacherId, teacherEmail = null, teacherName = null) => {
+  try {
+    await ensureAdminAuth();
+    const snap = await getDocs(collection(db, SPORTS_COLLECTION));
+    const batch = writeBatch(db);
+    let updatedCount = 0;
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const p = data.profesor;
+      const matchesId = p?.id === teacherId || data.profesorId === teacherId;
+      const matchesEmail = teacherEmail && (p?.email === teacherEmail || data.profesorEmail === teacherEmail);
+      const matchesName = teacherName && p?.nombre && (
+        p.nombre.toLowerCase().includes(teacherName.toLowerCase()) ||
+        teacherName.toLowerCase().includes(p.nombre.toLowerCase())
+      );
+
+      if (matchesId || matchesEmail || matchesName) {
+        batch.update(docSnap.ref, {
+          profesor: null,
+          profesorId: null,
+          updatedAt: serverTimestamp(),
+        });
+        updatedCount++;
+      }
+    });
+
+    if (updatedCount > 0) {
+      await batch.commit();
+    }
+  } catch (err) {
+    console.warn('Error al desvincular profesor de deportes:', err.message);
   }
 };

@@ -76,13 +76,21 @@ export const AuthProvider = ({ children }) => {
    * Método de Login integrado con Firebase
    */
   const login = useCallback(async (identifier, password, role) => {
-    if (role === 'Estudiante') {
+    const cleanId = String(identifier || '').trim();
+    const isStudentOrTutor = role === 'Estudiante' || role === 'Estudiante/Tutor';
+    const isStudentIDLogin = isStudentOrTutor && !cleanId.includes('@');
+
+    if (isStudentIDLogin) {
       // Iniciar sesión de alumno usando la Cloud Function cf_loginStudent (devuelve customToken)
-      const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
+      const FUNCTIONS_BASE_URL =
+        import.meta.env.VITE_FUNCTIONS_BASE_URL ||
+        (import.meta.env.DEV
+          ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1'
+          : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
       const response = await fetch(`${FUNCTIONS_BASE_URL}/cf_loginStudent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentID_login: identifier, password })
+        body: JSON.stringify({ studentID_login: cleanId, password }),
       });
 
       if (!response.ok) {
@@ -91,12 +99,43 @@ export const AuthProvider = ({ children }) => {
       }
 
       const { customToken } = await response.json();
-      
+
       // Logear en Firebase Auth cliente usando el customToken retornado por el backend
       return signInWithCustomToken(auth, customToken);
     } else {
       // Logear tutores, staff o administradores con email y contraseña estándar en Firebase Auth
-      return signInWithEmailAndPassword(auth, identifier, password);
+      try {
+        return await signInWithEmailAndPassword(auth, cleanId, password);
+      } catch (authError) {
+        // Tolerancia a discrepancias de formato DNI (con puntos vs sin puntos)
+        const isAuthCredentialError =
+          authError?.code === 'auth/invalid-credential' ||
+          authError?.code === 'auth/wrong-password' ||
+          authError?.message?.includes('INVALID_LOGIN_CREDENTIALS');
+
+        if (isAuthCredentialError) {
+          const rawPwd = String(password || '').trim();
+          const isDigitsOnly = /^\d{7,9}$/.test(rawPwd);
+          const isDniWithDots = /^\d{1,2}\.\d{3}\.\d{3}$/.test(rawPwd);
+
+          let alternatePassword = null;
+          if (isDigitsOnly) {
+            const len = rawPwd.length;
+            alternatePassword = `${rawPwd.slice(0, len - 6)}.${rawPwd.slice(len - 6, len - 3)}.${rawPwd.slice(len - 3)}`;
+          } else if (isDniWithDots) {
+            alternatePassword = rawPwd.replace(/\./g, '');
+          }
+
+          if (alternatePassword && alternatePassword !== rawPwd) {
+            try {
+              return await signInWithEmailAndPassword(auth, cleanId, alternatePassword);
+            } catch {
+              // Si falla también el reintento, lanzamos el error original
+            }
+          }
+        }
+        throw authError;
+      }
     }
   }, []);
 

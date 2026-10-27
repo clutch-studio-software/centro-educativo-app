@@ -8,7 +8,9 @@ import {
   subscribeToSportsActivities,
   addPreceptoriaNoteToStudent,
   deletePreceptoriaNoteFromStudent,
+  addEnfermeriaNoteToStudent,
 } from '../../services/sportsService';
+import { normalizeRole } from './users/userRbacConstants';
 
 const formatDateDisplay = (dateString) => {
   if (!dateString) return 'No registrada';
@@ -209,11 +211,10 @@ const StudentExtracurricularBlock = ({ enrolledDisciplines = [] }) => {
           Actividades Extracurriculares & Deportivas
         </span>
         <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-            hasDisciplines
-              ? 'bg-blue-50 text-blue-700 border-blue-200'
-              : 'bg-slate-100 text-slate-500 border-slate-200'
-          }`}
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${hasDisciplines
+            ? 'bg-blue-50 text-blue-700 border-blue-200'
+            : 'bg-slate-100 text-slate-500 border-slate-200'
+            }`}
         >
           {enrolledDisciplines.length}/2 permitidas
         </span>
@@ -266,7 +267,7 @@ const StudentExtracurricularBlock = ({ enrolledDisciplines = [] }) => {
   );
 };
 
-const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines }) => {
+const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines, isAdminRole }) => {
   const cursoDisplay = student.curso && student.curso !== 'sin asignar' ? student.curso : 'Sin asignar';
   const divisionDisplay =
     student.division && student.division !== 'sin asignar'
@@ -312,8 +313,9 @@ const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines }) =>
         </div>
       </div>
 
-      <StudentInstitutionalServicesBlock student={student} />
-      <StudentExtracurricularBlock enrolledDisciplines={enrolledDisciplines} />
+      {isAdminRole && <StudentInstitutionalServicesBlock student={student} />
+      }
+      {isAdminRole && <StudentExtracurricularBlock enrolledDisciplines={enrolledDisciplines} />}
     </div>
   );
 };
@@ -603,11 +605,10 @@ const NewPreceptoriaEntryForm = ({ onSave, onCancel }) => {
         <button
           type="submit"
           disabled={!motivo.trim()}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1 ${
-            !motivo.trim()
-              ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
-          }`}
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1 ${!motivo.trim()
+            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+            }`}
         >
           <span className="material-symbols-outlined text-[14px]">save</span>
           <span>Guardar Entrada</span>
@@ -635,11 +636,10 @@ const StudentPreceptoriaSection = ({ entradas = [], onAddEntry, onDeleteEntry })
         </h3>
         <div className="flex items-center gap-2">
           <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-              hasEntradas
-                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                : 'bg-slate-200/70 text-slate-400 border-transparent'
-            }`}
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${hasEntradas
+              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              : 'bg-slate-200/70 text-slate-400 border-transparent'
+              }`}
           >
             {hasEntradas ? `${entradas.length} ${entradas.length === 1 ? 'registro' : 'registros'}` : '0 registros'}
           </span>
@@ -695,6 +695,270 @@ const StudentPreceptoriaSection = ({ entradas = [], onAddEntry, onDeleteEntry })
   );
 };
 
+const EnfermeriaEntryItem = ({ entry }) => (
+  <div
+    data-testid={`enfermeria-entry-${entry.id || entry.fecha}`}
+    className="p-3 bg-white border border-slate-200/90 rounded-md space-y-2 text-left shadow-xs transition-all hover:border-rose-200"
+  >
+    <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+          <span className="material-symbols-outlined text-[13px]">medical_services</span>
+          {entry.tipo || 'Atención de Enfermería'}
+        </span>
+        {entry.notificadoFamilias && (
+          <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[12px]">contact_phone</span>
+            Tutor notificado
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+          <span className="material-symbols-outlined text-[12px]">schedule</span>
+          {formatEntryDate(entry.fecha)}
+        </span>
+        <span
+          title="Registro médico inmutable"
+          className="text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded flex items-center gap-0.5"
+        >
+          <span className="material-symbols-outlined text-[11px]">lock</span>
+        </span>
+      </div>
+    </div>
+
+    <p className="text-xs text-slate-700 bg-slate-50/80 p-2.5 rounded-lg border border-slate-100 font-medium m-0 leading-relaxed">
+      <strong className="text-slate-500 font-semibold">Detalle de Atención: </strong>
+      {entry.motivo || entry.detalle || 'Sin observaciones registradas.'}
+    </p>
+
+    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex-wrap gap-2">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="material-symbols-outlined text-[14px] text-rose-500">
+          health_and_safety
+        </span>
+        <span className="font-medium text-slate-700">
+          Atendido por:{' '}
+          <strong className="text-slate-900 font-semibold">
+            {entry.autor || 'Enfermería Escolar'}
+          </strong>
+        </span>
+        {entry.autorEmail && (
+          <span className="text-[10px] text-slate-400 font-mono">
+            ({entry.autorEmail})
+          </span>
+        )}
+      </div>
+      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100">
+        Gabinete de Salud
+      </span>
+    </div>
+  </div>
+);
+
+const NewEnfermeriaEntryForm = ({ onSave, onCancel }) => {
+  const [tipo, setTipo] = useState('Atención / Primeros Auxilios');
+  const [motivo, setMotivo] = useState('');
+  const [notificadoFamilias, setNotificadoFamilias] = useState(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!motivo.trim()) return;
+    onSave({ tipo, motivo: motivo.trim(), notificadoFamilias });
+    setMotivo('');
+    setNotificadoFamilias(false);
+  };
+
+  return (
+    <form
+      data-testid="new-enfermeria-entry-form"
+      onSubmit={handleSubmit}
+      className="p-3.5 bg-rose-50/60 border border-rose-200/80 rounded-md space-y-3 text-xs"
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-bold text-rose-950 text-xs flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[16px] text-rose-600">
+            medical_services
+          </span>
+          Nueva Atención de Enfermería
+        </span>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-sm">close</span>
+        </button>
+      </div>
+
+      <div>
+        <label
+          htmlFor="enfermeria-tipo-select"
+          className="block text-[11px] font-semibold text-slate-700 mb-1"
+        >
+          Tipo de Atención / Evento
+        </label>
+        <select
+          id="enfermeria-tipo-select"
+          data-testid="enfermeria-tipo-select"
+          value={tipo}
+          onChange={(e) => setTipo(e.target.value)}
+          className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800"
+        >
+          <option value="Atención / Primeros Auxilios">Atención / Primeros Auxilios</option>
+          <option value="Suministro de Medicación Autorizada">Suministro de Medicación Autorizada</option>
+          <option value="Certificado Médico / Aptitud Física">Certificado Médico / Aptitud Física</option>
+          <option value="Incidente Escolar / Golpe / Caída">Incidente Escolar / Golpe / Caída</option>
+          <option value="Alergia / Síntoma de Salud">Alergia / Síntoma de Salud</option>
+          <option value="Retiro Anticipado por Salud">Retiro Anticipado por Salud</option>
+          <option value="Observación de Gabinete Médico">Observación de Gabinete Médico</option>
+        </select>
+      </div>
+
+      <div>
+        <label
+          htmlFor="enfermeria-motivo-input"
+          className="block text-[11px] font-semibold text-slate-700 mb-1"
+        >
+          Descripción clínica y procedimiento realizado
+        </label>
+        <textarea
+          id="enfermeria-motivo-input"
+          data-testid="enfermeria-motivo-input"
+          rows={2}
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Describa la atención brindada, síntomas, signos vitales o medicación administrada..."
+          className="w-full p-2 bg-white border border-slate-200 rounded-md text-xs text-slate-800"
+          required
+        />
+      </div>
+
+      <div className="flex items-center gap-2 pt-0.5">
+        <input
+          type="checkbox"
+          id="enfermeria-notificado-input"
+          data-testid="enfermeria-notificado-input"
+          checked={notificadoFamilias}
+          onChange={(e) => setNotificadoFamilias(e.target.checked)}
+          className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+        />
+        <label htmlFor="enfermeria-notificado-input" className="text-[11px] font-medium text-slate-700 cursor-pointer select-none">
+          Se notificó a los padres o tutores del alumno
+        </label>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60 rounded-lg border-none bg-transparent cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          data-testid="save-enfermeria-entry-btn"
+          disabled={!motivo.trim()}
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1 ${!motivo.trim()
+            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            : 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
+            }`}
+        >
+          <span className="material-symbols-outlined text-[14px]">save</span>
+          <span>Guardar Atención</span>
+        </button>
+      </div>
+    </form>
+  );
+};
+
+const StudentEnfermeriaSection = ({ entradas = [], onAddEntry }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const hasEntradas = Array.isArray(entradas) && entradas.length > 0;
+
+  return (
+    <div
+      data-testid="student-details-enfermeria-section"
+      className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+          <span className="material-symbols-outlined text-[16px] text-rose-500">
+            medical_services
+          </span>
+          Entradas de Enfermería
+        </h3>
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${hasEntradas
+              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              : 'bg-slate-200/70 text-slate-400 border-transparent'
+              }`}
+          >
+            {hasEntradas ? `${entradas.length} ${entradas.length === 1 ? 'registro' : 'registros'}` : '0 registros'}
+          </span>
+          <span
+            title="Los registros médicos escolares son permanentes e inmutables"
+            className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-md flex items-center gap-1"
+          >
+            <span className="material-symbols-outlined text-[12px]">lock</span>
+            Inmutable
+          </span>
+          {onAddEntry && !isAdding && (
+            <button
+              type="button"
+              data-testid="add-enfermeria-entry-btn"
+              onClick={() => setIsAdding(true)}
+              className="px-2 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span className="material-symbols-outlined text-[13px]">add</span>
+              <span>Registrar Atención</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isAdding && (
+        <NewEnfermeriaEntryForm
+          onSave={(data) => {
+            onAddEntry(data);
+            setIsAdding(false);
+          }}
+          onCancel={() => setIsAdding(false)}
+        />
+      )}
+
+      {hasEntradas ? (
+        <div className="space-y-2.5">
+          {entradas.map((entry) => (
+            <EnfermeriaEntryItem
+              key={entry.id || entry.fecha || entry.motivo}
+              entry={entry}
+            />
+          ))}
+        </div>
+      ) : (
+        !isAdding && (
+          <div className="p-5 bg-white border border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[20px]">
+                health_and_safety
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-700 m-0">
+              Sin registros médicos o de enfermería por el momento.
+            </p>
+            <p className="text-[11px] text-slate-400 max-w-sm m-0">
+              En esta sección se registran las atenciones médicas escolares, certificados de aptitud física y suministro de primeros auxilios (no eliminables por normativa de salud).
+            </p>
+          </div>
+        )
+      )}
+    </div>
+  );
+};
+
 const EMPTY_DISCIPLINES = [];
 
 const StudentDetailsModal = ({
@@ -711,8 +975,10 @@ const StudentDetailsModal = ({
   const handleAddPreceptoriaEntry = async ({ tipo, motivo }) => {
     if (!student || !motivo?.trim()) return;
     const authorName =
-      currentUser?.nombre ||
+      currentUser?.nombreCompleto ||
+      (currentUser?.nombre ? `${currentUser.nombre} ${currentUser.apellido || ''}`.trim() : null) ||
       currentUser?.displayName ||
+      currentUser?.name ||
       currentUser?.email?.split('@')[0] ||
       'Personal Institucional';
     const authorRole = currentUser?.role || 'Preceptoría';
@@ -732,6 +998,36 @@ const StudentDetailsModal = ({
         autorEmail: authorEmail,
         autorUid: currentUser?.uid || null,
         categoria: 'Preceptoría',
+      },
+    });
+  };
+
+  const handleAddEnfermeriaEntry = async ({ tipo, motivo, notificadoFamilias }) => {
+    if (!student || !motivo?.trim()) return;
+    const authorName =
+      currentUser?.nombreCompleto ||
+      (currentUser?.nombre ? `${currentUser.nombre} ${currentUser.apellido || ''}`.trim() : null) ||
+      currentUser?.displayName ||
+      currentUser?.name ||
+      currentUser?.email?.split('@')[0] ||
+      'Personal de Salud';
+    const authorRole = currentUser?.role || 'Enfermería Escolar';
+    const authorEmail = currentUser?.email || '';
+
+    await addEnfermeriaNoteToStudent({
+      studentId: student.id,
+      studentDni: student.dni,
+      studentLegajo: student.legajo,
+      studentName: student.nombre,
+      note: {
+        tipo: tipo || 'Atención / Primeros Auxilios',
+        motivo: motivo.trim(),
+        notificadoFamilias: !!notificadoFamilias,
+        autor: authorName,
+        autorRol: authorRole,
+        autorEmail: authorEmail,
+        autorUid: currentUser?.uid || null,
+        categoria: 'Enfermería',
       },
     });
   };
@@ -763,7 +1059,7 @@ const StudentDetailsModal = ({
           setStudentDocData(snap.data());
         }
       },
-      () => {}
+      () => { }
     );
 
     return () => {
@@ -778,6 +1074,24 @@ const StudentDetailsModal = ({
     if (Array.isArray(student?.entradasPreceptoria)) return student.entradasPreceptoria;
     return [];
   }, [studentDocData, student?.entradasPreceptoria]);
+
+  const entradasEnfermeria = useMemo(() => {
+    const fromDoc = studentDocData?.entradasEnfermeria;
+    if (Array.isArray(fromDoc) && fromDoc.length > 0) return fromDoc;
+    if (Array.isArray(student?.entradasEnfermeria)) return student.entradasEnfermeria;
+    return [];
+  }, [studentDocData, student]);
+
+  const userRoleNorm = normalizeRole(currentUser?.role);
+  const isAdminRole =
+    currentUser?.role === 'user_admin' ||
+    ['Directivo', 'Administrativo'].includes(userRoleNorm);
+  const canAddEnfermeria =
+    currentUser?.role === 'user_admin' ||
+    ['Directivo', 'Administrativo', 'Enfermeria'].includes(userRoleNorm);
+  const canAddPreceptoria =
+    currentUser?.role === 'user_admin' ||
+    ['Directivo', 'Administrativo', 'Preceptoria'].includes(userRoleNorm);
 
   const hasExternalDisciplines = Array.isArray(allDisciplines) && allDisciplines.length > 0;
   const [subscribedDisciplines, setSubscribedDisciplines] = useState([]);
@@ -833,57 +1147,23 @@ const StudentDetailsModal = ({
             student={student}
             nivelStyle={nivelStyle}
             enrolledDisciplines={enrolledDisciplines}
+            isAdminRole={isAdminRole}
           />
           <StudentPersonalSection student={student} edad={edad} />
           <StudentTutorSection tutorInfo={tutorInfo} />
 
           {/* SECCIÓN 4: Entradas de Enfermería (Historial Médico Protegido / Inmutable) */}
-          <div
-            data-testid="student-details-enfermeria-section"
-            className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px] text-rose-500">
-                  medical_services
-                </span>
-                Entradas de Enfermería
-              </h3>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-slate-400 bg-slate-200/70 px-2 py-0.5 rounded-md">
-                  0 registros
-                </span>
-                <span
-                  title="Los registros médicos escolares son permanentes e inmutables"
-                  className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-md flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-[12px]">lock</span>
-                  Inmutable
-                </span>
-              </div>
-            </div>
-
-            <div className="p-5 bg-white border border-dashed border-slate-200 rounded-md flex flex-col items-center justify-center text-center gap-2">
-              <div className="w-10 h-10 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center">
-                <span className="material-symbols-outlined text-[20px]">
-                  health_and_safety
-                </span>
-              </div>
-              <p className="text-xs font-semibold text-slate-700 m-0">
-                Sin registros médicos o de enfermería por el momento.
-              </p>
-              <p className="text-[11px] text-slate-400 max-w-sm m-0">
-                En esta sección se registrarán las atenciones médicas escolares, certificados de aptitud física y suministro de primeros auxilios (no eliminables por normativa de salud).
-              </p>
-            </div>
-          </div>
+          <StudentEnfermeriaSection
+            entradas={entradasEnfermeria}
+            onAddEntry={canAddEnfermeria ? handleAddEnfermeriaEntry : null}
+          />
 
           {/* SECCIÓN 5: Entradas de Preceptoría */}
-          <StudentPreceptoriaSection
+          {canAddPreceptoria && <StudentPreceptoriaSection
             entradas={entradasPreceptoria}
-            onAddEntry={handleAddPreceptoriaEntry}
-            onDeleteEntry={handleDeletePreceptoriaEntry}
-          />
+            onAddEntry={canAddPreceptoria ? handleAddPreceptoriaEntry : null}
+            onDeleteEntry={canAddPreceptoria ? handleDeletePreceptoriaEntry : null}
+          />}
         </div>
 
         {/* Footer */}

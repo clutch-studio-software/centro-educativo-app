@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   INITIAL_SPORT_DETAIL,
   INITIAL_STUDENTS_ROSTER,
@@ -17,12 +17,14 @@ import {
   enrollStudentInDisciplineApi,
   withdrawStudentFromDisciplineApi,
   addPreceptoriaNoteToStudent,
+  deleteSportActivityApi,
 } from '../../../services/sportsService';
 
 const PAGE_SIZE = 6;
 
 export const useSportsDetailManagement = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user: currentUser } = useAuth();
 
   const initialDiscipline = useMemo(() => {
@@ -59,6 +61,8 @@ export const useSportsDetailManagement = () => {
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isEditConfigModalOpen, setIsEditConfigModalOpen] = useState(false);
   const [isReassignTeacherModalOpen, setIsReassignTeacherModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [transferStudent, setTransferStudent] = useState(null);
   const [viewingStudent, setViewingStudent] = useState(null);
 
@@ -337,6 +341,21 @@ export const useSportsDetailManagement = () => {
     }
   };
 
+  const handleDeleteDiscipline = async () => {
+    if (!discipline?.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteSportActivityApi(discipline.id);
+      setIsDeleteModalOpen(false);
+      void navigate('/admin/servicios');
+    } catch (err) {
+      console.error('Error al eliminar actividad extracurricular:', err);
+      showToast(`Error al eliminar la actividad: ${err.message}`, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return {
     discipline,
     students,
@@ -360,6 +379,10 @@ export const useSportsDetailManagement = () => {
     setIsEditConfigModalOpen,
     isReassignTeacherModalOpen,
     setIsReassignTeacherModalOpen,
+    isDeleteModalOpen,
+    setIsDeleteModalOpen,
+    isDeleting,
+    handleDeleteDiscipline,
     transferStudent,
     setTransferStudent,
     viewingStudent,

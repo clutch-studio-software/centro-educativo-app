@@ -61,15 +61,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Martes y Jueves 16:30 - 18:00',
     lugar: 'Pista de Atletismo / Campo de Deportes',
     cupoMax: 25,
-    cupoOcupado: 18,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Entrenamiento integral en velocidad, salto, resistencia y lanzamiento con enfoque en técnica formativa y hábitos saludables.',
-    inscriptos: [
-      { id: 'ins-101', alumno: 'Mateo González', curso: '5° Grado "A"', nivel: 'Primario', tutor: 'Carla Ferreyra', telefono: '+54 11 5521-4433', aptoMedico: true, fechaInscripcion: '12/03/2026' },
-      { id: 'ins-102', alumno: 'Valentina Rossi', curso: '2° Año "B"', nivel: 'Secundario', tutor: 'Javier Rossi', telefono: '+54 11 6721-9988', aptoMedico: true, fechaInscripcion: '14/03/2026' },
-      { id: 'ins-103', alumno: 'Lucas Martínez', curso: '6° Grado "B"', nivel: 'Primario', tutor: 'Silvina Acosta', telefono: '+54 11 4432-1199', aptoMedico: false, fechaInscripcion: '15/03/2026' },
-      { id: 'ins-104', alumno: 'Sofía Benítez', curso: '1° Año "A"', nivel: 'Secundario', tutor: 'Gonzalo Benítez', telefono: '+54 11 8844-3322', aptoMedico: true, fechaInscripcion: '16/03/2026' },
-    ],
+    inscriptos: [],
   },
   {
     id: 'disc-2',
@@ -89,14 +84,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Lunes, Miércoles y Viernes 15:00 - 17:00',
     lugar: 'Natatorio Climatizado Central',
     cupoMax: 30,
-    cupoOcupado: 30,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Desarrollo de estilos crol, espalda, pecho y mariposa. Trabajo de resistencia acuática y seguridad.',
-    inscriptos: [
-      { id: 'ins-201', alumno: 'Joaquín Pereyra', curso: '3° Grado "A"', nivel: 'Primario', tutor: 'Ramiro Pereyra', telefono: '+54 11 3322-1100', aptoMedico: true, fechaInscripcion: '10/03/2026' },
-      { id: 'ins-202', alumno: 'Mia Domínguez', curso: 'Sala 5 Años', nivel: 'Inicial', tutor: 'Luciana Gómez', telefono: '+54 11 5566-7788', aptoMedico: true, fechaInscripcion: '11/03/2026' },
-      { id: 'ins-203', alumno: 'Facundo Álvarez', curso: '4° Año "A"', nivel: 'Secundario', tutor: 'Marcelo Álvarez', telefono: '+54 11 9988-7766', aptoMedico: true, fechaInscripcion: '11/03/2026' },
-    ],
+    inscriptos: [],
   },
   {
     id: 'disc-3',
@@ -116,13 +107,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Lunes y Miércoles 17:00 - 18:30',
     lugar: 'Cancha Principal de Césped Sintético',
     cupoMax: 35,
-    cupoOcupado: 28,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Escuela formativa de fútbol, técnica individual, táctica colectiva, compañerismo y fair play en torneos intercolegiales.',
-    inscriptos: [
-      { id: 'ins-301', alumno: 'Thiago Gómez', curso: '4° Grado "B"', nivel: 'Primario', tutor: 'Martín Gómez', telefono: '+54 11 4411-2233', aptoMedico: true, fechaInscripcion: '12/03/2026' },
-      { id: 'ins-302', alumno: 'Santino Díaz', curso: '3° Año "A"', nivel: 'Secundario', tutor: 'Estela Díaz', telefono: '+54 11 7766-5544', aptoMedico: true, fechaInscripcion: '13/03/2026' },
-    ],
+    inscriptos: [],
   },
   {
     id: 'disc-4',
@@ -142,12 +130,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Martes y Jueves 17:00 - 18:30',
     lugar: 'Salón de Usos Múltiples (Dojo Polideportivo)',
     cupoMax: 20,
-    cupoOcupado: 15,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Disciplina marcial, autocontrol, defensa personal formativa y progresión de cinturones federados WTF.',
-    inscriptos: [
-      { id: 'ins-401', alumno: 'Ignacio Ruiz', curso: '2° Grado "A"', nivel: 'Primario', tutor: 'Patricia Méndez', telefono: '+54 11 2233-4455', aptoMedico: true, fechaInscripcion: '14/03/2026' },
-    ],
+    inscriptos: [],
   },
   {
     id: 'disc-5',
@@ -167,12 +153,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Miércoles y Viernes 16:00 - 17:30',
     lugar: 'Gimnasio Techado - Cancha 1',
     cupoMax: 24,
-    cupoOcupado: 20,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Técnica de saque, recepción, armado y remate. Participación en ligas intercolegiales y formación de equipos competitivos.',
-    inscriptos: [
-      { id: 'ins-501', alumno: 'Camila Sosa', curso: '5° Año "A"', nivel: 'Secundario', tutor: 'Jorge Sosa', telefono: '+54 11 3344-5566', aptoMedico: true, fechaInscripcion: '12/03/2026' },
-    ],
+    inscriptos: [],
   },
   {
     id: 'disc-6',
@@ -192,12 +176,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Lunes y Miércoles 16:00 - 17:15',
     lugar: 'Sala de Danza y Espejos - Pabellón de Artes',
     cupoMax: 20,
-    cupoOcupado: 19,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Iniciación a la danza clásica, danza contemporánea, ritmo y expresión corporal creativa para niñas y niños.',
-    inscriptos: [
-      { id: 'ins-601', alumno: 'Clara Navarro', curso: 'Sala 4 Años', nivel: 'Inicial', tutor: 'Romina Ramos', telefono: '+54 11 8899-0011', aptoMedico: true, fechaInscripcion: '10/03/2026' },
-    ],
+    inscriptos: [],
   },
   {
     id: 'disc-7',
@@ -217,12 +199,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Martes y Jueves 16:00 - 17:30',
     lugar: 'Polideportivo Techado - Cancha Central',
     cupoMax: 25,
-    cupoOcupado: 22,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Fundamentos de drible, pase, tiro en suspensión y dinámica de equipo con partidos amistosos y formativos.',
-    inscriptos: [
-      { id: 'ins-701', alumno: 'Bruno Toledo', curso: '6° Grado "A"', nivel: 'Primario', tutor: 'Claudio Toledo', telefono: '+54 11 1122-3344', aptoMedico: true, fechaInscripcion: '15/03/2026' },
-    ],
+    inscriptos: [],
   },
   {
     id: 'disc-8',
@@ -242,12 +222,10 @@ export const INITIAL_DISCIPLINES = [
     horario: 'Sábados 10:00 - 12:00',
     lugar: 'Biblioteca Central / Sala de Juegos Mentales',
     cupoMax: 15,
-    cupoOcupado: 12,
+    cupoOcupado: 0,
     activo: true,
     descripcion: 'Aperturas, táctica, cálculo y pensamiento estratégico. Preparación para torneos escolares locales y provinciales.',
-    inscriptos: [
-      { id: 'ins-801', alumno: 'Emiliano Castro', curso: '1° Año "B"', nivel: 'Secundario', tutor: 'Daniela Castro', telefono: '+54 11 4455-6677', aptoMedico: true, fechaInscripcion: '16/03/2026' },
-    ],
+    inscriptos: [],
   },
 ];
 

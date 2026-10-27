@@ -30,8 +30,11 @@ const validateAndBuildNewStudent = ({
   studentEstado,
   sameAddressAsTutor,
 }) => {
-  if (!tutorNombre.trim() || !tutorDni.trim() || !tutorTelefono.trim()) {
-    return { error: 'Por favor completa todos los campos obligatorios del Tutor.' };
+  if (!tutorNombre.trim() || !tutorDni.trim() || !tutorTelefono.trim() || !tutorEmail.trim()) {
+    return { error: 'Por favor completa todos los campos obligatorios del Tutor (incluyendo Correo Electrónico para habilitar su acceso).' };
+  }
+  if (!tutorEmail.includes('@') || !tutorEmail.includes('.')) {
+    return { error: 'Por favor ingresa un correo electrónico válido para el tutor.' };
   }
   if (!isValidPhone(tutorTelefono)) {
     return { error: 'El teléfono del tutor debe contener únicamente números y tener 10 u 11 dígitos (ej: 1123456789).' };
@@ -303,7 +306,7 @@ const NewStudentTutorSection = ({
 
       <div>
         <label htmlFor="tutor-email-input" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-          Correo Electrónico
+          Correo Electrónico *
         </label>
         <div className="relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
@@ -315,6 +318,7 @@ const NewStudentTutorSection = ({
             className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-lime-400"
             placeholder="tutor@correo.com"
             type="email"
+            required
             value={tutorEmail}
             onChange={(e) => setTutorEmail(e.target.value)}
           />
