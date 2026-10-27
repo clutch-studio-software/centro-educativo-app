@@ -34,7 +34,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: millionco/react-doctor@v2
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
         # Advisory by default: React Doctor reports findings on every PR — a
         # sticky summary comment, inline review comments, and a commit status
         # with the health score — but never fails the check, so it won't red-X

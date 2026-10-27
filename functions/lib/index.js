@@ -73,7 +73,7 @@ async function generateUniqueStudentIdLogin() {
     let unique = false;
     let studentID = '';
     while (!unique) {
-        const randomDigits = Math.floor(10000 + Math.random() * 90000); // 5 dígitos aleatorios
+        const randomDigits = crypto.randomInt(10000, 100000); // 5 dígitos aleatorios
         studentID = `EST-${year}-${randomDigits}`;
         const snapshot = await db.collection('students')
             .where('studentID_login', '==', studentID)
@@ -420,7 +420,8 @@ exports.cf_loginStudent = (0, https_1.onRequest)({ cors: true, invoker: 'public'
             const isDigitsOnly = /^\d{7,9}$/.test(rawPwd);
             const isDniWithDots = /^\d{1,2}\.\d{3}\.\d{3}$/.test(rawPwd);
             if (isDigitsOnly) {
-                const withDots = rawPwd.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                const len = rawPwd.length;
+                const withDots = `${rawPwd.slice(0, len - 6)}.${rawPwd.slice(len - 6, len - 3)}.${rawPwd.slice(len - 3)}`;
                 match = await bcrypt.compare(withDots, targetHash);
             }
             else if (isDniWithDots) {

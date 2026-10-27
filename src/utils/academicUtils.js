@@ -39,7 +39,7 @@ export const normalizeAcademicText = (text = '') =>
     .trim()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Quitar tildes
-    .replace(/(\d+)(?:er|do|to|mo|ro|°|º)/gi, '$1') // Quitar sufijos ordinales pegados a dígitos: 1er, 1°, 2do, 4to
+    .replace(/(?<=\d)(?:er|do|to|mo|ro|°|º)/gi, '') // Quitar sufijos ordinales pegados a dígitos: 1er, 1°, 2do, 4to
     .replace(/°|º/g, '') // Quitar símbolo de grado suelto
     .replace(/de\s+/gi, '') // "Sala de 3 Años" -> "Sala 3 Años"
     .replace(/[\s\-_"']+/g, ' '); // Espacios consistentes
@@ -151,7 +151,7 @@ export const getCourseRank = (courseName = '') => {
   // Extraer número
   const digitMatch = text.match(/\d+/);
   if (digitMatch) {
-    return base + parseInt(digitMatch[0], 10);
+    return base + Number.parseInt(digitMatch[0], 10);
   }
 
   // Ordinales en palabras
