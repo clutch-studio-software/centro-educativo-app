@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { images } from '../../services/imagesConfig';
 import { useAuth } from '../../context/AuthContext';
+import { normalizeRole, getRoleConfig } from './users/userRbacConstants';
 
 const NAV_ITEMS = [
   {
@@ -9,42 +10,50 @@ const NAV_ITEMS = [
     icon: 'grid_view',
     path: '/admin/dashboard',
     badge: null,
+    allowedRoles: ['Directivo', 'Administrativo', 'Docente', 'Enfermeria', 'Preceptoria'],
   },
   {
     name: 'Alumnos & Legajos',
     icon: 'school',
-    path: '/admin',
+    path: '/admin/alumnos',
     exact: true,
+    allowedRoles: ['Directivo', 'Administrativo', 'Docente', 'Enfermeria', 'Preceptoria'],
   },
   {
     name: 'Cuerpo Docente',
     icon: 'badge',
     path: '/admin/docentes',
+    allowedRoles: ['Directivo', 'Administrativo', 'Docente'],
   },
   {
     name: 'Oferta Académica',
     icon: 'menu_book',
     path: '/admin/oferta-academica',
+    allowedRoles: ['Directivo', 'Administrativo', 'Docente', 'Preceptoria'],
   },
   {
     name: 'Deportes & Servicios',
     icon: 'sports_soccer',
     path: '/admin/servicios',
+    allowedRoles: ['Directivo', 'Administrativo'],
   },
   {
     name: 'Finanzas & Pagos',
     icon: 'payments',
     path: '/admin/finanzas',
+    allowedRoles: ['Directivo', 'Administrativo'],
   },
   {
     name: 'Usuarios & Roles (RBAC)',
     icon: 'admin_panel_settings',
     path: '/admin/usuarios',
+    allowedRoles: ['Directivo'],
   },
   {
     name: 'Reportes Directivos',
     icon: 'insights',
     path: '/admin/reportes',
+    allowedRoles: ['Directivo'],
   },
 ];
 
@@ -59,8 +68,8 @@ const getInitials = (name) => {
 };
 
 const checkIsItemActive = (item, pathname, activeItem) => {
-  if (item.path === '/admin') {
-    return pathname === '/admin' || pathname === '/admin/alumnos';
+  if (item.path === '/admin/dashboard') {
+    return pathname === '/admin/dashboard' || pathname === '/admin/alumnos';
   }
   if (pathname === item.path) {
     return true;
@@ -119,7 +128,7 @@ const SidebarUserProfile = ({ isCollapsed, userName, userRoleDisplay, initials, 
     data-testid="admin-user-profile-card"
     className={`${
       isCollapsed ? 'p-2 m-2 items-center' : 'p-3 m-3'
-    } bg-gradient-to-br from-slate-50 via-lime-50/30 to-amber-50/20 border border-slate-100 rounded-3xl flex flex-col gap-2 shadow-sm transition-all duration-300`}
+    } bg-gradient-to-br items-center from-slate-50 via-lime-50/30 to-amber-50/20 border border-slate-100 rounded-3xl flex flex-col gap-2 shadow-sm transition-all duration-300`}
   >
     <div
       className={`flex items-center ${
@@ -127,7 +136,7 @@ const SidebarUserProfile = ({ isCollapsed, userName, userRoleDisplay, initials, 
       }`}
     >
       <div
-        className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5 min-w-0'}`}
+        className={`flex items-center text-left ${isCollapsed ? 'justify-center' : 'gap-2.5 min-w-0'}`}
         title={isCollapsed ? `${userName} (${userRoleDisplay})` : undefined}
       >
         <div className="relative shrink-0">
@@ -236,8 +245,19 @@ const SidebarBrandHeader = ({ isCollapsed, onToggleCollapse, onCloseMobile }) =>
 );
 
 const resolveUserProfile = (user) => {
-  const userName = user?.nombre || user?.email?.split('@')[0] || 'Lic. Martín Valdez';
-  const userRoleDisplay = user?.role === 'user_admin' ? 'Superadmin Dirección' : 'Personal Directivo';
+  const fullName =
+    user?.nombreCompleto ||
+    (user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : null) ||
+    user?.displayName ||
+    user?.name;
+  const userName = fullName || user?.email?.split('@')[0] || 'Personal Institucional';
+
+  const roleConfig = getRoleConfig(user?.role);
+  const userRoleDisplay =
+    user?.role === 'user_admin'
+      ? 'Superadmin Dirección'
+      : (roleConfig?.displayName || roleConfig?.name || user?.role || 'Personal Institucional');
+
   return { userName, userRoleDisplay };
 };
 
@@ -263,6 +283,17 @@ const AdminSidebar = ({
 
   const { userName, userRoleDisplay } = resolveUserProfile(user);
   const initials = getInitials(userName);
+
+  const userRoleNorm = normalizeRole(user?.role);
+  const isSuperadmin = user?.role === 'user_admin';
+
+  const visibleNavItems = useMemo(() => {
+    return NAV_ITEMS.filter((item) => {
+      if (isSuperadmin || userRoleNorm === 'Directivo') return true;
+      if (!item.allowedRoles) return true;
+      return item.allowedRoles.includes(userRoleNorm);
+    });
+  }, [isSuperadmin, userRoleNorm]);
 
   return (
     <>
@@ -322,7 +353,7 @@ const AdminSidebar = ({
             data-testid="admin-sidebar-nav"
             className={`px-2 flex flex-col gap-1.5 ${isCollapsed ? 'items-center' : ''}`}
           >
-            {NAV_ITEMS.map((item) => (
+            {visibleNavItems.map((item) => (
               <SidebarNavItem
                 key={item.name}
                 item={item}

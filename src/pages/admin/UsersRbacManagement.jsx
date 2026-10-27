@@ -10,6 +10,9 @@ import UserTable from '../../components/admin/users/UserTable';
 import NewUserModal from '../../components/admin/users/NewUserModal';
 import EditUserModal from '../../components/admin/users/EditUserModal';
 import RolePermissionsModal from '../../components/admin/users/RolePermissionsModal';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { normalizeRole } from '../../components/admin/users/userRbacConstants';
 import {
   fetchRbacUsersApi,
   createRbacUserApi,
@@ -168,11 +171,36 @@ const useUsersRbacState = () => {
     }
   }, [showToast]);
 
+  const navigate = useNavigate();
+  const { user: authUser, loading: authLoading } = useAuth();
+
+  // Protección de acceso: solo Directivos o user_admin
+  useEffect(() => {
+    if (authLoading) return;
+    const savedUser = localStorage.getItem('school_user');
+    const currentUser = savedUser ? JSON.parse(savedUser) : authUser;
+    const norm = normalizeRole(currentUser?.role);
+    const isDirectivo = currentUser?.role === 'user_admin' || norm === 'Directivo';
+    if (!isDirectivo) {
+      console.warn('Acceso denegado a Usuarios & Roles (RBAC) para el rol:', currentUser?.role);
+      navigate('/admin/dashboard');
+    }
+  }, [authUser, authLoading, navigate]);
+
   // Auth check inicial
   useEffect(() => {
     let isMounted = true;
     const checkAuth = async () => {
       try {
+        const savedUser = localStorage.getItem('school_user');
+        const currentUser = savedUser ? JSON.parse(savedUser) : authUser;
+        const norm = normalizeRole(currentUser?.role);
+        const isDirectivo = currentUser?.role === 'user_admin' || norm === 'Directivo';
+        if (!isDirectivo && !authLoading) {
+          navigate('/admin/dashboard');
+          return;
+        }
+
         await ensureAdminAuth();
         if (isMounted) {
           loadData();
@@ -194,7 +222,7 @@ const useUsersRbacState = () => {
       isMounted = false;
       unsubscribe();
     };
-  }, [loadData]);
+  }, [loadData, authUser, authLoading, navigate]);
 
   // Conteos por rol para los badges de las pestañas
   const roleCounts = useMemo(() => {

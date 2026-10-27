@@ -110,7 +110,7 @@ const LoggedInView = ({ user, onLogout }) => {
             {isStaffUser && (
               <button
                 type="button"
-                onClick={() => navigate('/admin')}
+                onClick={() => navigate('/admin/dashboard')}
                 className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold font-label rounded-full transition-all duration-200 border-none shadow-sm cursor-pointer flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-lg">dashboard</span>
@@ -408,7 +408,7 @@ const Login = () => {
       ];
       const userRole = String(user.role || '').toLowerCase();
       if (staffRoles.includes(userRole)) {
-        navigate('/admin');
+        navigate('/admin/dashboard');
       }
     }
   }, [isLoggedIn, user, navigate]);

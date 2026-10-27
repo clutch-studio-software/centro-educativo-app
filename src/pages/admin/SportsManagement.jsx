@@ -9,6 +9,7 @@ import DisciplinePagination from '../../components/admin/sports/DisciplinePagina
 import DisciplineDetailsModal from '../../components/admin/sports/DisciplineDetailsModal';
 import NewDisciplineModal from '../../components/admin/sports/NewDisciplineModal';
 import EditDisciplineModal from '../../components/admin/sports/EditDisciplineModal';
+import DeleteDisciplineModal from '../../components/admin/sports/DeleteDisciplineModal';
 import { useSportsManagement } from '../../components/admin/sports/useSportsManagement';
 
 const SportsManagement = () => {
@@ -34,6 +35,10 @@ const SportsManagement = () => {
     setEditingDiscipline,
     viewingDiscipline,
     setViewingDiscipline,
+    deletingDiscipline,
+    setDeletingDiscipline,
+    isDeleting,
+    handleDeleteDiscipline,
     totalItems,
     totalPages,
     currentDisciplines,
@@ -127,6 +132,7 @@ const SportsManagement = () => {
             navigate(`/admin/servicios/detalle/${disc.id || 'disc-1'}`);
           }}
           onEditDiscipline={(disc) => setEditingDiscipline(disc)}
+          onDeleteDiscipline={(disc) => setDeletingDiscipline(disc)}
           onToggleStatus={handleToggleStatus}
           onResetFilters={handleResetFilters}
         />
@@ -153,6 +159,14 @@ const SportsManagement = () => {
           onClose={() => setEditingDiscipline(null)}
           onSave={handleSaveEditDiscipline}
           teachers={teachers}
+        />
+
+        <DeleteDisciplineModal
+          isOpen={Boolean(deletingDiscipline)}
+          discipline={deletingDiscipline}
+          isDeleting={isDeleting}
+          onClose={() => setDeletingDiscipline(null)}
+          onConfirm={() => handleDeleteDiscipline(deletingDiscipline)}
         />
 
         <DisciplineDetailsModal

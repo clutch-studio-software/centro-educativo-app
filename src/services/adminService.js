@@ -54,7 +54,25 @@ const getFunctionsBaseUrl = () => {
  * Si en entorno DEV no hay sesión activa, autentica automáticamente con el usuario administrador oficial.
  */
 export const getAdminAuthToken = async () => {
-  if (!auth.currentUser && import.meta.env.DEV) {
+  if (auth.currentUser) {
+    return await auth.currentUser.getIdToken(true);
+  }
+
+  const savedUser = localStorage.getItem('school_user');
+  if (savedUser) {
+    await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe();
+        resolve(user);
+      });
+      setTimeout(resolve, 1500);
+    });
+    if (auth.currentUser) {
+      return await auth.currentUser.getIdToken(true);
+    }
+  }
+
+  if (!auth.currentUser && import.meta.env.DEV && !savedUser) {
     try {
       await signInWithEmailAndPassword(auth, import.meta.env.VITE_ADMIN_EMAIL, import.meta.env.VITE_DEV_ADMIN_KEY);
     } catch (err) {
@@ -66,7 +84,7 @@ export const getAdminAuthToken = async () => {
     return await auth.currentUser.getIdToken(true);
   }
 
-  throw new Error('No hay una sesión de administrador activa en Firebase Auth. Por favor inicia sesión con un usuario Admin.');
+  throw new Error('No hay una sesión institucional activa en Firebase Auth.');
 };
 
 /**

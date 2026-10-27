@@ -4,6 +4,7 @@ const DisciplineTable = ({
   disciplines = [],
   onViewDetails,
   onEditDiscipline,
+  onDeleteDiscipline,
   onToggleStatus,
   onResetFilters,
 }) => {
@@ -165,6 +166,19 @@ const DisciplineTable = ({
                       >
                         <span className="material-symbols-outlined text-[18px]">edit</span>
                       </button>
+
+                      {onDeleteDiscipline && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteDiscipline(disc)}
+                          data-testid={`btn-delete-discipline-${disc.id}`}
+                          aria-label={`Eliminar ${disc.nombre}`}
+                          title="Eliminar actividad"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent flex items-center justify-center"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

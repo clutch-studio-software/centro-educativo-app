@@ -28,7 +28,19 @@ export const ensureAdminAuth = async () => {
     return auth.currentUser;
   }
 
-  if (import.meta.env.DEV) {
+  const savedUser = localStorage.getItem('school_user');
+  if (savedUser) {
+    const restoredUser = await new Promise((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe();
+        resolve(user || auth.currentUser);
+      });
+      setTimeout(() => resolve(auth.currentUser), 1500);
+    });
+    if (restoredUser) return restoredUser;
+  }
+
+  if (import.meta.env.DEV && !savedUser) {
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
     const adminKey = import.meta.env.VITE_DEV_ADMIN_KEY;
     if (adminEmail && adminKey) {
@@ -41,13 +53,7 @@ export const ensureAdminAuth = async () => {
     }
   }
 
-  return new Promise((resolve) => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      unsubscribe();
-      resolve(user);
-    });
-    setTimeout(() => resolve(auth.currentUser), 2000);
-  });
+  return auth.currentUser;
 };
 
 /**

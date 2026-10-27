@@ -5,6 +5,33 @@ import Button from './Button';
 import { images } from '../services/imagesConfig';
 import { useAuth } from '../context/AuthContext';
 
+const STAFF_ROLES = new Set([
+  'directivo',
+  'administrativo',
+  'docente',
+  'enfermeria',
+  'enfermería',
+  'preceptoria',
+  'preceptoría',
+]);
+
+const resolveDisplayName = (user) => {
+  if (!user) return 'Usuario';
+  if (user.nombreCompleto) return user.nombreCompleto;
+  if (user.nombre) return `${user.nombre} ${user.apellido || ''}`.trim();
+  if (user.displayName) return user.displayName;
+  if (user.name) return user.name;
+  if (user.username) return user.username;
+  if (user.email) return user.email.split('@')[0];
+  return 'Usuario';
+};
+
+const checkIsAdmin = (user, isLoggedIn) => {
+  if (!isLoggedIn || !user) return false;
+  if (user.role === 'user_admin') return true;
+  return STAFF_ROLES.has(String(user.role || '').toLowerCase());
+};
+
 /**
  * Main Navbar component that renders the navigation bar, including the logo,
  * desktop navigation links, user authentication controls/dropdown, and a responsive
@@ -13,13 +40,8 @@ import { useAuth } from '../context/AuthContext';
 const Navbar = ({ noButtons = false }) => {
   const navigate = useNavigate();
   const { user, logout, isLoggedIn } = useAuth();
-  const displayName =
-    user?.nombre ||
-    user?.name ||
-    user?.username ||
-    user?.email?.split('@')[0] ||
-    'Usuario';
-  const isAdmin = isLoggedIn && user?.role === 'user_admin';
+  const displayName = resolveDisplayName(user);
+  const isAdmin = checkIsAdmin(user, isLoggedIn);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Disable body scroll when mobile menu is open
@@ -238,15 +260,15 @@ const UserMenu = ({ logout, displayName, navigate, isAdmin }) => {
             <button
               type="button"
               onClick={() => {
-                navigate('/admin');
+                navigate('/admin/dashboard');
                 setIsUserMenuOpen(false);
               }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-semibold cursor-pointer text-left focus:outline-none"
             >
               <span className="material-symbols-outlined text-slate-400 text-lg">
-                person
+                admin_panel_settings
               </span>
-              Panel de usuarios
+              Consola Institucional
             </button>
           )}
           <div className="border-t border-slate-100 my-1"></div>
@@ -411,13 +433,13 @@ const MobileDrawer = ({
                 <button
                   type="button"
                   onClick={() => {
-                    navigate('/admin');
+                    navigate('/admin/dashboard');
                     onClose();
                   }}
                   className="mobile-action-btn profile-btn"
                 >
                   <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
-                  Panel de usuarios
+                  Consola Institucional
                 </button>
               )}
               <button

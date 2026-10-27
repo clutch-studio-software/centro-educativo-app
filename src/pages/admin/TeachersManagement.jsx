@@ -22,16 +22,16 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const PAGE_SIZE = 5;
 
+const ALLOWED_TEACHERS_ROLES = ['user_admin', 'directivo', 'administrador', 'admin', 'administrativo', 'docente'];
+
 const useTeachersAuthCheck = (navigate, loadTeachers) => {
   useEffect(() => {
-    const checkAdminAuth = async () => {
+    const checkTeachersAuth = async () => {
       const savedUser = localStorage.getItem('school_user');
       const currentUser = savedUser ? JSON.parse(savedUser) : null;
 
-      if (
-        currentUser &&
-        (currentUser.role === 'user_admin' || currentUser.role === 'Administrador')
-      ) {
+      const userRole = String(currentUser?.role || '').toLowerCase();
+      if (currentUser && ALLOWED_TEACHERS_ROLES.includes(userRole)) {
         return;
       }
 
@@ -39,10 +39,8 @@ const useTeachersAuthCheck = (navigate, loadTeachers) => {
       if (firebaseUser) {
         try {
           const idTokenResult = await firebaseUser.getIdTokenResult();
-          if (
-            idTokenResult.claims.role === 'user_admin' ||
-            idTokenResult.claims.role === 'Administrador'
-          ) {
+          const claimRole = String(idTokenResult.claims.role || '').toLowerCase();
+          if (ALLOWED_TEACHERS_ROLES.includes(claimRole)) {
             return;
           }
         } catch {
@@ -50,7 +48,7 @@ const useTeachersAuthCheck = (navigate, loadTeachers) => {
         }
       }
 
-      if (import.meta.env.DEV && !auth.currentUser) {
+      if (import.meta.env.DEV && !auth.currentUser && !savedUser) {
         try {
           await signInWithEmailAndPassword(
             auth,
@@ -64,13 +62,19 @@ const useTeachersAuthCheck = (navigate, loadTeachers) => {
         }
       }
 
-      if (!auth.currentUser && (!currentUser || currentUser.role !== 'user_admin')) {
-        console.warn('Acceso denegado: Se requiere rol user_admin.');
+      if (currentUser && !ALLOWED_TEACHERS_ROLES.includes(userRole)) {
+        console.warn('Acceso denegado a Cuerpo Docente para este rol:', currentUser.role);
+        navigate('/admin/dashboard');
+        return;
+      }
+
+      if (!auth.currentUser && !currentUser) {
+        console.warn('Acceso denegado: Se requiere autenticación.');
         navigate('/login');
       }
     };
 
-    checkAdminAuth();
+    checkTeachersAuth();
   }, [navigate, loadTeachers]);
 };
 

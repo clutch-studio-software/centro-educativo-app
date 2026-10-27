@@ -24,6 +24,8 @@ import {
   DEFAULT_ACADEMIC_OFFER,
 } from '../../services/adminService';
 import { formatDni } from '../../utils/validators';
+import { useAuth } from '../../context/AuthContext';
+import { normalizeRole } from '../../components/admin/users/userRbacConstants';
 
 const normalizeStudent = (s, parents) => {
   const rawNivel = String(s.nivel || '').toLowerCase();
@@ -193,16 +195,27 @@ const filterStudentsList = (students, { searchQuery, levelFilter, courseFilter, 
   });
 };
 
+const ALLOWED_STUDENTS_ROLES = [
+  'user_admin',
+  'directivo',
+  'administrador',
+  'admin',
+  'administrativo',
+  'docente',
+  'enfermeria',
+  'enfermería',
+  'preceptoria',
+  'preceptoría',
+];
+
 const useAdminAuthCheck = (navigate) => {
   useEffect(() => {
-    const checkAdminAuth = async () => {
+    const checkStaffAuth = async () => {
       const savedUser = localStorage.getItem('school_user');
       const currentUser = savedUser ? JSON.parse(savedUser) : null;
 
-      if (
-        currentUser &&
-        (currentUser.role === 'user_admin' || currentUser.role === 'Administrador')
-      ) {
+      const userRole = String(currentUser?.role || '').toLowerCase();
+      if (currentUser && ALLOWED_STUDENTS_ROLES.includes(userRole)) {
         return;
       }
 
@@ -210,10 +223,8 @@ const useAdminAuthCheck = (navigate) => {
       if (firebaseUser) {
         try {
           const idTokenResult = await firebaseUser.getIdTokenResult();
-          if (
-            idTokenResult.claims.role === 'user_admin' ||
-            idTokenResult.claims.role === 'Administrador'
-          ) {
+          const claimRole = String(idTokenResult.claims.role || '').toLowerCase();
+          if (ALLOWED_STUDENTS_ROLES.includes(claimRole)) {
             return;
           }
         } catch {
@@ -221,7 +232,7 @@ const useAdminAuthCheck = (navigate) => {
         }
       }
 
-      if (import.meta.env.DEV && !auth.currentUser) {
+      if (import.meta.env.DEV && !auth.currentUser && !savedUser) {
         try {
           await signInWithEmailAndPassword(
             auth,
@@ -234,13 +245,19 @@ const useAdminAuthCheck = (navigate) => {
         }
       }
 
-      if (!auth.currentUser && (!currentUser || currentUser.role !== 'user_admin')) {
-        console.warn('Acceso denegado: Se requiere rol user_admin.');
+      if (currentUser && !ALLOWED_STUDENTS_ROLES.includes(userRole)) {
+        console.warn('Acceso denegado a Alumnos & Legajos para este rol:', currentUser.role);
+        navigate('/login');
+        return;
+      }
+
+      if (!auth.currentUser && !currentUser) {
+        console.warn('Acceso denegado: Se requiere autenticación institucional.');
         navigate('/login');
       }
     };
 
-    checkAdminAuth();
+    checkStaffAuth();
   }, [navigate]);
 };
 
@@ -315,6 +332,8 @@ const StudentsManagementHeader = ({
   onOpenNewStudentModal,
   institutionMetrics,
   isLoading = false,
+  canRegisterStudent = false,
+  userRole
 }) => (
   <section data-testid="students-management-header" className="flex flex-col gap-4">
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -337,19 +356,20 @@ const StudentsManagementHeader = ({
           <span>Exportar Padrón (Excel/PDF)</span>
         </button>
 
-        <button
-          data-testid="open-new-student-modal-button"
-          type="button"
-          onClick={onOpenNewStudentModal}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 cursor-pointer border-none"
-        >
-          <span className="material-symbols-outlined text-[18px]">person_add</span>
-          <span>Nuevo Alumno</span>
-        </button>
+        {canRegisterStudent && (
+          <button
+            data-testid="open-new-student-modal-button"
+            type="button"
+            onClick={onOpenNewStudentModal}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-md shadow-blue-500/25 text-xs font-bold transition-all transform hover:-translate-y-0.5 cursor-pointer border-none"
+          >
+            <span className="material-symbols-outlined text-[18px]">person_add</span>
+            <span>Nuevo Alumno</span>
+          </button>
+        )}
       </div>
     </div>
-
-    <StudentsMetricsGrid institutionMetrics={institutionMetrics} isLoading={isLoading} />
+    {userRole == 'Directivo' && <StudentsMetricsGrid institutionMetrics={institutionMetrics} isLoading={isLoading} />}
   </section>
 );
 
@@ -507,6 +527,7 @@ const StudentsModals = ({
   setViewingStudent,
   parentsList,
   academicOffer,
+  canEditStudent = true,
 }) => (
   <>
     <NewStudentModal
@@ -528,10 +549,14 @@ const StudentsModals = ({
       student={viewingStudent}
       tutors={parentsList}
       onClose={() => setViewingStudent(null)}
-      onEditStudent={(student) => {
-        setViewingStudent(null);
-        setEditingStudent(student);
-      }}
+      onEditStudent={
+        canEditStudent
+          ? (student) => {
+            setViewingStudent(null);
+            setEditingStudent(student);
+          }
+          : null
+      }
     />
   </>
 );
@@ -870,6 +895,12 @@ const StudentsManagement = () => {
     setViewingStudent(student);
   };
 
+  const { user: authUser } = useAuth();
+  const normalizedUserRole = normalizeRole(authUser?.role);
+  const canRegisterStudent =
+    authUser?.role === 'user_admin' ||
+    ['Directivo', 'Administrativo'].includes(normalizedUserRole);
+
   return (
     <AdminLayout activeItem="alumnos" breadcrumbs={['Alumnos & Legajos']}>
       <div data-testid="students-management-page" className="flex flex-col w-full gap-6">
@@ -882,6 +913,8 @@ const StudentsManagement = () => {
           onOpenNewStudentModal={() => setIsNewStudentModalOpen(true)}
           institutionMetrics={institutionMetrics}
           isLoading={isLoading}
+          canRegisterStudent={canRegisterStudent}
+          userRole={normalizedUserRole}
         />
 
         {/* Filtros Dinámicos Estilo Prisma Alegría */}
@@ -914,13 +947,13 @@ const StudentsManagement = () => {
         <StudentsTableSection
           students={paginatedStudents}
           isLoading={isLoading}
-          onEditStudent={handleEditStudent}
+          onEditStudent={canRegisterStudent ? handleEditStudent : null}
           onViewStudent={handleViewStudent}
           onGenerateCertificate={handleGenerateCertificate}
-          onDeleteStudent={handleDeleteStudent}
-          onToggleStatusStudent={handleToggleStatusStudent}
-          onResetStudentPassword={handleResetStudentPassword}
-          onResetTutorPassword={handleResetTutorPassword}
+          onDeleteStudent={canRegisterStudent ? handleDeleteStudent : null}
+          onToggleStatusStudent={canRegisterStudent ? handleToggleStatusStudent : null}
+          onResetStudentPassword={canRegisterStudent ? handleResetStudentPassword : null}
+          onResetTutorPassword={canRegisterStudent ? handleResetTutorPassword : null}
           onResetFilters={handleResetFilters}
           safeCurrentPage={safeCurrentPage}
           totalPages={totalPages}
@@ -946,6 +979,7 @@ const StudentsManagement = () => {
         setViewingStudent={setViewingStudent}
         parentsList={parentsList}
         academicOffer={academicOffer}
+        canEditStudent={canRegisterStudent}
       />
     </AdminLayout>
   );

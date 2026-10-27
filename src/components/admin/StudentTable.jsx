@@ -41,41 +41,45 @@ const StudentFloatingMenu = ({
       }}
       className="w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
     >
-      <div className="py-1">
-        {/* Opción 1: Deshabilitar o Reactivar */}
-        <button
-          data-testid={`student-action-toggle-status-${activeStudent.id}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeStudent;
-            setActiveMenuStudentId(null);
-            onToggleStatusStudent && onToggleStatusStudent(target);
-          }}
-          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
-            activeStudent.estado === 'Baja Administrativa'
-              ? 'text-emerald-700 hover:bg-emerald-50'
-              : 'text-amber-700 hover:bg-amber-50'
-          }`}
-          type="button"
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {activeStudent.estado === 'Baja Administrativa' ? 'check_circle' : 'person_off'}
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>
-              {activeStudent.estado === 'Baja Administrativa'
-                ? 'Reactivar Alumno'
-                : 'Deshabilitar Alumno'}
+      {/* Opción: Deshabilitar o Reactivar */}
+      {onToggleStatusStudent && (
+        <div className="py-1">
+          <button
+            data-testid={`student-action-toggle-status-${activeStudent.id}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const target = activeStudent;
+              setActiveMenuStudentId(null);
+              onToggleStatusStudent(target);
+            }}
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
+              activeStudent.estado === 'Baja Administrativa'
+                ? 'text-emerald-700 hover:bg-emerald-50'
+                : 'text-amber-700 hover:bg-amber-50'
+            }`}
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {activeStudent.estado === 'Baja Administrativa' ? 'check_circle' : 'person_off'}
             </span>
-            <span className="text-[10px] font-normal text-slate-400">
-              {activeStudent.estado === 'Baja Administrativa'
-                ? 'Restaurar regularidad activa'
-                : 'Pasa a baja administrativa'}
-            </span>
-          </div>
-        </button>
+            <div className="flex flex-col items-start leading-tight">
+              <span>
+                {activeStudent.estado === 'Baja Administrativa'
+                  ? 'Reactivar Alumno'
+                  : 'Deshabilitar Alumno'}
+              </span>
+              <span className="text-[10px] font-normal text-slate-400">
+                {activeStudent.estado === 'Baja Administrativa'
+                  ? 'Restaurar regularidad activa'
+                  : 'Pasa a baja administrativa'}
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
 
-        {/* Opción 2: Ver detalles del alumno */}
+      {/* Opción: Ver detalles del alumno */}
+      <div className="py-1">
         <button
           data-testid={`student-menu-view-details-${activeStudent.id}`}
           onClick={(e) => {
@@ -100,78 +104,84 @@ const StudentFloatingMenu = ({
       </div>
 
       {/* Sección: Restablecer Contraseñas */}
-      <div className="py-1">
-        {/* Restablecer Contraseña Alumno */}
-        <button
-          data-testid={`student-action-reset-password-${activeStudent.id}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeStudent;
-            setActiveMenuStudentId(null);
-            onResetStudentPassword && onResetStudentPassword(target);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors cursor-pointer border-none bg-transparent"
-          type="button"
-        >
-          <span className="material-symbols-outlined text-orange-500 text-[18px]">
-            key
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>Restablecer Contraseña Alumno</span>
-            <span className="text-[10px] font-normal text-slate-400">
-              Contraseña por defecto = DNI
-            </span>
-          </div>
-        </button>
+      {(onResetStudentPassword || onResetTutorPassword) && (
+        <div className="py-1">
+          {onResetStudentPassword && (
+            <button
+              data-testid={`student-action-reset-password-${activeStudent.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeStudent;
+                setActiveMenuStudentId(null);
+                onResetStudentPassword(target);
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors cursor-pointer border-none bg-transparent"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-orange-500 text-[18px]">
+                key
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>Restablecer Contraseña Alumno</span>
+                <span className="text-[10px] font-normal text-slate-400">
+                  Contraseña por defecto = DNI
+                </span>
+              </div>
+            </button>
+          )}
 
-        {/* Restablecer Contraseña Tutor */}
-        <button
-          data-testid={`tutor-action-reset-password-${activeStudent.id}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeStudent;
-            setActiveMenuStudentId(null);
-            onResetTutorPassword && onResetTutorPassword(target);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer border-none bg-transparent"
-          type="button"
-        >
-          <span className="material-symbols-outlined text-indigo-500 text-[18px]">
-            lock_reset
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>Restablecer Contraseña Tutor</span>
-            <span className="text-[10px] font-normal text-slate-400">
-              Contraseña por defecto = DNI
-            </span>
-          </div>
-        </button>
-      </div>
+          {onResetTutorPassword && (
+            <button
+              data-testid={`tutor-action-reset-password-${activeStudent.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeStudent;
+                setActiveMenuStudentId(null);
+                onResetTutorPassword(target);
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer border-none bg-transparent"
+              type="button"
+            >
+              <span className="material-symbols-outlined text-indigo-500 text-[18px]">
+                lock_reset
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>Restablecer Contraseña Tutor</span>
+                <span className="text-[10px] font-normal text-slate-400">
+                  Contraseña por defecto = DNI
+                </span>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Opción: Borrar alumno / Eliminar legajo definitivamente */}
-      <div className="py-1">
-        <button
-          data-testid={`student-action-delete-${activeStudent.id}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeStudent;
-            setActiveMenuStudentId(null);
-            onDeleteStudent && onDeleteStudent(target);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
-          type="button"
-        >
-          <span className="material-symbols-outlined text-[18px] text-red-500">
-            delete_forever
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>Borrar Alumno</span>
-            <span className="text-[10px] font-normal text-red-400">
-              Eliminar legajo definitivamente
+      {onDeleteStudent && (
+        <div className="py-1">
+          <button
+            data-testid={`student-action-delete-${activeStudent.id}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const target = activeStudent;
+              setActiveMenuStudentId(null);
+              onDeleteStudent(target);
+            }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer border-none bg-transparent"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-rose-500 text-[18px]">
+              delete_forever
             </span>
-          </div>
-        </button>
-      </div>
+            <div className="flex flex-col items-start leading-tight">
+              <span>Eliminar Legajo Definitivamente</span>
+              <span className="text-[10px] font-normal text-rose-400">
+                Acción destructiva irreversible
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -294,23 +304,40 @@ const StudentAcademicCell = ({ student, isInactive }) => {
 const StudentActionsCell = ({
   student,
   onEditStudent,
+  onViewStudent,
   onGenerateCertificate,
   isMenuOpen,
   onToggleMenu,
 }) => (
   <td className="py-4 px-6 text-right">
     <div className="flex items-center justify-end gap-1">
-      <button
-        data-testid={`student-action-edit-${student.id}`}
-        onClick={() => onEditStudent && onEditStudent(student)}
-        className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer border-none bg-transparent"
-        title="Editar Legajo"
-        type="button"
-      >
-        <span className="material-symbols-outlined text-[18px]">
-          edit
-        </span>
-      </button>
+      {onViewStudent && (
+        <button
+          data-testid={`student-action-view-${student.id}`}
+          onClick={() => onViewStudent(student)}
+          className="p-1.5 rounded-full text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer border-none bg-transparent"
+          title="Ver Ficha y Legajo"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            visibility
+          </span>
+        </button>
+      )}
+
+      {onEditStudent && (
+        <button
+          data-testid={`student-action-edit-${student.id}`}
+          onClick={() => onEditStudent(student)}
+          className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer border-none bg-transparent"
+          title="Editar Legajo"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            edit
+          </span>
+        </button>
+      )}
 
       <button
         data-testid={`student-action-certificate-${student.id}`}
@@ -354,6 +381,7 @@ const StudentTableRow = ({
   student,
   index,
   onEditStudent,
+  onViewStudent,
   onGenerateCertificate,
   activeMenuStudentId,
   setActiveMenuStudentId,
@@ -414,6 +442,7 @@ const StudentTableRow = ({
       <StudentActionsCell
         student={student}
         onEditStudent={onEditStudent}
+        onViewStudent={onViewStudent}
         onGenerateCertificate={onGenerateCertificate}
         isMenuOpen={isMenuOpen}
         onToggleMenu={handleToggleMenu}
@@ -530,6 +559,7 @@ const StudentTable = ({
                 student={student}
                 index={index}
                 onEditStudent={onEditStudent}
+                onViewStudent={onViewStudent}
                 onGenerateCertificate={onGenerateCertificate}
                 activeMenuStudentId={activeMenuStudentId}
                 setActiveMenuStudentId={setActiveMenuStudentId}
