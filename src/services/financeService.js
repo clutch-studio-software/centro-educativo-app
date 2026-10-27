@@ -74,8 +74,17 @@ export const buildMonthReceipts = ({
 }) => {
   const isPastMonth = PAST_MONTHS.includes(month);
   const monthNum = MONTH_NUMBERS[month] || '10';
-  const academicLevels = tariffsConfig?.academicLevels || DEFAULT_LEVEL_PRICES;
-  const sportsTariffs = tariffsConfig?.sports || {};
+  let academicLevels = DEFAULT_LEVEL_PRICES;
+  if (Array.isArray(tariffsConfig?.tariffs?.academicLevels)) {
+    const map = {};
+    tariffsConfig.tariffs.academicLevels.forEach((l) => {
+      if (l.id) map[l.id] = Number(l.amount) || 0;
+    });
+    academicLevels = { ...DEFAULT_LEVEL_PRICES, ...map };
+  } else if (tariffsConfig?.academicLevels) {
+    academicLevels = { ...DEFAULT_LEVEL_PRICES, ...tariffsConfig.academicLevels };
+  }
+  const sportsTariffs = tariffsConfig?.sportsPrices || tariffsConfig?.sports || tariffsConfig?.sportsActivities || {};
 
   // Función auxiliar para obtener el precio base de nivel
   const getLevelPrice = (rawNivel) => {
@@ -90,6 +99,7 @@ export const buildMonthReceipts = ({
     const sId = String(student.id || '').trim();
     const sDni = cleanDni(student.dni);
     const sLeg = String(student.legajo || '').trim().toLowerCase();
+    const sName = String(student.name || student.nombre || '').trim().toLowerCase();
 
     const enrolled = [];
     (disciplines || []).forEach((disc) => {
@@ -99,9 +109,18 @@ export const buildMonthReceipts = ({
         const insId = String(ins.id || '').trim();
         const insDni = cleanDni(ins.dni);
         const insLeg = String(ins.legajo || '').trim().toLowerCase();
+        const insName = String(ins.nombre || ins.name || '').trim().toLowerCase();
+
         if (sId && insId && sId === insId) return true;
         if (sDni && insDni && sDni === insDni) return true;
         if (sLeg && insLeg && sLeg === insLeg) return true;
+        if (
+          sName &&
+          insName &&
+          (sName === insName || sName.includes(insName) || insName.includes(sName))
+        ) {
+          return true;
+        }
         return false;
       });
 
@@ -109,7 +128,9 @@ export const buildMonthReceipts = ({
         const sportPrice =
           Number(sportsTariffs[disc.id]) ||
           Number(sportsTariffs[disc.nombre]) ||
+          Number(sportsTariffs[disc.nombre?.toLowerCase()]) ||
           Number(disc.price) ||
+          Number(disc.precio) ||
           DEFAULT_SPORT_PRICE;
 
         enrolled.push({
@@ -299,12 +320,19 @@ export const buildMonthReceipts = ({
         },
       ];
 
-      // Mantener deportes originales si no hay coincidencia en Firestore
-      if (sports.length === 0) {
-        child.feeBreakdown.slice(1).forEach((existingFee) => {
+      // Mantener conceptos que no sean talleres extracurriculares (ej. Comedor, Transporte)
+      child.feeBreakdown.slice(1).forEach((existingFee) => {
+        const isSport =
+          existingFee.label.toLowerCase().includes('taller') ||
+          existingFee.label.toLowerCase().includes('natación') ||
+          existingFee.dotClass === 'bg-secondary';
+        if (!isSport) {
           feeBreakdown.push(existingFee);
-        });
-      } else {
+        }
+      });
+
+      // Añadir todas las actividades extracurriculares en las que esté inscripto en Firestore
+      if (sports.length > 0) {
         sports.forEach((sp) => {
           feeBreakdown.push({
             id: `fee-sport-${sp.disciplineId}-${child.id}`,
@@ -312,6 +340,13 @@ export const buildMonthReceipts = ({
             amount: sp.price,
             dotClass: 'bg-secondary',
           });
+        });
+      } else {
+        // Si no hay deportes en Firestore, mantener los originales
+        child.feeBreakdown.slice(1).forEach((existingFee) => {
+          if (existingFee.dotClass === 'bg-secondary' && !feeBreakdown.some((f) => f.id === existingFee.id)) {
+            feeBreakdown.push(existingFee);
+          }
         });
       }
 
@@ -325,6 +360,17 @@ export const buildMonthReceipts = ({
     });
 
     const declaredAmount = updatedChildren.reduce((sum, c) => sum + c.totalAmount, 0);
+    const allSportsNames = updatedChildren.flatMap((c) =>
+      c.feeBreakdown
+        .filter((f) => f.dotClass === 'bg-secondary')
+        .map((f) => f.label.replace('Taller Extracurricular: ', ''))
+    );
+    const uniqueSports = Array.from(new Set(allSportsNames));
+    const conceptSummary =
+      uniqueSports.length > 0
+        ? `Cuota + ${uniqueSports.join(', ')}`
+        : 'Cuota Curricular';
+
     const status = isPastMonth ? 'aprobado' : item.status;
     const receiptNumber = isPastMonth
       ? `#REC-2026-${monthNum}${String(index + 1).padStart(3, '0')}`
@@ -352,6 +398,7 @@ export const buildMonthReceipts = ({
       uploadDate,
       uploadTime,
       declaredAmount,
+      conceptSummary,
       children: updatedChildren,
       bankingVoucher,
     };
@@ -524,3 +571,205 @@ export const rejectPaymentApi = async (receiptId, reason) => {
 
   return finalReason;
 };
+
+/**
+ * Recalcula el saldo de todos los tutores/comprobantes para el mes indicado,
+ * sincronizando las inscripciones a actividades extracurriculares y tarifas actuales
+ * con Firebase Firestore.
+ */
+export const recalculateAllBalancesApi = async (month) => {
+  await ensureAdminAuth();
+
+  // 1. Obtener datos frescos desde Firestore en paralelo
+  const [tariffsConfig, disciplines, studentsSnap, receiptsSnap] = await Promise.all([
+    fetchTariffsConfig().catch(() => null),
+    fetchSportsActivities().catch(() => []),
+    getDocs(collection(db, 'students')).catch(() => ({ docs: [] })),
+    getDocs(query(collection(db, RECEIPTS_COLLECTION), where('month', '==', month))).catch(() => ({ docs: [] })),
+  ]);
+
+  const students = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  // Si no existen recibos para este mes, inicializarlos
+  if (receiptsSnap.empty) {
+    return await fetchOrSeedMonthReceiptsApi(month);
+  }
+
+  // 2. Extraer precios de niveles y de actividades deportivas
+  let academicLevels = DEFAULT_LEVEL_PRICES;
+  if (Array.isArray(tariffsConfig?.tariffs?.academicLevels)) {
+    const map = {};
+    tariffsConfig.tariffs.academicLevels.forEach((l) => {
+      if (l.id) map[l.id] = Number(l.amount) || 0;
+    });
+    academicLevels = { ...DEFAULT_LEVEL_PRICES, ...map };
+  } else if (tariffsConfig?.academicLevels) {
+    academicLevels = { ...DEFAULT_LEVEL_PRICES, ...tariffsConfig.academicLevels };
+  }
+  const sportsTariffs =
+    tariffsConfig?.sportsPrices || tariffsConfig?.sports || tariffsConfig?.sportsActivities || {};
+
+  const getLevelPrice = (rawNivel) => {
+    const n = String(rawNivel || '').toLowerCase();
+    if (n.includes('ini')) return Number(academicLevels.inicial) || DEFAULT_LEVEL_PRICES.inicial;
+    if (n.includes('sec')) return Number(academicLevels.secundario) || DEFAULT_LEVEL_PRICES.secundario;
+    return Number(academicLevels.primario) || DEFAULT_LEVEL_PRICES.primario;
+  };
+
+  const getStudentSports = (student) => {
+    const sId = String(student.id || '').trim();
+    const sDni = cleanDni(student.dni);
+    const sLeg = String(student.legajo || '').trim().toLowerCase();
+    const sName = String(student.name || student.nombre || '').trim().toLowerCase();
+
+    const enrolled = [];
+    (disciplines || []).forEach((disc) => {
+      const inscriptos = Array.isArray(disc.inscriptos) ? disc.inscriptos : [];
+      const isIn = inscriptos.some((ins) => {
+        if (!ins) return false;
+        const insId = String(ins.id || '').trim();
+        const insDni = cleanDni(ins.dni);
+        const insLeg = String(ins.legajo || '').trim().toLowerCase();
+        const insName = String(ins.nombre || ins.name || '').trim().toLowerCase();
+
+        if (sId && insId && sId === insId) return true;
+        if (sDni && insDni && sDni === insDni) return true;
+        if (sLeg && insLeg && sLeg === insLeg) return true;
+        if (
+          sName &&
+          insName &&
+          (sName === insName || sName.includes(insName) || insName.includes(sName))
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      if (isIn) {
+        const sportPrice =
+          Number(sportsTariffs[disc.id]) ||
+          Number(sportsTariffs[disc.nombre]) ||
+          Number(sportsTariffs[disc.nombre?.toLowerCase()]) ||
+          Number(disc.price) ||
+          Number(disc.precio) ||
+          DEFAULT_SPORT_PRICE;
+
+        enrolled.push({
+          disciplineId: disc.id,
+          name: disc.nombre,
+          price: sportPrice,
+        });
+      }
+    });
+
+    return enrolled;
+  };
+
+  // 3. Recalcular cada comprobante en Firestore
+  const batch = writeBatch(db);
+  const updatedReceipts = [];
+
+  for (const docSnap of receiptsSnap.docs) {
+    const currentData = docSnap.data();
+    const existingChildren = Array.isArray(currentData.children) ? currentData.children : [];
+
+    const updatedChildren = existingChildren.map((child, cIdx) => {
+      const sId = String(child.id || '').trim();
+      const sLeg = String(child.legajo || '').trim().toLowerCase();
+      const sName = String(child.name || child.nombre || '').trim().toLowerCase();
+
+      const matchedStudent = students.find((st) => {
+        const stId = String(st.id || '').trim();
+        const stLeg = String(st.legajo || st.studentID_login || '').trim().toLowerCase();
+        const stName = `${st.nombre || ''} ${st.apellido || ''}`.trim().toLowerCase();
+        if (sId && stId && sId === stId) return true;
+        if (sLeg && stLeg && sLeg === stLeg) return true;
+        if (sName && stName && (sName === stName || sName.includes(stName) || stName.includes(sName))) {
+          return true;
+        }
+        return false;
+      });
+
+      const enrichedChild = {
+        ...child,
+        ...(matchedStudent ? { dni: matchedStudent.dni, nivel: matchedStudent.nivel } : {}),
+      };
+
+      const sports = getStudentSports(enrichedChild);
+      const baseLevelPrice = getLevelPrice(enrichedChild.nivel || enrichedChild.academicInfo);
+
+      const baseFeeItem = {
+        id: child.feeBreakdown?.[0]?.id || `fee-base-${child.id || cIdx}`,
+        label: child.feeBreakdown?.[0]?.label || 'Cuota Base Curricular',
+        amount: baseLevelPrice > 0 ? baseLevelPrice : (child.feeBreakdown?.[0]?.amount || DEFAULT_LEVEL_PRICES.primario),
+        dotClass: 'bg-primary',
+      };
+
+      const feeBreakdown = [baseFeeItem];
+
+      // Conservar conceptos no deportivos (Comedor, Transporte, etc.)
+      (child.feeBreakdown || []).slice(1).forEach((existingFee) => {
+        const isSport =
+          existingFee.label.toLowerCase().includes('taller') ||
+          existingFee.label.toLowerCase().includes('natación') ||
+          existingFee.dotClass === 'bg-secondary';
+        if (!isSport) {
+          feeBreakdown.push(existingFee);
+        }
+      });
+
+      // Añadir las actividades extracurriculares encontradas
+      sports.forEach((sp) => {
+        feeBreakdown.push({
+          id: `fee-sport-${sp.disciplineId}-${child.id || cIdx}`,
+          label: `Taller Extracurricular: ${sp.name}`,
+          amount: sp.price,
+          dotClass: 'bg-secondary',
+        });
+      });
+
+      const totalAmount = feeBreakdown.reduce((sum, f) => sum + f.amount, 0);
+
+      return {
+        ...child,
+        feeBreakdown,
+        totalAmount,
+      };
+    });
+
+    const declaredAmount = updatedChildren.reduce((sum, c) => sum + c.totalAmount, 0);
+    const allSportsNames = updatedChildren.flatMap((c) =>
+      c.feeBreakdown
+        .filter((f) => f.dotClass === 'bg-secondary')
+        .map((f) => f.label.replace('Taller Extracurricular: ', ''))
+    );
+    const uniqueSports = Array.from(new Set(allSportsNames));
+    const conceptSummary =
+      uniqueSports.length > 0
+        ? `Cuota + ${uniqueSports.join(', ')}`
+        : 'Cuota Curricular';
+
+    const updatedDocData = {
+      ...currentData,
+      id: docSnap.id,
+      children: updatedChildren,
+      declaredAmount,
+      conceptSummary,
+      updatedAt: serverTimestamp(),
+    };
+
+    updatedReceipts.push(updatedDocData);
+
+    const docRef = doc(db, RECEIPTS_COLLECTION, docSnap.id);
+    batch.update(docRef, {
+      children: updatedChildren,
+      declaredAmount,
+      conceptSummary,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
+  return updatedReceipts;
+};
+

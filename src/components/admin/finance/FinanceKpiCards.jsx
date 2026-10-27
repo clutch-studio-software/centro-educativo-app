@@ -118,51 +118,6 @@ const FinanceKpiCards = ({
           />
         </div>
       </div>
-
-      {/* KPI 3: Tasa de Cobrabilidad */}
-      <div
-        data-testid="kpi-collection-rate"
-        className="relative overflow-hidden rounded-md bg-white p-5 shadow-sm border border-slate-200/80 transition-all hover:shadow-md"
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex flex-col">
-            <span
-              data-testid="kpi-collection-rate-title"
-              className="text-xs uppercase tracking-wider font-semibold text-slate-500"
-            >
-              Tasa de Cobrabilidad
-            </span>
-            <div className="flex items-baseline gap-2 mt-2">
-              <span
-                data-testid="kpi-collection-rate-value"
-                className="font-headline font-extrabold text-2xl lg:text-3xl text-slate-900 tracking-tight"
-              >
-                92.4%
-              </span>
-              <span className="text-xs font-semibold text-slate-500">del padrón</span>
-            </div>
-          </div>
-          <div
-            className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 shadow-xs"
-            aria-hidden="true"
-          >
-            <span className="material-symbols-outlined text-[22px]">verified_user</span>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center justify-between text-xs">
-          <span className="text-slate-500 font-medium">Meta proyectada: 90%</span>
-          <span className="font-bold text-emerald-700 flex items-center gap-0.5">
-            <span className="material-symbols-outlined text-[15px]">check_circle</span>
-            +2.4% sobre objetivo
-          </span>
-        </div>
-        <div className="mt-4 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-          <div
-            className="bg-blue-600 h-full rounded-full transition-all duration-500"
-            style={{ width: '92.4%' }}
-          />
-        </div>
-      </div>
     </div>
   );
 };

@@ -4,10 +4,12 @@ import {
   subscribeToMonthReceipts,
   approvePaymentApi,
   rejectPaymentApi,
+  recalculateAllBalancesApi,
 } from '../../../services/financeService';
 
 export const useFinanceManagement = () => {
   const [receipts, setReceipts] = useState(INITIAL_RECEIPTS);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const [activeTab, setActiveTab] = useState('comprobantes'); // 'comprobantes' | 'aranceles'
   const [expandedRowId, setExpandedRowId] = useState('fam-0118'); // open by default as in HTML
   const [searchTerm, setSearchTerm] = useState('');
@@ -169,6 +171,28 @@ export const useFinanceManagement = () => {
     showNotification('success', 'Balance financiero exportado exitosamente en formato CSV.');
   }, [receipts, showNotification]);
 
+  const handleRecalculateBalances = useCallback(async () => {
+    setIsRecalculating(true);
+    try {
+      const updated = await recalculateAllBalancesApi(selectedMonth);
+      if (Array.isArray(updated) && updated.length > 0) {
+        setReceipts(updated);
+      }
+      showNotification({
+        type: 'success',
+        message: `¡Saldos recalculados con éxito para ${selectedMonth}! Se actualizaron los aranceles y actividades extracurriculares de todos los tutores.`,
+      });
+    } catch (err) {
+      console.error('Error recalculando saldos:', err);
+      showNotification({
+        type: 'error',
+        message: `Error al recalcular saldos: ${err.message || 'Ocurrió un error inesperado.'}`,
+      });
+    } finally {
+      setIsRecalculating(false);
+    }
+  }, [selectedMonth, showNotification]);
+
   const handleResetFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedStatus(FINANCE_STATUSES.TODOS);
@@ -267,6 +291,8 @@ export const useFinanceManagement = () => {
     handleApprovePayment,
     handleRejectPayment,
     handleExportBalance,
+    handleRecalculateBalances,
+    isRecalculating,
     handleResetFilters,
   };
 };

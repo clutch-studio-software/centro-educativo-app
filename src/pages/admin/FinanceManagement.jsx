@@ -49,6 +49,8 @@ const FinanceManagement = () => {
     handleApprovePayment,
     handleRejectPayment,
     handleExportBalance,
+    handleRecalculateBalances,
+    isRecalculating,
     handleResetFilters,
   } = useFinanceManagement();
 
@@ -98,7 +100,11 @@ const FinanceManagement = () => {
             className="flex flex-col gap-5 animate-in fade-in duration-200"
           >
             {/* Encabezado Principal y Acciones */}
-            <FinanceHeader onExportBalance={handleExportBalance} />
+            <FinanceHeader
+              onExportBalance={handleExportBalance}
+              onRecalculateBalances={handleRecalculateBalances}
+              isRecalculating={isRecalculating}
+            />
 
             {/* Quick KPI Strip Bento */}
             <div className="my-2">
