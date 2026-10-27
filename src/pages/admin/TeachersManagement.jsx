@@ -83,7 +83,7 @@ const TeachersManagementHeader = ({ onExportNomina, onOpenNewTeacherModal }) => 
     <div className="flex flex-wrap items-center justify-between gap-4">
       <AdminSectionTitle
         icon="badge"
-        title="Gestión del Plantel Docente y Académico"
+        title="Gestión del Plantel Docente"
         subtitle="Administración centralizada de legajos docentes, designaciones y estado de personal."
       />
 
