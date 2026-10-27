@@ -14,7 +14,9 @@
     "clean:teachers": "node scripts/clean_teachers.mjs",
     "seed:teachers:cf": "node scripts/seed_teachers_cf.mjs",
     "prepare": "husky",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "firebase": "^12.14.0",
@@ -24,6 +26,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
