@@ -72,7 +72,7 @@ const Navbar = ({ noButtons = false }) => {
           />
           <span className="logo-text">Educar para Transformar</span>
         </Link>
-        {!noButtons && <DesktopLinks />}
+        {!noButtons && (isAdmin || !isLoggedIn) && <DesktopLinks />}
         <div className="navbar-actions">
           {isLoggedIn && user ? (
             <UserMenu

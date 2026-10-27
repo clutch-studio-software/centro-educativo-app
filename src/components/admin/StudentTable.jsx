@@ -52,11 +52,10 @@ const StudentFloatingMenu = ({
               setActiveMenuStudentId(null);
               onToggleStatusStudent(target);
             }}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
-              activeStudent.estado === 'Baja Administrativa'
+            className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${activeStudent.estado === 'Baja Administrativa'
                 ? 'text-emerald-700 hover:bg-emerald-50'
                 : 'text-amber-700 hover:bg-amber-50'
-            }`}
+              }`}
             type="button"
           >
             <span className="material-symbols-outlined text-[18px]">
@@ -230,11 +229,10 @@ const StudentInfoCell = ({ student, isInactive }) => {
         <div className="flex flex-col min-w-0">
           <span
             data-testid={`student-name-${student.id}`}
-            className={`font-bold truncate transition-colors ${
-              isInactive
+            className={`font-bold truncate transition-colors ${isInactive
                 ? 'text-slate-400 line-through'
                 : 'text-slate-800 group-hover:text-blue-600'
-            }`}
+              }`}
           >
             {student.nombre}
           </span>
@@ -287,9 +285,8 @@ const StudentAcademicCell = ({ student, isInactive }) => {
               <span className="text-slate-300 font-normal select-none">|</span>
               <span
                 data-testid={`student-division-${student.id}`}
-                className={`text-xs ${
-                  isInactive ? 'text-slate-400' : 'text-slate-600 font-medium'
-                }`}
+                className={`text-xs ${isInactive ? 'text-slate-400' : 'text-slate-600 font-medium'
+                  }`}
               >
                 {formatDivision(student.division)}
               </span>
@@ -308,6 +305,7 @@ const StudentActionsCell = ({
   onGenerateCertificate,
   isMenuOpen,
   onToggleMenu,
+  canRegisterStudent
 }) => (
   <td className="py-4 px-6 text-right">
     <div className="flex items-center justify-end gap-1">
@@ -339,19 +337,20 @@ const StudentActionsCell = ({
         </button>
       )}
 
-      <button
-        data-testid={`student-action-certificate-${student.id}`}
-        onClick={() =>
-          onGenerateCertificate && onGenerateCertificate(student)
-        }
-        className="p-1.5 rounded-full text-slate-400 hover:text-orange-500 hover:bg-orange-50 transition-colors cursor-pointer border-none bg-transparent"
-        title="Constancia Regular (PDF)"
-        type="button"
-      >
-        <span className="material-symbols-outlined text-[18px]">
-          description
-        </span>
-      </button>
+      {canRegisterStudent &&
+        <button
+          data-testid={`student-action-certificate-${student.id}`}
+          onClick={() =>
+            onGenerateCertificate && onGenerateCertificate(student)
+          }
+          className="p-1.5 rounded-full text-slate-400 hover:text-orange-500 hover:bg-orange-50 transition-colors cursor-pointer border-none bg-transparent"
+          title="Constancia Regular (PDF)"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-[18px]">
+            description
+          </span>
+        </button>}
 
       <div
         data-testid={`student-options-container-${student.id}`}
@@ -360,11 +359,10 @@ const StudentActionsCell = ({
         <button
           data-testid={`student-action-options-${student.id}`}
           onClick={onToggleMenu}
-          className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${
-            isMenuOpen
+          className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${isMenuOpen
               ? 'bg-slate-200 text-slate-800 shadow-xs'
               : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100 bg-transparent'
-          }`}
+            }`}
           title="Opciones avanzadas"
           type="button"
         >
@@ -386,6 +384,7 @@ const StudentTableRow = ({
   activeMenuStudentId,
   setActiveMenuStudentId,
   setMenuPosition,
+  canRegisterStudent
 }) => {
   const isInactive = student.isInactive || student.estado === 'Baja Administrativa';
   const isMenuOpen = activeMenuStudentId === student.id;
@@ -412,11 +411,10 @@ const StudentTableRow = ({
       <td className="py-4 px-6 whitespace-nowrap min-w-[130px]">
         <span
           data-testid={`student-legajo-${student.id}`}
-          className={`whitespace-nowrap font-mono text-xs font-bold rounded-lg px-2.5 py-1 inline-block border ${
-            isInactive
+          className={`whitespace-nowrap font-mono text-xs font-bold rounded-lg px-2.5 py-1 inline-block border ${isInactive
               ? 'text-slate-500 bg-slate-100 border-slate-200/70'
               : 'text-blue-700 bg-blue-50/70 border-blue-100'
-          }`}
+            }`}
         >
           {student.legajo}
         </span>
@@ -425,9 +423,8 @@ const StudentTableRow = ({
       {/* DNI */}
       <td
         data-testid={`student-dni-${student.id}`}
-        className={`py-4 px-6 font-mono font-semibold ${
-          isInactive ? 'text-slate-400' : 'text-slate-600'
-        }`}
+        className={`py-4 px-6 font-mono font-semibold ${isInactive ? 'text-slate-400' : 'text-slate-600'
+          }`}
       >
         {student.dni}
       </td>
@@ -446,6 +443,7 @@ const StudentTableRow = ({
         onGenerateCertificate={onGenerateCertificate}
         isMenuOpen={isMenuOpen}
         onToggleMenu={handleToggleMenu}
+        canRegisterStudent={canRegisterStudent}
       />
     </tr>
   );
@@ -462,6 +460,7 @@ const StudentTable = ({
   onResetStudentPassword,
   onResetTutorPassword,
   onResetFilters,
+  canRegisterStudent
 }) => {
   const [activeMenuStudentId, setActiveMenuStudentId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0, openUpwards: false });
@@ -564,6 +563,7 @@ const StudentTable = ({
                 activeMenuStudentId={activeMenuStudentId}
                 setActiveMenuStudentId={setActiveMenuStudentId}
                 setMenuPosition={setMenuPosition}
+                canRegisterStudent={canRegisterStudent}
               />
             ))
           )}

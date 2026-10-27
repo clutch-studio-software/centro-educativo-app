@@ -118,6 +118,16 @@ export const callAdminFunction = async (endpoint, payload) => {
  */
 export const fetchAdminDashboardData = async () => {
   try {
+    if (!auth.currentUser && localStorage.getItem('school_user')) {
+      await new Promise((resolve) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+          unsubscribe();
+          resolve(user);
+        });
+        setTimeout(resolve, 1500);
+      });
+    }
+
     const usersSnap = await getDocs(collection(db, 'users'));
     const studentsSnap = await getDocs(collection(db, 'students'));
 

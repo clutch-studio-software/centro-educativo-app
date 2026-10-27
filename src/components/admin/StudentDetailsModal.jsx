@@ -211,11 +211,10 @@ const StudentExtracurricularBlock = ({ enrolledDisciplines = [] }) => {
           Actividades Extracurriculares & Deportivas
         </span>
         <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-            hasDisciplines
-              ? 'bg-blue-50 text-blue-700 border-blue-200'
-              : 'bg-slate-100 text-slate-500 border-slate-200'
-          }`}
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${hasDisciplines
+            ? 'bg-blue-50 text-blue-700 border-blue-200'
+            : 'bg-slate-100 text-slate-500 border-slate-200'
+            }`}
         >
           {enrolledDisciplines.length}/2 permitidas
         </span>
@@ -268,7 +267,7 @@ const StudentExtracurricularBlock = ({ enrolledDisciplines = [] }) => {
   );
 };
 
-const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines }) => {
+const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines, isAdminRole }) => {
   const cursoDisplay = student.curso && student.curso !== 'sin asignar' ? student.curso : 'Sin asignar';
   const divisionDisplay =
     student.division && student.division !== 'sin asignar'
@@ -314,8 +313,9 @@ const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines }) =>
         </div>
       </div>
 
-      <StudentInstitutionalServicesBlock student={student} />
-      <StudentExtracurricularBlock enrolledDisciplines={enrolledDisciplines} />
+      {isAdminRole && <StudentInstitutionalServicesBlock student={student} />
+      }
+      {isAdminRole && <StudentExtracurricularBlock enrolledDisciplines={enrolledDisciplines} />}
     </div>
   );
 };
@@ -605,11 +605,10 @@ const NewPreceptoriaEntryForm = ({ onSave, onCancel }) => {
         <button
           type="submit"
           disabled={!motivo.trim()}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1 ${
-            !motivo.trim()
-              ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
-          }`}
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1 ${!motivo.trim()
+            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+            }`}
         >
           <span className="material-symbols-outlined text-[14px]">save</span>
           <span>Guardar Entrada</span>
@@ -637,11 +636,10 @@ const StudentPreceptoriaSection = ({ entradas = [], onAddEntry, onDeleteEntry })
         </h3>
         <div className="flex items-center gap-2">
           <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-              hasEntradas
-                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                : 'bg-slate-200/70 text-slate-400 border-transparent'
-            }`}
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${hasEntradas
+              ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+              : 'bg-slate-200/70 text-slate-400 border-transparent'
+              }`}
           >
             {hasEntradas ? `${entradas.length} ${entradas.length === 1 ? 'registro' : 'registros'}` : '0 registros'}
           </span>
@@ -700,7 +698,7 @@ const StudentPreceptoriaSection = ({ entradas = [], onAddEntry, onDeleteEntry })
 const EnfermeriaEntryItem = ({ entry }) => (
   <div
     data-testid={`enfermeria-entry-${entry.id || entry.fecha}`}
-    className="p-3 bg-white border border-slate-200/90 rounded-xl space-y-2 text-left shadow-xs transition-all hover:border-rose-200"
+    className="p-3 bg-white border border-slate-200/90 rounded-md space-y-2 text-left shadow-xs transition-all hover:border-rose-200"
   >
     <div className="flex items-center justify-between flex-wrap gap-2">
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -775,7 +773,7 @@ const NewEnfermeriaEntryForm = ({ onSave, onCancel }) => {
     <form
       data-testid="new-enfermeria-entry-form"
       onSubmit={handleSubmit}
-      className="p-3.5 bg-rose-50/60 border border-rose-200/80 rounded-xl space-y-3 text-xs"
+      className="p-3.5 bg-rose-50/60 border border-rose-200/80 rounded-md space-y-3 text-xs"
     >
       <div className="flex items-center justify-between">
         <span className="font-bold text-rose-950 text-xs flex items-center gap-1.5">
@@ -831,7 +829,7 @@ const NewEnfermeriaEntryForm = ({ onSave, onCancel }) => {
           value={motivo}
           onChange={(e) => setMotivo(e.target.value)}
           placeholder="Describa la atención brindada, síntomas, signos vitales o medicación administrada..."
-          className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs text-slate-800"
+          className="w-full p-2 bg-white border border-slate-200 rounded-md text-xs text-slate-800"
           required
         />
       </div>
@@ -862,11 +860,10 @@ const NewEnfermeriaEntryForm = ({ onSave, onCancel }) => {
           type="submit"
           data-testid="save-enfermeria-entry-btn"
           disabled={!motivo.trim()}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1 ${
-            !motivo.trim()
-              ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              : 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
-          }`}
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border-none cursor-pointer flex items-center gap-1 ${!motivo.trim()
+            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+            : 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs'
+            }`}
         >
           <span className="material-symbols-outlined text-[14px]">save</span>
           <span>Guardar Atención</span>
@@ -894,11 +891,10 @@ const StudentEnfermeriaSection = ({ entradas = [], onAddEntry }) => {
         </h3>
         <div className="flex items-center gap-2">
           <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-              hasEntradas
-                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                : 'bg-slate-200/70 text-slate-400 border-transparent'
-            }`}
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${hasEntradas
+              ? 'bg-rose-50 text-rose-700 border-rose-200'
+              : 'bg-slate-200/70 text-slate-400 border-transparent'
+              }`}
           >
             {hasEntradas ? `${entradas.length} ${entradas.length === 1 ? 'registro' : 'registros'}` : '0 registros'}
           </span>
@@ -1063,7 +1059,7 @@ const StudentDetailsModal = ({
           setStudentDocData(snap.data());
         }
       },
-      () => {}
+      () => { }
     );
 
     return () => {
@@ -1087,6 +1083,9 @@ const StudentDetailsModal = ({
   }, [studentDocData, student]);
 
   const userRoleNorm = normalizeRole(currentUser?.role);
+  const isAdminRole =
+    currentUser?.role === 'user_admin' ||
+    ['Directivo', 'Administrativo'].includes(userRoleNorm);
   const canAddEnfermeria =
     currentUser?.role === 'user_admin' ||
     ['Directivo', 'Administrativo', 'Enfermeria'].includes(userRoleNorm);
@@ -1148,6 +1147,7 @@ const StudentDetailsModal = ({
             student={student}
             nivelStyle={nivelStyle}
             enrolledDisciplines={enrolledDisciplines}
+            isAdminRole={isAdminRole}
           />
           <StudentPersonalSection student={student} edad={edad} />
           <StudentTutorSection tutorInfo={tutorInfo} />
@@ -1159,11 +1159,11 @@ const StudentDetailsModal = ({
           />
 
           {/* SECCIÓN 5: Entradas de Preceptoría */}
-          <StudentPreceptoriaSection
+          {canAddPreceptoria && <StudentPreceptoriaSection
             entradas={entradasPreceptoria}
             onAddEntry={canAddPreceptoria ? handleAddPreceptoriaEntry : null}
             onDeleteEntry={canAddPreceptoria ? handleDeletePreceptoriaEntry : null}
-          />
+          />}
         </div>
 
         {/* Footer */}

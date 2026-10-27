@@ -390,6 +390,7 @@ const StudentsTableSection = ({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange,
+  canRegisterStudent
 }) => (
   <section data-testid="students-table-section" className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col">
     <StudentTable
@@ -403,6 +404,7 @@ const StudentsTableSection = ({
       onResetStudentPassword={onResetStudentPassword}
       onResetTutorPassword={onResetTutorPassword}
       onResetFilters={onResetFilters}
+      canRegisterStudent={canRegisterStudent}
     />
 
     <StudentPagination
@@ -964,6 +966,7 @@ const StudentsManagement = () => {
             setItemsPerPage(val);
             setCurrentPage(1);
           }}
+          canRegisterStudent={canRegisterStudent}
         />
       </div>
 
