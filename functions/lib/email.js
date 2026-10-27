@@ -44,7 +44,7 @@ const nodemailer = __importStar(require("nodemailer"));
  */
 async function sendEmail({ to, subject, html }) {
     const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
+    const port = process.env.SMTP_PORT ? Number.parseInt(process.env.SMTP_PORT) : 587;
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
     let transporter;
@@ -64,8 +64,8 @@ async function sendEmail({ to, subject, html }) {
             const testAccount = await nodemailer.createTestAccount();
             transporter = nodemailer.createTransport({
                 host: 'smtp.ethereal.email',
-                port: 587,
-                secure: false,
+                port: 465,
+                secure: true,
                 auth: {
                     user: testAccount.user,
                     pass: testAccount.pass

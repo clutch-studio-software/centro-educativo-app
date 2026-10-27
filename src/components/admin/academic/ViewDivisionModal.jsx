@@ -110,13 +110,18 @@ const ViewDivisionModal = ({
   return (
     <div
       data-testid="view-division-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
     >
+      {/* Backdrop */}
       <div
-        className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
+        data-testid="view-division-modal-backdrop"
+        onClick={onClose}
+        aria-hidden="true"
+        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200"
+      />
+
+      {/* Modal Content */}
+      <div className="relative z-10 bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         <DivisionModalHeader course={course} onClose={onClose} />
 
         {/* Modal Body - Scrollable */}

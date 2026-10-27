@@ -20,6 +20,8 @@ import { MOCK_STUDENTS } from '../data/mockStudents.js';
 import { sortWeekDays } from '../components/admin/sports/sportsScheduleUtils.js';
 
 const SPORTS_COLLECTION = 'sportsActivities';
+const generarId = (prefijo) => `${prefijo}-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
+
 
 /**
  * Normaliza un objeto de disciplina deportiva obtenido de Firestore o mock
@@ -50,11 +52,11 @@ export const normalizeSportActivity = (docId, data = {}) => {
         data.profesor?.iniciales ||
         (data.profesor?.nombre
           ? data.profesor.nombre
-              .split(' ')
-              .map((w) => w[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase()
+            .split(' ')
+            .map((w) => w[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase()
           : 'PR'),
       email: data.profesor?.email || 'profesor@colegio.edu.ar',
       telefono: data.profesor?.telefono || '+54 11 0000-0000',
@@ -164,7 +166,7 @@ export const subscribeToSportsActivities = (onUpdate, onError) => {
     (snap) => {
       if (snap.empty) {
         // En caso de estar vacía, autosembrar y emitir default
-        seedInitialSportsIfEmpty().then(() => {
+        void seedInitialSportsIfEmpty().then(() => {
           onUpdate(
             INITIAL_DISCIPLINES.map((d) =>
               normalizeSportActivity(d.id, {
@@ -603,7 +605,7 @@ export const addPreceptoriaNoteToStudent = async ({
     const authorEmailFromAuth = currentAuthUser?.email || '';
 
     const newNote = {
-      id: `prec-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: generarId('prec'),
       fecha: new Date().toISOString(),
       autor: note?.autor || authorFromAuth,
       autorRol: note?.autorRol || 'Preceptoría / Administración',
@@ -692,7 +694,7 @@ export const addEnfermeriaNoteToStudent = async ({
     const authorEmailFromAuth = currentAuthUser?.email || '';
 
     const newNote = {
-      id: `enf-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      id: generarId('enf'),
       fecha: new Date().toISOString(),
       autor: note?.autor || authorFromAuth,
       autorRol: note?.autorRol || 'Enfermería Escolar',
