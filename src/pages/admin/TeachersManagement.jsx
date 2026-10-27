@@ -74,7 +74,7 @@ const useTeachersAuthCheck = (navigate, loadTeachers) => {
       }
     };
 
-    checkTeachersAuth();
+    void checkTeachersAuth();
   }, [navigate, loadTeachers]);
 };
 
@@ -189,11 +189,11 @@ const TeachersManagement = () => {
     let isMounted = true;
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user && isMounted) {
-        loadTeachers();
+        void loadTeachers();
       }
     });
 
-    loadTeachers();
+    void loadTeachers();
 
     return () => {
       isMounted = false;

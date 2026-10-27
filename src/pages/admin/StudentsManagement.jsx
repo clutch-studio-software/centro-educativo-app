@@ -257,7 +257,7 @@ const useAdminAuthCheck = (navigate) => {
       }
     };
 
-    checkStaffAuth();
+    void checkStaffAuth();
   }, [navigate]);
 };
 
@@ -813,7 +813,7 @@ const StudentsManagement = () => {
   }, []);
 
   useEffect(() => {
-    loadStudentsData();
+    void loadStudentsData();
   }, [loadStudentsData]);
 
   // Compute Dynamic Institutional Metrics from live students

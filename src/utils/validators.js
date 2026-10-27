@@ -1,7 +1,7 @@
 /**
  * Expresión regular estándar para la validación de direcciones de correo electrónico.
  */
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
 
 /**
  * Valida si una cadena de texto corresponde a un formato de correo electrónico válido.
@@ -54,7 +54,12 @@ export const sanitizeDigitsOnly = (value) => {
 export const formatDni = (value) => {
   if (!value) return '';
   const digits = sanitizeDigitsOnly(value).slice(0, 8);
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const len = digits.length;
+  if (len <= 3) return digits;
+  if (len <= 6) {
+    return `${digits.slice(0, len - 3)}.${digits.slice(len - 3)}`;
+  }
+  return `${digits.slice(0, len - 6)}.${digits.slice(len - 6, len - 3)}.${digits.slice(len - 3)}`;
 };
 
 /**

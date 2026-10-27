@@ -228,7 +228,9 @@ export const createTeacherApi = async (teacherData) => {
   await ensureAdminAuth();
 
   const year = new Date().getFullYear();
-  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  const randomArray = new Uint32Array(1);
+  crypto.getRandomValues(randomArray);
+  const randomNum = 1000 + (randomArray[0] % 9000);
   const legajo = teacherData.legajo || `#DOC-${year}-${randomNum}`;
 
   const cleanNombre = (teacherData.nombre || '').trim();

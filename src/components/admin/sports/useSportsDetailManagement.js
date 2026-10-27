@@ -347,7 +347,7 @@ export const useSportsDetailManagement = () => {
     try {
       await deleteSportActivityApi(discipline.id);
       setIsDeleteModalOpen(false);
-      navigate('/admin/servicios');
+      void navigate('/admin/servicios');
     } catch (err) {
       console.error('Error al eliminar actividad extracurricular:', err);
       showToast(`Error al eliminar la actividad: ${err.message}`, 'error');

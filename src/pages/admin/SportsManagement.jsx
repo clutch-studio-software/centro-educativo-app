@@ -129,7 +129,7 @@ const SportsManagement = () => {
         <DisciplineTable
           disciplines={currentDisciplines}
           onViewDetails={(disc) => {
-            navigate(`/admin/servicios/detalle/${disc.id || 'disc-1'}`);
+            void navigate(`/admin/servicios/detalle/${disc.id || 'disc-1'}`);
           }}
           onEditDiscipline={(disc) => setEditingDiscipline(disc)}
           onDeleteDiscipline={(disc) => setDeletingDiscipline(disc)}

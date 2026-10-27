@@ -188,34 +188,42 @@ const SidebarBrandHeader = ({ isCollapsed, onToggleCollapse, onCloseMobile }) =>
     } border-b border-slate-50 transition-all duration-300`}
   >
     <div className={`flex items-center ${isCollapsed ? 'lg:justify-center' : 'gap-3'} min-w-0`}>
-      <div
-        className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-100 via-amber-50 to-blue-50 p-1 flex items-center justify-center shadow-sm shrink-0 ring-2 ring-lime-400/20 cursor-pointer"
-        onClick={isCollapsed ? onToggleCollapse : undefined}
-        onKeyDown={
-          isCollapsed
-            ? (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onToggleCollapse();
-                }
-              }
-            : undefined
-        }
-        role={isCollapsed ? 'button' : undefined}
-        tabIndex={isCollapsed ? 0 : undefined}
-        title={isCollapsed ? 'Expandir menú lateral' : 'Educar para Transformar'}
-      >
-        <img
-          data-testid="admin-sidebar-logo"
-          alt="Logo Educar para Transformar"
-          className="h-8 w-auto object-contain shrink-0"
-          src={images.logo}
-          onError={(e) => {
-            e.target.src =
-              'https://lh3.googleusercontent.com/aida/AEtjO1WVCjH9RKWhV5IdoM4AeJ1AK6BLtlST3Xtz8TJi7qxVkE9SEdRbR4FLue_xW5vRKejhIwOJyfVqvFA98Cu6gBF7a-CxIVrsZCweo-Sp3fQvg48n1Lhh7MS0tohp7j7FMDR43e8kbefpBfdNj_CTAvypjHHNcQQwC52MOYajM-0fPZXxMLsrwzQLJ5vslrW0mOp0Vm_xkkeGUmWDrEMnXnMcyPvVeQzDigU-LOQzdM9Oht4kUS8ryRwjDGI';
-          }}
-        />
-      </div>
+      {isCollapsed ? (
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-100 via-amber-50 to-blue-50 p-1 flex items-center justify-center shadow-sm shrink-0 ring-2 ring-lime-400/20 cursor-pointer border-none bg-transparent"
+          title="Expandir menú lateral"
+          aria-label="Expandir menú lateral"
+        >
+          <img
+            data-testid="admin-sidebar-logo"
+            alt="Logo Educar para Transformar"
+            className="h-8 w-auto object-contain shrink-0"
+            src={images.logo}
+            onError={(e) => {
+              e.target.src =
+                'https://lh3.googleusercontent.com/aida/AEtjO1WVCjH9RKWhV5IdoM4AeJ1AK6BLtlST3Xtz8TJi7qxVkE9SEdRbR4FLue_xW5vRKejhIwOJyfVqvFA98Cu6gBF7a-CxIVrsZCweo-Sp3fQvg48n1Lhh7MS0tohp7j7FMDR43e8kbefpBfdNj_CTAvypjHHNcQQwC52MOYajM-0fPZXxMLsrwzQLJ5vslrW0mOp0Vm_xkkeGUmWDrEMnXnMcyPvVeQzDigU-LOQzdM9Oht4kUS8ryRwjDGI';
+            }}
+          />
+        </button>
+      ) : (
+        <div
+          className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-lime-100 via-amber-50 to-blue-50 p-1 flex items-center justify-center shadow-sm shrink-0 ring-2 ring-lime-400/20"
+          title="Educar para Transformar"
+        >
+          <img
+            data-testid="admin-sidebar-logo"
+            alt="Logo Educar para Transformar"
+            className="h-8 w-auto object-contain shrink-0"
+            src={images.logo}
+            onError={(e) => {
+              e.target.src =
+                'https://lh3.googleusercontent.com/aida/AEtjO1WVCjH9RKWhV5IdoM4AeJ1AK6BLtlST3Xtz8TJi7qxVkE9SEdRbR4FLue_xW5vRKejhIwOJyfVqvFA98Cu6gBF7a-CxIVrsZCweo-Sp3fQvg48n1Lhh7MS0tohp7j7FMDR43e8kbefpBfdNj_CTAvypjHHNcQQwC52MOYajM-0fPZXxMLsrwzQLJ5vslrW0mOp0Vm_xkkeGUmWDrEMnXnMcyPvVeQzDigU-LOQzdM9Oht4kUS8ryRwjDGI';
+            }}
+          />
+        </div>
+      )}
       {!isCollapsed && (
         <div className="flex flex-col min-w-0 animate-in fade-in duration-200">
           <span
@@ -225,8 +233,8 @@ const SidebarBrandHeader = ({ isCollapsed, onToggleCollapse, onCloseMobile }) =>
             Educar para Transformar
           </span>
           <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-lime-500 inline-block"></span>
-            Gestión Académica
+            <span className="w-1.5 h-1.5 rounded-full bg-lime-500 inline-block" />
+            <span>Gestión Académica</span>
           </span>
         </div>
       )}
@@ -275,7 +283,7 @@ const AdminSidebar = ({
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/login');
+      await navigate('/login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }

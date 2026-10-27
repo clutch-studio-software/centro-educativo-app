@@ -168,7 +168,7 @@ const Privacy = () => {
             <p className="font-body text-on-surface-variant leading-relaxed">
               Como se describió anteriormente, utilizamos su Información personal para proporcionarle anuncios publicitarios dirigidos o comunicaciones de marketing que creemos que pueden ser de su interés. Para más información sobre cómo funciona la publicidad dirigida, puede visitar la página educativa de la Iniciativa Publicitaria en la Red ("NAI" por sus siglas en inglés) en{' '}
               <a
-                href="http://www.networkadvertising.org/understanding-online-advertising/how-does-it-work"
+                href="https://www.networkadvertising.org/understanding-online-advertising/how-does-it-work"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
@@ -212,7 +212,7 @@ const Privacy = () => {
             <p className="font-body text-on-surface-variant leading-relaxed text-sm">
               Además, puede darse de baja de algunos de estos servicios visitando el portal de exclusión voluntaria de Digital Advertising Alliance en:{' '}
               <a
-                href="http://optout.aboutads.info/"
+                href="https://optout.aboutads.info/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"

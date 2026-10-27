@@ -183,7 +183,7 @@ const useUsersRbacState = () => {
     const isDirectivo = currentUser?.role === 'user_admin' || norm === 'Directivo';
     if (!isDirectivo) {
       console.warn('Acceso denegado a Usuarios & Roles (RBAC) para el rol:', currentUser?.role);
-      navigate('/admin/dashboard');
+      void navigate('/admin/dashboard');
     }
   }, [authUser, authLoading, navigate]);
 
@@ -197,24 +197,24 @@ const useUsersRbacState = () => {
         const norm = normalizeRole(currentUser?.role);
         const isDirectivo = currentUser?.role === 'user_admin' || norm === 'Directivo';
         if (!isDirectivo && !authLoading) {
-          navigate('/admin/dashboard');
+          void navigate('/admin/dashboard');
           return;
         }
 
         await ensureAdminAuth();
         if (isMounted) {
-          loadData();
+          void loadData();
         }
       } catch (err) {
         console.warn('Verificación de admin:', err.message);
       }
     };
 
-    checkAuth();
+    void checkAuth();
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user && isMounted) {
-        loadData();
+        void loadData();
       }
     });
 

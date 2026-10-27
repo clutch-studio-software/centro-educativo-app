@@ -408,7 +408,7 @@ const Login = () => {
       ];
       const userRole = String(user.role || '').toLowerCase();
       if (staffRoles.includes(userRole)) {
-        navigate('/admin/dashboard');
+        void navigate('/admin/dashboard');
       }
     }
   }, [isLoggedIn, user, navigate]);

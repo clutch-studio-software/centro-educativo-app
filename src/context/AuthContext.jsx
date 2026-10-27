@@ -120,7 +120,8 @@ export const AuthProvider = ({ children }) => {
 
           let alternatePassword = null;
           if (isDigitsOnly) {
-            alternatePassword = rawPwd.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            const len = rawPwd.length;
+            alternatePassword = `${rawPwd.slice(0, len - 6)}.${rawPwd.slice(len - 6, len - 3)}.${rawPwd.slice(len - 3)}`;
           } else if (isDniWithDots) {
             alternatePassword = rawPwd.replace(/\./g, '');
           }
