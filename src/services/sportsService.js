@@ -89,8 +89,7 @@ const seedInitialSportsIfEmpty = async () => {
     const batch = writeBatch(db);
     INITIAL_DISCIPLINES.forEach((disc) => {
       const docRef = doc(db, SPORTS_COLLECTION, disc.id);
-      const isFirst = disc.id === 'disc-1';
-      const initialRoster = isFirst ? INITIAL_STUDENTS_ROSTER : [];
+      const initialRoster = [];
 
       batch.set(
         docRef,
@@ -133,7 +132,7 @@ export const fetchSportsActivities = async () => {
       return INITIAL_DISCIPLINES.map((d) =>
         normalizeSportActivity(d.id, {
           ...d,
-          inscriptos: d.id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+          inscriptos: [],
         })
       );
     }
@@ -149,7 +148,7 @@ export const fetchSportsActivities = async () => {
     return INITIAL_DISCIPLINES.map((d) =>
       normalizeSportActivity(d.id, {
         ...d,
-        inscriptos: d.id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+        inscriptos: [],
       })
     );
   }
@@ -169,7 +168,7 @@ export const subscribeToSportsActivities = (onUpdate, onError) => {
             INITIAL_DISCIPLINES.map((d) =>
               normalizeSportActivity(d.id, {
                 ...d,
-                inscriptos: d.id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+                inscriptos: [],
               })
             )
           );
@@ -206,11 +205,10 @@ export const fetchSportActivityById = async (id) => {
     // Si no existe aún en Firestore, buscar en mock inicial
     const found = INITIAL_DISCIPLINES.find((d) => d.id === id);
     if (found) {
-      const isMain = id === 'disc-1';
       return normalizeSportActivity(id, {
         ...INITIAL_SPORT_DETAIL,
         ...found,
-        inscriptos: isMain ? INITIAL_STUDENTS_ROSTER : [],
+        inscriptos: [],
       });
     }
 
@@ -222,7 +220,7 @@ export const fetchSportActivityById = async (id) => {
       return normalizeSportActivity(id, {
         ...INITIAL_SPORT_DETAIL,
         ...found,
-        inscriptos: id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+        inscriptos: [],
       });
     }
     return null;
@@ -246,7 +244,7 @@ export const subscribeToSportActivityById = (id, onUpdate, onError) => {
             normalizeSportActivity(id, {
               ...INITIAL_SPORT_DETAIL,
               ...found,
-              inscriptos: id === 'disc-1' ? INITIAL_STUDENTS_ROSTER : [],
+              inscriptos: [],
             })
           );
         }
@@ -746,9 +744,86 @@ export const fetchEligibleStudentsFromFirestore = async () => {
       });
     });
 
-    return realStudents.length > 0 ? realStudents : MOCK_STUDENTS;
+    return realStudents;
   } catch (err) {
     console.warn('Error al cargar alumnos desde Firestore, usando respaldo:', err.message);
-    return MOCK_STUDENTS;
+    return [];
+  }
+};
+
+/**
+ * Desvincula a un estudiante de todas las actividades extracurriculares
+ */
+export const removeStudentFromAllSportsActivities = async (studentId, studentDni = null) => {
+  try {
+    await ensureAdminAuth();
+    const snap = await getDocs(collection(db, SPORTS_COLLECTION));
+    const batch = writeBatch(db);
+    let updatedCount = 0;
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const inscriptos = Array.isArray(data.inscriptos) ? data.inscriptos : [];
+      const filtered = inscriptos.filter((s) => {
+        if (s.id && s.id === studentId) return false;
+        if (s.studentId && s.studentId === studentId) return false;
+        if (s.alumnoId && s.alumnoId === studentId) return false;
+        if (studentDni && s.dni && String(s.dni).replace(/\D/g, '') === String(studentDni).replace(/\D/g, '')) return false;
+        return true;
+      });
+
+      if (filtered.length !== inscriptos.length) {
+        batch.update(docSnap.ref, {
+          inscriptos: filtered,
+          cupoOcupado: filtered.length,
+          updatedAt: serverTimestamp(),
+        });
+        updatedCount++;
+      }
+    });
+
+    if (updatedCount > 0) {
+      await batch.commit();
+    }
+  } catch (err) {
+    console.warn('Error al desvincular estudiante de actividades:', err.message);
+  }
+};
+
+/**
+ * Desvincula a un docente de todas las actividades extracurriculares
+ */
+export const unassignTeacherFromAllSportsActivities = async (teacherId, teacherEmail = null, teacherName = null) => {
+  try {
+    await ensureAdminAuth();
+    const snap = await getDocs(collection(db, SPORTS_COLLECTION));
+    const batch = writeBatch(db);
+    let updatedCount = 0;
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      const p = data.profesor;
+      const matchesId = p?.id === teacherId || data.profesorId === teacherId;
+      const matchesEmail = teacherEmail && (p?.email === teacherEmail || data.profesorEmail === teacherEmail);
+      const matchesName = teacherName && p?.nombre && (
+        p.nombre.toLowerCase().includes(teacherName.toLowerCase()) ||
+        teacherName.toLowerCase().includes(p.nombre.toLowerCase())
+      );
+
+      if (matchesId || matchesEmail || matchesName) {
+        batch.update(docSnap.ref, {
+          profesor: null,
+          profesorId: null,
+          updatedAt: serverTimestamp(),
+        });
+        updatedCount++;
+      }
+    });
+
+    if (updatedCount > 0) {
+      await batch.commit();
+    }
+  } catch (err) {
+    console.warn('Error al desvincular profesor de deportes:', err.message);
   }
 };

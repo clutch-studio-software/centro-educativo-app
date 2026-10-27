@@ -260,3 +260,41 @@ export const deleteAcademicCourse = async (courseId, affectedStudents = []) => {
 
   await batch.commit();
 };
+
+/**
+ * Desvincula a un docente de todos los cursos asignados en academicOffer
+ */
+export const unassignTeacherFromAllCourses = async (teacherId, teacherName = null) => {
+  try {
+    await ensureAdminAuth();
+    const snap = await getDocs(collection(db, 'academicOffer'));
+    const batch = writeBatch(db);
+    let updatedCount = 0;
+
+    snap.forEach((docSnap) => {
+      if (docSnap.id === 'current') return;
+      const data = docSnap.data();
+      const matchesId = data.docenteId && data.docenteId === teacherId;
+      const matchesName =
+        teacherName &&
+        data.docenteTitular &&
+        (data.docenteTitular.toLowerCase().includes(teacherName.toLowerCase()) ||
+          teacherName.toLowerCase().includes(data.docenteTitular.toLowerCase()));
+
+      if (matchesId || matchesName) {
+        batch.update(docSnap.ref, {
+          docenteTitular: null,
+          docenteId: null,
+          updatedAt: serverTimestamp(),
+        });
+        updatedCount++;
+      }
+    });
+
+    if (updatedCount > 0) {
+      await batch.commit();
+    }
+  } catch (err) {
+    console.warn('Error al desvincular docente de cursos academicOffer:', err.message);
+  }
+};

@@ -104,7 +104,37 @@ export const AuthProvider = ({ children }) => {
       return signInWithCustomToken(auth, customToken);
     } else {
       // Logear tutores, staff o administradores con email y contraseña estándar en Firebase Auth
-      return signInWithEmailAndPassword(auth, cleanId, password);
+      try {
+        return await signInWithEmailAndPassword(auth, cleanId, password);
+      } catch (authError) {
+        // Tolerancia a discrepancias de formato DNI (con puntos vs sin puntos)
+        const isAuthCredentialError =
+          authError?.code === 'auth/invalid-credential' ||
+          authError?.code === 'auth/wrong-password' ||
+          authError?.message?.includes('INVALID_LOGIN_CREDENTIALS');
+
+        if (isAuthCredentialError) {
+          const rawPwd = String(password || '').trim();
+          const isDigitsOnly = /^\d{7,9}$/.test(rawPwd);
+          const isDniWithDots = /^\d{1,2}\.\d{3}\.\d{3}$/.test(rawPwd);
+
+          let alternatePassword = null;
+          if (isDigitsOnly) {
+            alternatePassword = rawPwd.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+          } else if (isDniWithDots) {
+            alternatePassword = rawPwd.replace(/\./g, '');
+          }
+
+          if (alternatePassword && alternatePassword !== rawPwd) {
+            try {
+              return await signInWithEmailAndPassword(auth, cleanId, alternatePassword);
+            } catch {
+              // Si falla también el reintento, lanzamos el error original
+            }
+          }
+        }
+        throw authError;
+      }
     }
   }, []);
 

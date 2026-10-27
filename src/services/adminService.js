@@ -479,6 +479,14 @@ export const updateStudentAndTutorApi = async ({
  * Elimina definitivamente un estudiante en Firestore y lo desvincula de su tutor.
  */
 export const deleteStudentApi = async ({ studentId }) => {
+  // Desvincular de actividades extracurriculares
+  try {
+    const { removeStudentFromAllSportsActivities } = await import('./sportsService');
+    await removeStudentFromAllSportsActivities(studentId);
+  } catch (sportsErr) {
+    console.warn('Aviso al desvincular estudiante de deportes:', sportsErr.message);
+  }
+
   try {
     // 1. Intentar vía Cloud Function
     return await callAdminFunction('cf_updateUserProfile', {

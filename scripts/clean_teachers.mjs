@@ -9,6 +9,7 @@ import {
   getDocs,
   doc,
   deleteDoc,
+  writeBatch,
 } from 'firebase/firestore';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -176,12 +177,49 @@ async function cleanTeachers() {
     }
   }
 
+  // 2. Limpiar profesores a cargo de actividades extracurriculares (sportsActivities)
+  console.log('\n--- 2. Desvinculando docentes en actividades extracurriculares (sportsActivities) ---');
+  const sportsSnap = await getDocs(collection(db, 'sportsActivities'));
+  let clearedSportsProfCount = 0;
+  if (!sportsSnap.empty) {
+    const sportsBatch = writeBatch(db);
+    sportsSnap.docs.forEach((docSnap) => {
+      sportsBatch.update(docSnap.ref, {
+        profesor: null,
+        profesorId: null,
+      });
+      clearedSportsProfCount++;
+    });
+    await sportsBatch.commit();
+    console.log(`✔ Desvinculados docentes en ${clearedSportsProfCount} actividades extracurriculares.`);
+  }
+
+  // 3. Limpiar docentes titulares en cursos académicos (academicOffer)
+  console.log('\n--- 3. Desvinculando docentes titulares en cursos académicos (academicOffer) ---');
+  const coursesSnap = await getDocs(collection(db, 'academicOffer'));
+  let clearedCoursesCount = 0;
+  if (!coursesSnap.empty) {
+    const coursesBatch = writeBatch(db);
+    coursesSnap.docs.forEach((docSnap) => {
+      if (docSnap.id === 'current') return;
+      coursesBatch.update(docSnap.ref, {
+        docenteTitular: null,
+        docenteId: null,
+      });
+      clearedCoursesCount++;
+    });
+    await coursesBatch.commit();
+    console.log(`✔ Desvinculados docentes en ${clearedCoursesCount} cursos académicos.`);
+  }
+
   console.log('\n===============================================================');
   console.log('  RESUMEN DE VACIADO DE DOCENTES:');
   console.log(`  - Docentes eliminados de Auth y Firestore: ${deletedAuthCount}`);
   if (deletedFirestoreOnlyCount > 0) {
     console.log(`  - Docentes eliminados solo de Firestore: ${deletedFirestoreOnlyCount}`);
   }
+  console.log(`  - Actividades extracurriculares desvinculadas: ${clearedSportsProfCount}`);
+  console.log(`  - Cursos académicos desvinculados: ${clearedCoursesCount}`);
   console.log('  ¡Limpieza de docentes completada con éxito!');
   console.log('===============================================================\n');
 

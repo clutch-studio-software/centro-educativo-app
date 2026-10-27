@@ -539,6 +539,20 @@ export const deleteTeacherApi = async (teacherId, teacherEmail = null) => {
     }
   }
 
+  // Desvincular de deportes y cursos académicos
+  try {
+    const current = getStoredTeachers().find((t) => t.id === teacherId);
+    const teacherName = current?.nombreCompleto || current?.nombre;
+    const { unassignTeacherFromAllSportsActivities } = await import('./sportsService');
+    const { unassignTeacherFromAllCourses } = await import('./academicService');
+    await Promise.all([
+      unassignTeacherFromAllSportsActivities(teacherId, emailToDelete, teacherName),
+      unassignTeacherFromAllCourses(teacherId, teacherName),
+    ]);
+  } catch (cleanErr) {
+    console.warn('Aviso al desvincular docente de actividades y cursos:', cleanErr.message);
+  }
+
   // 1. Intentar vía Cloud Function (elimina físicamente de Auth y Firestore)
   try {
     await callAdminFunction('cf_updateUserProfile', {

@@ -185,6 +185,25 @@ async function cleanStudentsAndParents() {
     }
   }
 
+  // 3. Limpiar inscripciones de alumnos en actividades extracurriculares (sportsActivities)
+  console.log('\n--- 3. Limpiando alumnos inscriptos en actividades extracurriculares (sportsActivities) ---');
+  const sportsSnap = await getDocs(collection(db, 'sportsActivities'));
+  let clearedSportsCount = 0;
+  if (!sportsSnap.empty) {
+    const sportsBatch = writeBatch(db);
+    sportsSnap.docs.forEach((docSnap) => {
+      sportsBatch.update(docSnap.ref, {
+        inscriptos: [],
+        cupoOcupado: 0,
+      });
+      clearedSportsCount++;
+    });
+    await sportsBatch.commit();
+    console.log(`✔ Vaciadas inscripciones en ${clearedSportsCount} actividades extracurriculares.`);
+  } else {
+    console.log('No se encontraron actividades extracurriculares.');
+  }
+
   console.log('\n===============================================================');
   console.log('  RESUMEN DE VACIADO:');
   console.log(`  - Alumnos eliminados: ${totalStudents}`);
@@ -192,6 +211,7 @@ async function cleanStudentsAndParents() {
   if (deletedFirestoreOnlyCount > 0) {
     console.log(`  - Tutores eliminados solo de Firestore: ${deletedFirestoreOnlyCount}`);
   }
+  console.log(`  - Actividades extracurriculares con padrón vaciado: ${clearedSportsCount}`);
   console.log('  ¡Limpieza de alumnos y padres completada con éxito!');
   console.log('===============================================================\n');
 

@@ -109,10 +109,11 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
         }
         catch (notFoundErr) {
             try {
+                const cleanParentDni = String(parentDni || '').replace(/\D/g, '') || parentDni.trim();
                 parentUser = await admin.auth().createUser({
                     email: parentEmail,
                     emailVerified: true,
-                    password: parentDni.trim()
+                    password: cleanParentDni
                 });
                 // Establecer Custom Claim para el Padre
                 await admin.auth().setCustomUserClaims(parentUser.uid, { role: 'Padre' });
@@ -134,12 +135,14 @@ exports.cf_createParentAndStudents = (0, https_1.onRequest)({ cors: true, invoke
                 generateUniqueStudentIdLogin(),
                 bcrypt.genSalt(10)
             ]);
-            const hashedPassword = await bcrypt.hash(student.dni.trim(), salt);
+            const cleanStudentDni = String(student.dni || '').replace(/\D/g, '') || student.dni.trim();
+            const hashedPassword = await bcrypt.hash(cleanStudentDni, salt);
             const studentRef = await db.collection('students').add({
                 studentID_login,
                 parentId: parentUser.uid,
                 emailPadre: parentEmail,
                 hashedPassword,
+                passwordHash: hashedPassword,
                 status: 'active',
                 mustChangePassword: true,
                 nombre: student.nombre || '',
@@ -404,13 +407,27 @@ exports.cf_loginStudent = (0, https_1.onRequest)({ cors: true, invoker: 'public'
         }
         const studentDoc = snapshot.docs[0];
         const studentData = studentDoc.data();
+        const targetHash = studentData.hashedPassword || studentData.passwordHash;
         // Validar que la cuenta esté activa
-        if (studentData.status !== 'active' || !studentData.hashedPassword) {
+        if (studentData.status !== 'active' || !targetHash) {
             res.status(400).send({ error: 'La cuenta del estudiante no ha sido activada o no tiene contraseña.' });
             return;
         }
-        // Comparar contraseña con el hash guardado
-        const match = await bcrypt.compare(password, studentData.hashedPassword);
+        // Comparar contraseña con el hash guardado (con tolerancia a formato DNI)
+        let match = await bcrypt.compare(password, targetHash);
+        if (!match) {
+            const rawPwd = String(password || '').trim();
+            const isDigitsOnly = /^\d{7,9}$/.test(rawPwd);
+            const isDniWithDots = /^\d{1,2}\.\d{3}\.\d{3}$/.test(rawPwd);
+            if (isDigitsOnly) {
+                const withDots = rawPwd.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                match = await bcrypt.compare(withDots, targetHash);
+            }
+            else if (isDniWithDots) {
+                const withoutDots = rawPwd.replace(/\./g, '');
+                match = await bcrypt.compare(withoutDots, targetHash);
+            }
+        }
         if (!match) {
             res.status(401).send({ error: 'ID de estudiante o contraseña incorrectos.' });
             return;
@@ -523,12 +540,13 @@ exports.cf_createAdministrativeUser = (0, https_1.onRequest)({ cors: true, invok
             });
             return;
         }
-        // Crear el usuario en Auth usando su DNI como contraseña inicial
+        const cleanDni = String(dni || '').replace(/\D/g, '') || dni.trim();
+        // Crear el usuario en Auth usando su DNI (sin puntos) como contraseña inicial
         let userRecord;
         try {
             userRecord = await admin.auth().createUser({
                 email,
-                password: dni.trim(),
+                password: cleanDni,
                 emailVerified: true,
                 displayName: extraFields.nombreCompleto || name
             });
@@ -537,7 +555,7 @@ exports.cf_createAdministrativeUser = (0, https_1.onRequest)({ cors: true, invok
             if (authErr.code === 'auth/email-already-exists') {
                 const existing = await admin.auth().getUserByEmail(email);
                 userRecord = await admin.auth().updateUser(existing.uid, {
-                    password: dni.trim(),
+                    password: cleanDni,
                     displayName: extraFields.nombreCompleto || name,
                     disabled: false
                 });
@@ -597,9 +615,10 @@ exports.cf_resetUserPasswordToDni = (0, https_1.onRequest)({ cors: true, invoker
                 res.status(400).send({ error: 'El usuario no tiene registrado un DNI.' });
                 return;
             }
-            // Restablecer contraseña en Auth al DNI
+            const cleanDni = String(dni || '').replace(/\D/g, '') || dni.trim();
+            // Restablecer contraseña en Auth al DNI sin puntos
             await admin.auth().updateUser(userId, {
-                password: dni.trim()
+                password: cleanDni
             });
             // Forzar cambio de contraseña
             await userRef.update({
@@ -620,11 +639,13 @@ exports.cf_resetUserPasswordToDni = (0, https_1.onRequest)({ cors: true, invoker
                 res.status(400).send({ error: 'El estudiante no tiene registrado un DNI.' });
                 return;
             }
+            const cleanDni = String(dni || '').replace(/\D/g, '') || dni.trim();
             // Generar nuevo hash bcrypt para el DNI del alumno
             const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(dni.trim(), salt);
-            // Actualizar en Firestore
+            const hashedPassword = await bcrypt.hash(cleanDni, salt);
+            // Actualizar en Firestore ambos campos por compatibilidad
             await studentRef.update({
+                hashedPassword: hashedPassword,
                 passwordHash: hashedPassword,
                 mustChangePassword: true
             });
@@ -750,24 +771,82 @@ exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'pu
             const userDoc = await userRef.get();
             // Si se solicita eliminación definitiva del usuario
             if (fields.deleteUser === true || fields._action === 'delete') {
+                const userData = userDoc.exists ? userDoc.data() : null;
+                const teacherName = userData?.nombreCompleto || userData?.nombre || '';
+                const userEmail = fields.email || userData?.email;
                 try {
                     await admin.auth().deleteUser(targetId);
                 }
                 catch (authErr) {
                     console.warn(`No se pudo eliminar de Auth por UID (${targetId}):`, authErr.message);
-                    const emailCandidate = fields.email || (userDoc.exists ? userDoc.data()?.email : null);
-                    if (emailCandidate) {
+                    if (userEmail) {
                         try {
-                            const u = await admin.auth().getUserByEmail(emailCandidate);
+                            const u = await admin.auth().getUserByEmail(userEmail);
                             await admin.auth().deleteUser(u.uid);
                         }
                         catch (_) { }
                     }
                 }
+                // Desvincular de actividades extracurriculares (sportsActivities)
+                try {
+                    const sportsSnap = await db.collection('sportsActivities').get();
+                    const sportsBatch = db.batch();
+                    let needsSportsCommit = false;
+                    sportsSnap.docs.forEach((sDoc) => {
+                        const sData = sDoc.data();
+                        const prof = sData.profesor;
+                        const matchesId = prof?.id === targetId || sData.profesorId === targetId;
+                        const matchesEmail = userEmail && (prof?.email === userEmail || sData.profesorEmail === userEmail);
+                        const matchesName = teacherName && prof?.nombre && (prof.nombre.toLowerCase().includes(teacherName.toLowerCase()) ||
+                            teacherName.toLowerCase().includes(prof.nombre.toLowerCase()));
+                        if (matchesId || matchesEmail || matchesName) {
+                            sportsBatch.update(sDoc.ref, {
+                                profesor: null,
+                                profesorId: null,
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            needsSportsCommit = true;
+                        }
+                    });
+                    if (needsSportsCommit) {
+                        await sportsBatch.commit();
+                    }
+                }
+                catch (sErr) {
+                    console.warn('Error al desvincular usuario de sportsActivities:', sErr);
+                }
+                // Desvincular de cursos académicos (academicOffer)
+                try {
+                    const coursesSnap = await db.collection('academicOffer').get();
+                    const coursesBatch = db.batch();
+                    let needsCoursesCommit = false;
+                    coursesSnap.docs.forEach((cDoc) => {
+                        if (cDoc.id === 'current')
+                            return;
+                        const cData = cDoc.data();
+                        const matchesId = cData.docenteId === targetId;
+                        const matchesName = teacherName && cData.docenteTitular && (cData.docenteTitular.toLowerCase().includes(teacherName.toLowerCase()) ||
+                            teacherName.toLowerCase().includes(cData.docenteTitular.toLowerCase()));
+                        if (matchesId || matchesName) {
+                            coursesBatch.update(cDoc.ref, {
+                                docenteTitular: null,
+                                docenteId: null,
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            needsCoursesCommit = true;
+                        }
+                    });
+                    if (needsCoursesCommit) {
+                        await coursesBatch.commit();
+                    }
+                }
+                catch (cErr) {
+                    console.warn('Error al desvincular usuario de academicOffer:', cErr);
+                }
                 if (userDoc.exists) {
                     await userRef.delete();
                 }
-                res.status(200).send({ message: 'Usuario eliminado definitivamente de Auth y Firestore.' });
+                res.status(200).send({ message: 'Usuario eliminado definitivamente de Auth y Firestore y desvinculado de cursos y actividades.' });
                 return;
             }
             if (!userDoc.exists) {
@@ -804,8 +883,36 @@ exports.cf_updateUserProfile = (0, https_1.onRequest)({ cors: true, invoker: 'pu
                         studentIds: admin.firestore.FieldValue.arrayRemove(targetId)
                     }).catch(() => { });
                 }
+                // Desvincular de todas las actividades extracurriculares (sportsActivities)
+                try {
+                    const sportsSnap = await db.collection('sportsActivities').get();
+                    const studentSportsBatch = db.batch();
+                    let needsStudentSportsCommit = false;
+                    sportsSnap.docs.forEach((sDoc) => {
+                        const sData = sDoc.data();
+                        const inscriptos = Array.isArray(sData.inscriptos) ? sData.inscriptos : [];
+                        const filtered = inscriptos.filter((ins) => ins.id !== targetId &&
+                            ins.alumnoId !== targetId &&
+                            ins.studentId !== targetId &&
+                            (!studentData?.dni || String(ins.dni || '').replace(/\D/g, '') !== String(studentData.dni).replace(/\D/g, '')));
+                        if (filtered.length !== inscriptos.length) {
+                            studentSportsBatch.update(sDoc.ref, {
+                                inscriptos: filtered,
+                                cupoOcupado: filtered.length,
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            needsStudentSportsCommit = true;
+                        }
+                    });
+                    if (needsStudentSportsCommit) {
+                        await studentSportsBatch.commit();
+                    }
+                }
+                catch (sErr) {
+                    console.warn('Error al desvincular estudiante de sportsActivities:', sErr);
+                }
                 await studentRef.delete();
-                res.status(200).send({ message: 'Estudiante eliminado definitivamente de Firestore.' });
+                res.status(200).send({ message: 'Estudiante eliminado definitivamente de Firestore y desvinculado de actividades.' });
                 return;
             }
             await studentRef.update(fields);

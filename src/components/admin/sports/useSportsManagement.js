@@ -17,7 +17,7 @@ const PAGE_SIZE = 8;
 export const useSportsManagement = () => {
   // Sports & Disciplines State
   const [disciplines, setDisciplines] = useState(INITIAL_DISCIPLINES);
-  const [teachers, setTeachers] = useState(MOCK_TEACHERS);
+  const [teachers, setTeachers] = useState([]);
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,12 +54,13 @@ export const useSportsManagement = () => {
 
     fetchTeachersApi()
       .then((realTeachers) => {
-        if (isMounted && Array.isArray(realTeachers) && realTeachers.length > 0) {
+        if (isMounted && Array.isArray(realTeachers)) {
           setTeachers(realTeachers);
         }
       })
       .catch((err) => {
-        console.warn('Docentes de respaldo cargados:', err.message);
+        console.warn('Docentes no disponibles:', err.message);
+        if (isMounted) setTeachers([]);
       });
 
     return () => {

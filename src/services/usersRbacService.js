@@ -425,6 +425,21 @@ export const resetRbacUserPasswordApi = async (userId) => {
  * Elimina definitivamente un usuario del sistema.
  */
 export const deleteRbacUserApi = async (userId, userEmail) => {
+  // Desvincular de deportes y cursos si correspondiera
+  try {
+    const currentUsers = getStoredRbacUsers();
+    const current = currentUsers.find((u) => u.id === userId);
+    const teacherName = current?.nombreCompleto || current?.nombre;
+    const { unassignTeacherFromAllSportsActivities } = await import('./sportsService');
+    const { unassignTeacherFromAllCourses } = await import('./academicService');
+    await Promise.all([
+      unassignTeacherFromAllSportsActivities(userId, userEmail, teacherName),
+      unassignTeacherFromAllCourses(userId, teacherName),
+    ]);
+  } catch (cleanErr) {
+    console.warn('Aviso al desvincular usuario de deportes y cursos:', cleanErr.message);
+  }
+
   try {
     await ensureAdminAuth();
     await deleteDoc(doc(db, 'users', userId));
