@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    timeout-minutes: 15 # Bajado de 60 a 15 para no gastar minutos de CI si algo se cuelga
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,18 +15,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: 'npm' # 1. Cachea node_modules para que "npm ci" tarde segundos
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium # 2. Instala SOLO Chromium y evita los 436 MB de paquetes de Ubuntu
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        run: npm run test:e2e # 3. Corregido: ejecuta tu script de package.json (o usa "npx playwright test --project=chromium")
+        run: npm run test:e2e
         env:
-          # Si tu test usa credenciales de admin o variables de entorno, pásalas aquí desde GitHub Secrets:
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL }}
           TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD }}
 
