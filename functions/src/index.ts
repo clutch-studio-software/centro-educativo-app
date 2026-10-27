@@ -532,9 +532,26 @@ export const cf_createAdministrativeUser = onRequest({ cors: true, invoker: 'pub
       return;
     }
 
-    const allowedRoles = ['user_admin', 'Staff', 'Administrativo', 'teacher'];
-    if (!allowedRoles.includes(role)) {
-      res.status(400).send({ error: 'Rol inválido. Debe ser user_admin, Staff, Administrativo o teacher.' });
+    const rawRole = String(role || '').trim();
+    const roleLower = rawRole.toLowerCase();
+
+    let assignedRole = rawRole;
+    if (['user_admin', 'directivo', 'admin', 'director'].includes(roleLower)) {
+      assignedRole = 'user_admin';
+    } else if (['teacher', 'docente', 'profesor', 'profesora'].includes(roleLower)) {
+      assignedRole = 'Docente';
+    } else if (['administrativo', 'secretaria', 'secretaría'].includes(roleLower)) {
+      assignedRole = 'Administrativo';
+    } else if (['staff'].includes(roleLower)) {
+      assignedRole = 'Staff';
+    } else if (['enfermeria', 'enfermería', 'salud'].includes(roleLower)) {
+      assignedRole = 'Enfermeria';
+    } else if (['preceptoria', 'preceptoría', 'preceptor'].includes(roleLower)) {
+      assignedRole = 'Preceptoria';
+    } else {
+      res.status(400).send({
+        error: 'Rol inválido. Debe ser Directivo, Administrativo, Docente, Enfermería o Preceptoría.'
+      });
       return;
     }
 
@@ -561,11 +578,11 @@ export const cf_createAdministrativeUser = onRequest({ cors: true, invoker: 'pub
     }
 
     // Asignar Custom Claim
-    await admin.auth().setCustomUserClaims(userRecord.uid, { role });
+    await admin.auth().setCustomUserClaims(userRecord.uid, { role: assignedRole });
 
     // Guardar en Firestore
     await db.collection('users').doc(userRecord.uid).set({
-      role,
+      role: assignedRole,
       email,
       nombre: extraFields.nombre || name,
       dni: dni.trim(),
@@ -573,7 +590,7 @@ export const cf_createAdministrativeUser = onRequest({ cors: true, invoker: 'pub
       emailInvalid: false,
       ...extraFields,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    }, { merge: true });
 
     res.status(201).send({
       uid: userRecord.uid

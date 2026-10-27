@@ -31,38 +31,57 @@ const getInitialUserFormData = (user) => {
 
 const EMPTY_ROLE_PERMISSIONS = {};
 
-const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => (
-  <>
-    {/* Selector de Rol Institucional */}
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor="edit-user-role" className="text-xs font-bold text-slate-700">
-        Rol Institucional Asignado *
-      </label>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {RBAC_ROLES.map((role) => {
-          const isSelected = formData.role === role.id;
-          return (
-            <button
-              key={role.id}
-              type="button"
-              onClick={() => setFormData((p) => ({ ...p, role: role.id }))}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-left ${isSelected
-                  ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-xs ring-1 ring-blue-500/30'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-            >
-              <span className="material-symbols-outlined text-[18px] text-blue-600">
-                {role.icon}
-              </span>
-              <span>{role.name}</span>
-            </button>
-          );
-        })}
+const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => {
+  const currentRole = RBAC_ROLES.find((r) => r.id === formData.role) || RBAC_ROLES[0];
+
+  return (
+    <>
+      {/* Selector de Rol Institucional en Dropdown */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="edit-user-role" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
+          Rol Institucional Asignado *
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-blue-600">
+            <span className="material-symbols-outlined text-[20px]">
+              {currentRole?.icon || 'badge'}
+            </span>
+          </div>
+          <select
+            id="edit-user-role"
+            name="role"
+            value={formData.role}
+            onChange={(e) => {
+              const nextRole = e.target.value;
+              setFormData((prev) => ({
+                ...prev,
+                role: nextRole,
+                cargo: prev.cargo && !prev.cargo.startsWith('Personal ') ? prev.cargo : '',
+              }));
+            }}
+            className="w-full bg-slate-50 pl-11 pr-10 py-2.5 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 border border-slate-200 focus:border-blue-500 transition-all cursor-pointer appearance-none"
+          >
+            {RBAC_ROLES.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name} ({role.subtitle || role.displayName})
+              </option>
+            ))}
+          </select>
+          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+            <span className="material-symbols-outlined text-[20px]">
+              expand_more
+            </span>
+          </div>
+        </div>
+        {currentRole?.description && (
+          <p className="text-[11px] text-slate-500 px-1 mt-0.5">
+            {currentRole.description}
+          </p>
+        )}
+        {errors.role && (
+          <span className="text-[11px] text-red-500 font-medium px-2">{errors.role}</span>
+        )}
       </div>
-      {errors.role && (
-        <span className="text-[11px] text-red-500 font-medium px-2">{errors.role}</span>
-      )}
-    </div>
 
     {/* Nombre y Apellido */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -237,7 +256,8 @@ const EditUserGeneralTab = ({ formData, setFormData, handleChange, errors }) => 
       </div>
     )}
   </>
-);
+  );
+};
 
 const EditUserPermissionsTab = ({
   formData,

@@ -1,61 +1,63 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { images } from '../services/imagesConfig';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import ForgotPasswordModal from '../components/organisms/ForgotPasswordModal';
 
 const ROLES_INFO = {
-  Administrador: {
-    label: 'Administrador',
-    icon: 'admin_panel_settings',
-    displayLabel: 'ADMINISTRADOR',
-    permissions: ['gestionar_usuarios', 'ver_auditorias', 'configurar_sistema'],
+  'Estudiante/Tutor': {
+    label: 'Estudiante / Tutor',
+    icon: 'school',
+    displayLabel: 'ESTUDIANTE O TUTOR',
+    subtitle: 'Alumnos regulares y familias / adultos responsables',
+    permissions: [
+      'Consultar calificaciones, boletines y notas parciales',
+      'Visualizar asistencias, inasistencias y tardanzas',
+      'Descargar material de estudio y programas académicos',
+      'Consultar agenda escolar y talleres extracurriculares',
+      'Seguimiento de legajos y aranceles (Tutores)',
+    ],
   },
   Staff: {
-    label: 'Staff',
+    label: 'Staff Institucional',
     icon: 'badge',
-    displayLabel: 'STAFF (DOCENTE)',
+    displayLabel: 'STAFF INSTITUCIONAL',
+    subtitle: 'Directivos, Administrativos, Docentes, Preceptoría y Enfermería',
     permissions: [
-      'cargar_asistencias',
-      'registrar_notas',
-      'publicar_anuncios_aula',
-      'ver_agenda_clases',
-    ],
-  },
-  'Padre/Tutor': {
-    label: 'Padre/Tutor',
-    icon: 'family_restroom',
-    displayLabel: 'PADRE/TUTOR',
-    permissions: [
-      'ver_legajo_hijo',
-      'autorizar_eventos',
-      'ver_estado_cuotas',
-      'comunicarse_con_docente',
-    ],
-  },
-  Estudiante: {
-    label: 'Estudiante',
-    icon: 'school',
-    displayLabel: 'ESTUDIANTE',
-    permissions: [
-      'ver_mis_notas',
-      'ver_mis_asistencias',
-      'descargar_material',
-      'ver_horarios',
+      'Acceso al panel institucional (/admin) según permisos asignados',
+      'Supervisión y gestión de legajos de alumnos y personal',
+      'Carga de notas y asistencia áulica / preceptoría',
+      'Gestión de actividades extracurriculares y servicios',
+      'Administración de usuarios y auditoría de accesos',
     ],
   },
 };
 
 const getActiveRoleKey = (role) => {
-  if (role === 'user_admin') return 'Administrador';
-  if (role === 'Staff' || role === 'Administrativo') return 'Staff';
-  if (role === 'Padre' || role === 'Padre/Tutor') return 'Padre/Tutor';
-  return 'Estudiante';
+  const norm = String(role || '').toLowerCase();
+  if (
+    norm.includes('estudiante') ||
+    norm.includes('padre') ||
+    norm.includes('tutor') ||
+    norm.includes('alumno')
+  ) {
+    return 'Estudiante/Tutor';
+  }
+  return 'Staff';
 };
 
 const LoggedInView = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const activeRoleKey = getActiveRoleKey(user.role);
   const currentRole = ROLES_INFO[activeRoleKey];
+  const isStaffUser = activeRoleKey === 'Staff';
+  const userDisplayName =
+    user.nombre ||
+    user.displayName ||
+    user.name ||
+    user.email?.split('@')[0] ||
+    '';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-body">
@@ -73,20 +75,27 @@ const LoggedInView = ({ user, onLogout }) => {
             </div>
           </div>
 
-          <h1 className="font-headline font-bold text-2xl sm:text-3xl text-slate-800 tracking-tight mb-4">
-            HOLA {currentRole?.displayLabel || user.role.toUpperCase()},
-            TIENES ESTOS PERMISOS:
+          <h1 className="font-headline font-bold text-2xl sm:text-3xl text-slate-800 tracking-tight mb-2">
+            HOLA {userDisplayName ? userDisplayName.toUpperCase() : (currentRole?.displayLabel || 'USUARIO')},
           </h1>
+          <div className="flex justify-center mb-4">
+            <span className="text-xs font-semibold text-orange-700 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
+              Rol en el sistema: {user.role || (isStaffUser ? 'Staff Institucional' : 'Estudiante / Tutor')}
+            </span>
+          </div>
 
           <div className="bg-orange-50/50 border border-orange-100 rounded-2xl p-6 sm:p-8 my-6 text-left max-w-md mx-auto">
-            <ul className="space-y-4">
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              Permisos y Funcionalidades Disponibles:
+            </h2>
+            <ul className="space-y-3">
               {currentRole?.permissions.map((permission) => (
                 <li
                   key={permission}
-                  className="flex items-center gap-3 text-slate-700 text-base font-medium"
+                  className="flex items-center gap-3 text-slate-700 text-sm font-medium"
                 >
                   <span
-                    className="material-symbols-outlined text-orange-600 font-bold bg-orange-100 rounded-full p-1 text-sm"
+                    className="material-symbols-outlined text-orange-600 font-bold bg-orange-100 rounded-full p-1 text-xs"
                     style={{ fontVariationSettings: "'FILL' 1" }}
                   >
                     check
@@ -97,12 +106,25 @@ const LoggedInView = ({ user, onLogout }) => {
             </ul>
           </div>
 
-          <button
-            onClick={onLogout}
-            className="mt-4 px-8 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold font-label rounded-full transition-all duration-200 border border-slate-200 hover:scale-[1.02] active:scale-95 shadow-sm cursor-pointer"
-          >
-            Cerrar Sesión
-          </button>
+          <div className="flex items-center justify-center gap-3 flex-wrap mt-4">
+            {isStaffUser && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold font-label rounded-full transition-all duration-200 border-none shadow-sm cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">dashboard</span>
+                <span>Ir al Panel de Administración</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onLogout}
+              className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold font-label rounded-full transition-all duration-200 border border-slate-200 shadow-sm cursor-pointer"
+            >
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
       </main>
     </div>
@@ -158,93 +180,60 @@ const LoginBrandingPanel = () => (
   </div>
 );
 
-const LoginRoleSelector = ({
-  selectedRole,
-  setSelectedRole,
-  isDropdownOpen,
-  setIsDropdownOpen,
-  dropdownRef,
-}) => (
-  <div className="mb-8" ref={dropdownRef}>
-    <span id="role-selector-label" className="block font-label text-sm font-medium text-slate-500 mb-3 uppercase tracking-wider">
-      Selecciona tu Rol
+const LoginRoleSelector = ({ selectedRole, setSelectedRole }) => (
+  <div className="mb-6">
+    <span
+      id="role-selector-label"
+      className="block font-label text-xs font-bold text-slate-500 mb-2.5 uppercase tracking-wider"
+    >
+      Selecciona tu perfil de acceso
     </span>
-    <div className="relative">
-      <button
-        type="button"
-        aria-labelledby="role-selector-label"
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 text-slate-800 border-2 border-slate-200 rounded-xl hover:bg-slate-100/50 focus:border-orange-500 focus:bg-white focus:outline-none transition-all duration-200 cursor-pointer"
-      >
-        <div className="flex items-center gap-3">
-          <span
-            className="material-symbols-outlined text-orange-600 bg-orange-100 rounded-lg p-1.5 text-xl flex items-center justify-center"
-            style={{ fontVariationSettings: "'FILL' 1" }}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {Object.keys(ROLES_INFO).map((roleKey) => {
+        const role = ROLES_INFO[roleKey];
+        const isSelected = selectedRole === roleKey;
+        return (
+          <button
+            key={roleKey}
+            type="button"
+            onClick={() => setSelectedRole(roleKey)}
+            className={`p-3.5 rounded-xl border-2 text-left transition-all duration-150 cursor-pointer flex flex-col justify-between gap-1.5 ${
+              isSelected
+                ? 'border-orange-500 bg-orange-50/80 shadow-xs'
+                : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70 text-slate-700'
+            }`}
           >
-            {ROLES_INFO[selectedRole]?.icon}
-          </span>
-          <span className="font-label text-sm font-bold text-slate-700">
-            {ROLES_INFO[selectedRole]?.label}
-          </span>
-        </div>
-        <span
-          className="material-symbols-outlined text-slate-400 transition-transform duration-200"
-          style={{
-            transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          }}
-        >
-          expand_more
-        </span>
-      </button>
-
-      {isDropdownOpen && (
-        <div className="absolute z-20 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-[0px_10px_25px_rgba(0,0,0,0.08)] p-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150">
-          {Object.keys(ROLES_INFO).map((roleKey) => {
-            const role = ROLES_INFO[roleKey];
-            const isSelected = selectedRole === roleKey;
-            return (
-              <button
-                key={roleKey}
-                type="button"
-                onClick={() => {
-                  setSelectedRole(roleKey);
-                  setIsDropdownOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border-2 transition-all duration-150 cursor-pointer text-left ${
-                  isSelected
-                    ? 'border-orange-500 bg-orange-50 text-orange-600 font-bold'
-                    : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`material-symbols-outlined rounded-lg p-1 text-lg flex items-center justify-center transition-colors ${
-                      isSelected
-                        ? 'text-orange-600 bg-orange-100'
-                        : 'text-slate-400 bg-slate-100'
-                    }`}
-                    style={{
-                      fontVariationSettings: isSelected
-                        ? "'FILL' 1"
-                        : "'FILL' 0",
-                    }}
-                  >
-                    {role.icon}
-                  </span>
-                  <span className="font-label text-sm font-semibold">
-                    {role.label}
-                  </span>
-                </div>
-                {isSelected && (
-                  <span className="material-symbols-outlined text-orange-600 text-lg font-bold">
-                    check
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`material-symbols-outlined rounded-lg p-1.5 text-lg flex items-center justify-center transition-colors ${
+                    isSelected
+                      ? 'text-orange-600 bg-orange-100'
+                      : 'text-slate-500 bg-slate-200/70'
+                  }`}
+                  style={{
+                    fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0",
+                  }}
+                >
+                  {role.icon}
+                </span>
+                <span
+                  className={`font-label text-sm font-bold ${
+                    isSelected ? 'text-orange-950' : 'text-slate-800'
+                  }`}
+                >
+                  {role.label}
+                </span>
+              </div>
+              {isSelected && (
+                <span className="material-symbols-outlined text-orange-600 text-base font-bold">
+                  check_circle
+                </span>
+              )}
+            </div>
+          </button>
+        );
+      })}
     </div>
   </div>
 );
@@ -261,51 +250,65 @@ const LoginForm = ({
   setRememberMe,
   isSubmitting,
   loginError,
-}) => (
-  <form onSubmit={handleLoginSubmit} className="space-y-6">
-    {/* ID / Email Field */}
-    <div>
-      <label
-        className="block font-label text-sm font-medium text-slate-600 mb-2"
-        htmlFor="identifier"
-      >
-        ID Institucional o Correo
-      </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="material-symbols-outlined text-slate-400">
-            badge
-          </span>
-        </div>
-        <input
-          className="w-full pl-12 pr-4 py-3 bg-slate-50 text-slate-800 placeholder-slate-400 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-0 transition-colors font-body text-base"
-          id="identifier"
-          name="identifier"
-          placeholder="ej. 2023-EST-001"
-          type="text"
-          required
-          value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
-        />
-      </div>
-    </div>
+  selectedRole,
+  onForgotPasswordClick,
+}) => {
+  const isStaff = selectedRole === 'Staff';
 
-    {/* Password Field */}
-    <div>
-      <div className="flex items-center justify-between mb-2">
+  return (
+    <form onSubmit={handleLoginSubmit} className="space-y-6">
+      {/* ID / Email Field */}
+      <div>
         <label
-          className="block font-label text-sm font-medium text-slate-600"
-          htmlFor="password"
+          className="block font-label text-sm font-medium text-slate-600 mb-2"
+          htmlFor="identifier"
         >
-          Contraseña
+          {isStaff ? 'Correo Electrónico Institucional' : 'ID de Estudiante o Correo del Tutor'}
         </label>
-        <a
-          className="font-label text-sm font-medium text-orange-600 hover:text-orange-700 transition-colors"
-          href="#"
-        >
-          ¿Olvidaste tu contraseña?
-        </a>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <span className="material-symbols-outlined text-slate-400">
+              {isStaff ? 'badge' : 'account_circle'}
+            </span>
+          </div>
+          <input
+            className="w-full pl-12 pr-4 py-3 bg-slate-50 text-slate-800 placeholder-slate-400 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-0 transition-colors font-body text-base"
+            id="identifier"
+            name="identifier"
+            placeholder={
+              isStaff ? 'ej. usuario@colegio.edu.ar' : 'ej. EST-2027-42035 o tutor@correo.com'
+            }
+            type="text"
+            required
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+          />
+        </div>
+        {!isStaff && (
+          <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px] text-slate-400">info</span>
+            Estudiantes ingresan con su ID (EST-...) y Tutores con su correo (contraseña: DNI).
+          </p>
+        )}
       </div>
+
+      {/* Password Field */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label
+            className="block font-label text-sm font-medium text-slate-600"
+            htmlFor="password"
+          >
+            Contraseña
+          </label>
+          <button
+            type="button"
+            onClick={onForgotPasswordClick}
+            className="font-label text-sm font-medium text-orange-600 hover:text-orange-700 transition-colors border-none bg-transparent cursor-pointer p-0"
+          >
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
           <span className="material-symbols-outlined text-slate-400">
@@ -375,43 +378,40 @@ const LoginForm = ({
     )}
   </form>
 );
+};
 
 const Login = () => {
   const navigate = useNavigate();
   const { user, login, logout, isLoggedIn } = useAuth();
 
-  const [selectedRole, setSelectedRole] = useState('Estudiante');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('Estudiante/Tutor');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
-  const dropdownRef = useRef(null);
-
-  // Redirigir únicamente a los administradores de usuarios automáticamente
+  // Redirigir automáticamente a los usuarios administradores / staff con privilegios
   useEffect(() => {
     if (isLoggedIn && user) {
-      if (user.role === 'user_admin') {
+      const staffRoles = [
+        'user_admin',
+        'admin',
+        'directivo',
+        'administrativo',
+        'docente',
+        'preceptoria',
+        'enfermeria',
+        'staff',
+      ];
+      const userRole = String(user.role || '').toLowerCase();
+      if (staffRoles.includes(userRole)) {
         navigate('/admin');
       }
     }
   }, [isLoggedIn, user, navigate]);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -494,13 +494,10 @@ const Login = () => {
               </p>
             </div>
 
-            {/* Role Selection Premium Custom Dropdown with Badges */}
+            {/* Role Selection Segmented Cards */}
             <LoginRoleSelector
               selectedRole={selectedRole}
               setSelectedRole={setSelectedRole}
-              isDropdownOpen={isDropdownOpen}
-              setIsDropdownOpen={setIsDropdownOpen}
-              dropdownRef={dropdownRef}
             />
 
             {/* Login Form */}
@@ -516,6 +513,8 @@ const Login = () => {
               setRememberMe={setRememberMe}
               isSubmitting={isSubmitting}
               loginError={loginError}
+              selectedRole={selectedRole}
+              onForgotPasswordClick={() => setIsForgotPasswordOpen(true)}
             />
 
             {/* Help Link */}
@@ -523,17 +522,24 @@ const Login = () => {
               <p className="font-body text-sm text-slate-500">
                 ¿Necesitas ayuda para acceder a tu cuenta?{' '}
                 <br className="sm:hidden" />
-                <a
-                  className="font-medium text-orange-600 hover:text-orange-700 transition-colors"
-                  href="#"
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPasswordOpen(true)}
+                  className="font-medium text-orange-600 hover:text-orange-700 transition-colors border-none bg-transparent cursor-pointer p-0 underline"
                 >
                   Contactar Soporte
-                </a>
+                </button>
               </p>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Modal de Restablecimiento de Contraseña */}
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+      />
     </div>
   );
 };

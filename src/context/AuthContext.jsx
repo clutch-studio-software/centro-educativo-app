@@ -76,13 +76,21 @@ export const AuthProvider = ({ children }) => {
    * Método de Login integrado con Firebase
    */
   const login = useCallback(async (identifier, password, role) => {
-    if (role === 'Estudiante') {
+    const cleanId = String(identifier || '').trim();
+    const isStudentOrTutor = role === 'Estudiante' || role === 'Estudiante/Tutor';
+    const isStudentIDLogin = isStudentOrTutor && !cleanId.includes('@');
+
+    if (isStudentIDLogin) {
       // Iniciar sesión de alumno usando la Cloud Function cf_loginStudent (devuelve customToken)
-      const FUNCTIONS_BASE_URL = import.meta.env.VITE_FUNCTIONS_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1' : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
+      const FUNCTIONS_BASE_URL =
+        import.meta.env.VITE_FUNCTIONS_BASE_URL ||
+        (import.meta.env.DEV
+          ? 'http://127.0.0.1:5001/centro-educativo-f5cc5/us-central1'
+          : 'https://us-central1-centro-educativo-f5cc5.cloudfunctions.net');
       const response = await fetch(`${FUNCTIONS_BASE_URL}/cf_loginStudent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentID_login: identifier, password })
+        body: JSON.stringify({ studentID_login: cleanId, password }),
       });
 
       if (!response.ok) {
@@ -91,12 +99,12 @@ export const AuthProvider = ({ children }) => {
       }
 
       const { customToken } = await response.json();
-      
+
       // Logear en Firebase Auth cliente usando el customToken retornado por el backend
       return signInWithCustomToken(auth, customToken);
     } else {
       // Logear tutores, staff o administradores con email y contraseña estándar en Firebase Auth
-      return signInWithEmailAndPassword(auth, identifier, password);
+      return signInWithEmailAndPassword(auth, cleanId, password);
     }
   }, []);
 

@@ -18,6 +18,8 @@ import {
   updateUserProfileApi,
   updateStudentAndTutorApi,
   deleteStudentApi,
+  resetStudentPasswordToDniApi,
+  resetTutorPasswordToDniApi,
   fetchAcademicOfferApi,
   DEFAULT_ACADEMIC_OFFER,
 } from '../../services/adminService';
@@ -359,6 +361,8 @@ const StudentsTableSection = ({
   onGenerateCertificate,
   onDeleteStudent,
   onToggleStatusStudent,
+  onResetStudentPassword,
+  onResetTutorPassword,
   onResetFilters,
   safeCurrentPage,
   totalPages,
@@ -376,6 +380,8 @@ const StudentsTableSection = ({
       onGenerateCertificate={onGenerateCertificate}
       onDeleteStudent={onDeleteStudent}
       onToggleStatusStudent={onToggleStatusStudent}
+      onResetStudentPassword={onResetStudentPassword}
+      onResetTutorPassword={onResetTutorPassword}
       onResetFilters={onResetFilters}
     />
 
@@ -540,9 +546,14 @@ const useStudentActions = ({
 }) => {
   const handleAddStudent = async (newStudent) => {
     setIsLoading(true);
+    const cleanParentEmail = String(newStudent.tutorEmail || '').trim().toLowerCase();
+    if (!cleanParentEmail || !cleanParentEmail.includes('@')) {
+      throw new Error('El correo electrónico del tutor es obligatorio para generar su cuenta de acceso.');
+    }
+
     try {
       await createParentAndStudentsApi({
-        parentEmail: newStudent.tutorEmail || 'tutor@ejemplo.com',
+        parentEmail: cleanParentEmail,
         parentName: (newStudent.tutorNombre || '').replace(' (Tutor)', ''),
         parentDni: (newStudent.tutorDni || '00000000').replace(/\./g, ''),
         parentTelefono: newStudent.tutorTelefono || '',
@@ -642,6 +653,62 @@ const useStudentActions = ({
     }
   };
 
+  const handleResetStudentPassword = async (student) => {
+    const rawDni = String(student.dni || '').replace(/\D/g, '');
+    const confirmed = window.confirm(
+      `¿Deseas restablecer la contraseña del alumno ${student.nombre}?\n\nLa contraseña se establecerá a su número de DNI (${rawDni || 'DNI registrado'}) y se le solicitará cambiarla en su próximo inicio de sesión.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await resetStudentPasswordToDniApi({
+        studentId: student.id,
+        studentDni: rawDni,
+        studentNombre: student.nombre,
+      });
+
+      setNotification({
+        type: 'success',
+        message: `Contraseña del alumno ${student.nombre} restablecida a su DNI (${rawDni}).`,
+      });
+    } catch (err) {
+      console.error('Error al restablecer contraseña del alumno:', err);
+      setNotification({
+        type: 'error',
+        message: `No se pudo restablecer la contraseña del alumno: ${err.message || 'Error en el servidor.'}`,
+      });
+    }
+  };
+
+  const handleResetTutorPassword = async (student) => {
+    const tutorName = student.tutorNombre || 'Tutor';
+    const rawDni = String(student.tutorDni || '').replace(/\D/g, '');
+    const confirmed = window.confirm(
+      `¿Deseas restablecer la contraseña del tutor ${tutorName} (asociado a ${student.nombre})?\n\nLa contraseña se establecerá a su número de DNI (${rawDni || 'DNI registrado'}) y se le solicitará cambiarla en su próximo inicio de sesión.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await resetTutorPasswordToDniApi({
+        parentId: student.parentId,
+        parentDni: rawDni,
+        parentEmail: student.tutorEmail,
+        parentNombre: tutorName,
+      });
+
+      setNotification({
+        type: 'success',
+        message: `Contraseña del tutor ${tutorName} restablecida a su DNI (${rawDni || 'registrado'}).`,
+      });
+    } catch (err) {
+      console.error('Error al restablecer contraseña del tutor:', err);
+      setNotification({
+        type: 'error',
+        message: `No se pudo restablecer la contraseña del tutor: ${err.message || 'Error en el servidor.'}`,
+      });
+    }
+  };
+
   const handleSaveEditStudent = async (payload) => {
     setIsLoading(true);
     try {
@@ -668,6 +735,8 @@ const useStudentActions = ({
     handleToggleStatusStudent,
     handleDeleteStudent,
     handleSaveEditStudent,
+    handleResetStudentPassword,
+    handleResetTutorPassword,
   };
 };
 
@@ -767,6 +836,8 @@ const StudentsManagement = () => {
     handleToggleStatusStudent,
     handleDeleteStudent,
     handleSaveEditStudent,
+    handleResetStudentPassword,
+    handleResetTutorPassword,
   } = useStudentActions({
     loadStudentsData,
     setCurrentPage,
@@ -848,6 +919,8 @@ const StudentsManagement = () => {
           onGenerateCertificate={handleGenerateCertificate}
           onDeleteStudent={handleDeleteStudent}
           onToggleStatusStudent={handleToggleStatusStudent}
+          onResetStudentPassword={handleResetStudentPassword}
+          onResetTutorPassword={handleResetTutorPassword}
           onResetFilters={handleResetFilters}
           safeCurrentPage={safeCurrentPage}
           totalPages={totalPages}

@@ -9,6 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "seed": "node scripts/seed_students.mjs",
+    "clean:students": "node scripts/clean_students_and_parents.mjs",
+    "seed:students:cf": "node scripts/seed_parents_and_students_cf.mjs",
+    "clean:teachers": "node scripts/clean_teachers.mjs",
+    "seed:teachers:cf": "node scripts/seed_teachers_cf.mjs",
     "prepare": "husky",
     "doctor": "npx react-doctor@latest"
   },

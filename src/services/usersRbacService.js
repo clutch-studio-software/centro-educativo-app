@@ -226,32 +226,28 @@ export const createRbacUserApi = async (userData) => {
     cleanEstado = 'Activo';
   }
 
-  let targetUid = `usr-${Date.now()}`;
+  // Crear usuario en Firebase Auth y Firestore mediante Cloud Function
+  const cfResult = await callAdminFunction('cf_createAdministrativeUser', {
+    email: cleanEmail,
+    name: nombreCompleto,
+    role: normRole === 'Directivo' ? 'user_admin' : normRole,
+    dni: cleanDni,
+    nombre: cleanNombre,
+    apellido: cleanApellido,
+    nombreCompleto,
+    telefono: userData.telefono || '',
+    cargo: userData.cargo || `Personal ${normRole}`,
+    condicion: cleanCondicion,
+    legajo,
+    estado: cleanEstado,
+    customPermissions: userData.customPermissions || [],
+  });
 
-  // Intentar crear mediante Cloud Function si está disponible
-  try {
-    const cfResult = await callAdminFunction('cf_createAdministrativeUser', {
-      email: cleanEmail,
-      name: nombreCompleto,
-      role: normRole === 'Directivo' ? 'user_admin' : normRole === 'Docente' ? 'teacher' : normRole,
-      dni: cleanDni,
-      nombre: cleanNombre,
-      apellido: cleanApellido,
-      nombreCompleto,
-      telefono: userData.telefono || '',
-      cargo: userData.cargo || `Personal ${normRole}`,
-      condicion: cleanCondicion,
-      legajo,
-      estado: cleanEstado,
-      customPermissions: userData.customPermissions || [],
-    });
-
-    if (cfResult?.uid) {
-      targetUid = cfResult.uid;
-    }
-  } catch (cfErr) {
-    console.warn('Cloud Function cf_createAdministrativeUser no disponible, creando directo en Firestore/local:', cfErr.message);
+  if (!cfResult?.uid) {
+    throw new Error('El servidor no retornó un identificador de usuario válido.');
   }
+
+  const targetUid = cfResult.uid;
 
   const newUser = {
     id: targetUid,

@@ -289,7 +289,8 @@ const useUsersRbacState = () => {
       );
     } catch (err) {
       console.error('Error al registrar usuario:', err);
-      showToast('Error al registrar usuario.', 'error');
+      showToast(err.message || 'Error al registrar usuario en Firebase.', 'error');
+      throw err;
     }
   };
 

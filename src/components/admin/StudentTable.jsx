@@ -24,6 +24,8 @@ const StudentFloatingMenu = ({
   onToggleStatusStudent,
   onViewStudent,
   onDeleteStudent,
+  onResetStudentPassword,
+  onResetTutorPassword,
 }) => {
   if (!activeStudent) return null;
 
@@ -37,7 +39,7 @@ const StudentFloatingMenu = ({
         right: `${menuPosition.right}px`,
         zIndex: 9999,
       }}
-      className="w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
+      className="w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
     >
       <div className="py-1">
         {/* Opción 1: Deshabilitar o Reactivar */}
@@ -97,7 +99,56 @@ const StudentFloatingMenu = ({
         </button>
       </div>
 
-      {/* Opción 3: Borrar alumno / Eliminar legajo definitivamente */}
+      {/* Sección: Restablecer Contraseñas */}
+      <div className="py-1">
+        {/* Restablecer Contraseña Alumno */}
+        <button
+          data-testid={`student-action-reset-password-${activeStudent.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            const target = activeStudent;
+            setActiveMenuStudentId(null);
+            onResetStudentPassword && onResetStudentPassword(target);
+          }}
+          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-orange-50 hover:text-orange-700 transition-colors cursor-pointer border-none bg-transparent"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-orange-500 text-[18px]">
+            key
+          </span>
+          <div className="flex flex-col items-start leading-tight">
+            <span>Restablecer Contraseña Alumno</span>
+            <span className="text-[10px] font-normal text-slate-400">
+              Contraseña por defecto = DNI
+            </span>
+          </div>
+        </button>
+
+        {/* Restablecer Contraseña Tutor */}
+        <button
+          data-testid={`tutor-action-reset-password-${activeStudent.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            const target = activeStudent;
+            setActiveMenuStudentId(null);
+            onResetTutorPassword && onResetTutorPassword(target);
+          }}
+          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer border-none bg-transparent"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-indigo-500 text-[18px]">
+            lock_reset
+          </span>
+          <div className="flex flex-col items-start leading-tight">
+            <span>Restablecer Contraseña Tutor</span>
+            <span className="text-[10px] font-normal text-slate-400">
+              Contraseña por defecto = DNI
+            </span>
+          </div>
+        </button>
+      </div>
+
+      {/* Opción: Borrar alumno / Eliminar legajo definitivamente */}
       <div className="py-1">
         <button
           data-testid={`student-action-delete-${activeStudent.id}`}
@@ -127,7 +178,7 @@ const StudentFloatingMenu = ({
 
 const calculateMenuPosition = (targetElement) => {
   const rect = targetElement.getBoundingClientRect();
-  const menuHeight = 175;
+  const menuHeight = 280;
   const spaceBelow = window.innerHeight - rect.bottom;
   const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
   return {
@@ -379,6 +430,8 @@ const StudentTable = ({
   onGenerateCertificate,
   onDeleteStudent,
   onToggleStatusStudent,
+  onResetStudentPassword,
+  onResetTutorPassword,
   onResetFilters,
 }) => {
   const [activeMenuStudentId, setActiveMenuStudentId] = useState(null);
@@ -496,6 +549,8 @@ const StudentTable = ({
         onToggleStatusStudent={onToggleStatusStudent}
         onViewStudent={onViewStudent}
         onDeleteStudent={onDeleteStudent}
+        onResetStudentPassword={onResetStudentPassword}
+        onResetTutorPassword={onResetTutorPassword}
       />
     </div>
   );
