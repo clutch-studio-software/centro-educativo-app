@@ -43,9 +43,27 @@ const TariffTransportCard = ({
         </p>
 
         {/* Rutas List */}
-        <div className="space-y-3">
-          {routes.map((route) => (
-            <div
+        {routes.length === 0 ? (
+          <div
+            data-testid="tariff-transport-empty"
+            className="flex flex-col items-center justify-center p-8 rounded-md bg-slate-50 border border-dashed border-slate-300 text-center space-y-3"
+          >
+            <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center">
+              <span className="material-symbols-outlined text-[22px]" aria-hidden="true">
+                directions_bus
+              </span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-slate-800">No hay recorridos escolares registrados</p>
+              <p className="text-[11px] text-slate-500">
+                Añade el primer recorrido utilizando el botón de arriba.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {routes.map((route) => (
+              <div
               key={route.id}
               data-testid={`tariff-route-row-${route.id}`}
               className="p-3.5 rounded-md bg-slate-50 border border-slate-200/70 hover:bg-slate-100/60 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3"
@@ -133,6 +151,7 @@ const TariffTransportCard = ({
             </div>
           ))}
         </div>
+      )}
       </div>
 
       {/* Footer */}

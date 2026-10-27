@@ -80,6 +80,7 @@ const FinanceTariffsView = ({ onNotify }) => {
         onReset={handleResetTariffs}
         onSave={handleSaveTariffs}
         onOpenAudit={() => setIsAuditModalOpen(true)}
+        auditLogs={auditLogs}
       />
 
       {/* Modal para Editar Montos Individuales */}

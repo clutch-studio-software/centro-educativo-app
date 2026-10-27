@@ -141,5 +141,22 @@ service cloud.firestore {
       // Modificaciones autorizadas exclusivamente a administradores
       allow write: if isAdmin();
     }
+
+    // Colección tariffs_config (Configuración centralizada de aranceles y tarifas)
+    match /tariffs_config/{docId} {
+      // Lectura para cualquier usuario autenticado o personal institucional
+      allow read: if isAuthenticated();
+      
+      // Modificaciones autorizadas a personal institucional o administradores
+      allow write: if isStaff() || isAdmin();
+    }
+
+    // Colección tariff_audit_logs (Trazabilidad y auditoría de cambios de precios)
+    match /tariff_audit_logs/{auditId} {
+      // Lectura y creación permitida a personal institucional o administradores
+      allow read: if isStaff() || isAdmin();
+      allow create: if isStaff() || isAdmin();
+      allow update, delete: if isAdmin();
+    }
   }
 }

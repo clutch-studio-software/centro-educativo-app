@@ -3,6 +3,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import {
   saveTariffsWithAuditLogApi,
   subscribeToTariffAuditLogs,
+  subscribeToTariffsConfig,
   INITIAL_AUDIT_LOGS,
 } from '../../../../services/tariffsService';
 import { INITIAL_TARIFFS } from '../../../../data/mockFinanceData';
@@ -36,10 +37,23 @@ export const useFinanceTariffsManagement = (onNotify) => {
   const [isTransportModalOpen, setIsTransportModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
 
-  // Suscripción a logs de auditoría en Firestore
+  // Suscripción en tiempo real a la configuración de tarifas en Firebase Firestore
   useEffect(() => {
     let isMounted = true;
-    const unsubscribe = subscribeToTariffAuditLogs((logs) => {
+    const unsubscribeConfig = subscribeToTariffsConfig((data) => {
+      if (isMounted && data) {
+        if (data.tariffs) {
+          setTariffs(data.tariffs);
+          savedTariffsRef.current = data.tariffs;
+        }
+        if (data.sportsPrices) {
+          setSportsPrices(data.sportsPrices);
+          savedSportsPricesRef.current = data.sportsPrices;
+        }
+      }
+    });
+
+    const unsubscribeAudit = subscribeToTariffAuditLogs((logs) => {
       if (isMounted) {
         setAuditLogs(logs || INITIAL_AUDIT_LOGS);
       }
@@ -47,9 +61,8 @@ export const useFinanceTariffsManagement = (onNotify) => {
 
     return () => {
       isMounted = false;
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
+      if (typeof unsubscribeConfig === 'function') unsubscribeConfig();
+      if (typeof unsubscribeAudit === 'function') unsubscribeAudit();
     };
   }, []);
 

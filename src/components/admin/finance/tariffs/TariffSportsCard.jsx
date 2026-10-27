@@ -3,26 +3,7 @@ import TariffCardHeader from './TariffCardHeader';
 import TariffItemAmountAction from './TariffItemAmountAction';
 import { subscribeToSportsActivities } from '../../../../services/sportsService';
 
-const DEFAULT_SPORT_PRICES = {
-  atletismo: 14500,
-  natacion: 18000,
-  futbol: 13500,
-  taekwondo: 15000,
-  voley: 13000,
-  danza: 14000,
-  basquet: 13500,
-  ajedrez: 11000,
-};
 
-const getBasePriceForSport = (sportName = '', sportId = '') => {
-  const normalized = sportName.toLowerCase();
-  for (const [key, val] of Object.entries(DEFAULT_SPORT_PRICES)) {
-    if (normalized.includes(key) || sportId.toLowerCase().includes(key)) {
-      return val;
-    }
-  }
-  return 14000;
-};
 
 const TariffSportsCard = ({ sportsPrices = {}, onEditItem }) => {
   const [firebaseSports, setFirebaseSports] = useState([]);
@@ -82,7 +63,7 @@ const TariffSportsCard = ({ sportsPrices = {}, onEditItem }) => {
                 sportsPrices[sport.id] ??
                 sport.arancel ??
                 sport.monto ??
-                getBasePriceForSport(sport.nombre, sport.id);
+                0;
 
               return (
                 <div

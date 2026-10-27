@@ -10,126 +10,13 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { ensureAdminAuth } from './teachersService';
 
 const TARIFFS_CONFIG_COLLECTION = 'tariffs_config';
 const TARIFF_AUDIT_COLLECTION = 'tariff_audit_logs';
 
-export const INITIAL_AUDIT_LOGS = [
-  {
-    id: 'audit-init-001',
-    timestamp: new Date('2026-10-12T10:30:00Z'),
-    formattedDate: '12/10/2026, 10:30 hs',
-    user: {
-      name: 'Lic. Martín Valdez',
-      role: 'Superadmin Dirección',
-      email: 'martin.valdez@colegio.edu.ar',
-      initials: 'MV',
-    },
-    changesCount: 3,
-    changes: [
-      {
-        concept: 'Nivel Inicial (Jardín)',
-        category: 'Aranceles Curriculares',
-        previousAmount: 42000,
-        newAmount: 48000,
-        diff: 6000,
-        unit: 'ARS/mes',
-      },
-      {
-        concept: 'Nivel Primario (1° a 7° Grado)',
-        category: 'Aranceles Curriculares',
-        previousAmount: 58000,
-        newAmount: 65000,
-        diff: 7000,
-        unit: 'ARS/mes',
-      },
-      {
-        concept: 'Nivel Secundario (Básico y Orientado)',
-        category: 'Aranceles Curriculares',
-        previousAmount: 66000,
-        newAmount: 74000,
-        diff: 8000,
-        unit: 'ARS/mes',
-      },
-    ],
-  },
-  {
-    id: 'audit-init-002',
-    timestamp: new Date('2026-10-05T15:45:00Z'),
-    formattedDate: '05/10/2026, 15:45 hs',
-    user: {
-      name: 'Cra. Natalia Benítez',
-      role: 'Administración Financiera',
-      email: 'natalia.benitez@colegio.edu.ar',
-      initials: 'NB',
-    },
-    changesCount: 2,
-    changes: [
-      {
-        concept: 'Pase Mensual Comedor Completo',
-        category: 'Comedor Escolar',
-        previousAmount: 21000,
-        newAmount: 24000,
-        diff: 3000,
-        unit: 'ARS/mes',
-      },
-      {
-        concept: 'Vianda Simple / Turno Individual',
-        category: 'Comedor Escolar',
-        previousAmount: 1500,
-        newAmount: 1800,
-        diff: 300,
-        unit: 'ARS/vianda',
-      },
-    ],
-  },
-  {
-    id: 'audit-init-003',
-    timestamp: new Date('2026-09-28T11:15:00Z'),
-    formattedDate: '28/09/2026, 11:15 hs',
-    user: {
-      name: 'Lic. Martín Valdez',
-      role: 'Superadmin Dirección',
-      email: 'martin.valdez@colegio.edu.ar',
-      initials: 'MV',
-    },
-    changesCount: 4,
-    changes: [
-      {
-        concept: 'Natación',
-        category: 'Actividades Extracurriculares',
-        previousAmount: 16000,
-        newAmount: 18000,
-        diff: 2000,
-        unit: 'ARS/mes',
-      },
-      {
-        concept: 'Atletismo',
-        category: 'Actividades Extracurriculares',
-        previousAmount: 13000,
-        newAmount: 14500,
-        diff: 1500,
-        unit: 'ARS/mes',
-      },
-      {
-        concept: 'Ruta 1 (Microcentro y B° Norte)',
-        category: 'Transporte Escolar',
-        previousAmount: 12500,
-        newAmount: 14000,
-        diff: 1500,
-        unit: 'ARS/mes',
-      },
-      {
-        concept: 'Ruta 4 (Perilago y Zonas Rurales)',
-        category: 'Transporte Escolar',
-        previousAmount: 16000,
-        newAmount: 18000,
-        diff: 2000,
-        unit: 'ARS/mes',
-      },
-    ],
-  },
-];
+export const INITIAL_AUDIT_LOGS = [];
+
 
 /**
  * Guarda los aranceles y genera un registro de auditoría en Firestore.
@@ -254,6 +141,8 @@ export const saveTariffsWithAuditLogApi = async ({
   };
 
   try {
+    await ensureAdminAuth();
+
     // 1. Guardar la configuración en Firebase Firestore
     const configDocRef = doc(db, TARIFFS_CONFIG_COLLECTION, 'current');
     await setDoc(
@@ -275,10 +164,38 @@ export const saveTariffsWithAuditLogApi = async ({
       });
     }
   } catch (err) {
-    console.warn('Error guardando en Firestore, manteniendo en memoria:', err.message);
+    console.error('Error guardando en Firestore:', err);
+    throw err;
   }
 
   return auditEntry;
+};
+
+/**
+ * Suscripción reactiva a la configuración de tarifas en Firebase Firestore
+ */
+export const subscribeToTariffsConfig = (onUpdate, onError) => {
+  try {
+    const configDocRef = doc(db, TARIFFS_CONFIG_COLLECTION, 'current');
+    return onSnapshot(
+      configDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          onUpdate(docSnap.data());
+        } else {
+          onUpdate(null);
+        }
+      },
+      (err) => {
+        if (typeof onError === 'function') onError(err);
+        onUpdate(null);
+      }
+    );
+  } catch (err) {
+    if (typeof onError === 'function') onError(err);
+    onUpdate(null);
+    return () => {};
+  }
 };
 
 /**
@@ -295,7 +212,7 @@ export const subscribeToTariffAuditLogs = (onUpdate) => {
       q,
       (snapshot) => {
         if (snapshot.empty) {
-          onUpdate(INITIAL_AUDIT_LOGS);
+          onUpdate([]);
           return;
         }
 
@@ -318,17 +235,14 @@ export const subscribeToTariffAuditLogs = (onUpdate) => {
           });
         });
 
-        // Combinar con los iniciales si hay pocos
-        const combined = [...items, ...INITIAL_AUDIT_LOGS];
-        const unique = Array.from(new Map(combined.map((item) => [item.id, item])).values());
-        onUpdate(unique);
+        onUpdate(items);
       },
       () => {
-        onUpdate(INITIAL_AUDIT_LOGS);
+        onUpdate([]);
       }
     );
   } catch {
-    onUpdate(INITIAL_AUDIT_LOGS);
+    onUpdate([]);
     return () => {};
   }
 };
@@ -345,7 +259,7 @@ export const fetchTariffAuditLogsApi = async () => {
     const snap = await getDocs(q);
 
     if (snap.empty) {
-      return INITIAL_AUDIT_LOGS;
+      return [];
     }
 
     const items = [];
@@ -361,6 +275,6 @@ export const fetchTariffAuditLogsApi = async () => {
 
     return items;
   } catch {
-    return INITIAL_AUDIT_LOGS;
+    return [];
   }
 };
