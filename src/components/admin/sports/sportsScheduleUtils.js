@@ -217,5 +217,61 @@ export const createNewDisciplineRecord = (formData, teachers = []) => {
   };
 };
 
+const parseMinutesFromTimeStr = (timeStr = '') => {
+  const parts = String(timeStr).trim().split(':');
+  if (parts.length < 2) return null;
+  const h = Number.parseInt(parts[0], 10);
+  const m = Number.parseInt(parts[1], 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+};
+
+/**
+ * Verifica si existe colisión/superposición de días y franja horaria entre las actividades
+ * deportivas ya asignadas a un alumno y una nueva disciplina objetivo (Regla de Negocio TPI).
+ * Retorna null si no hay conflicto, o un objeto descriptivo `{ disciplineName, day, overlapLabel }`.
+ */
+export const checkScheduleConflict = (enrolledDisciplines = [], targetDiscipline) => {
+  if (!targetDiscipline || !Array.isArray(enrolledDisciplines) || enrolledDisciplines.length === 0) {
+    return null;
+  }
+
+  const targetSchedule = parseHorariosFromDiscipline(targetDiscipline);
+  const targetDays = Array.isArray(targetDiscipline.dias) ? targetDiscipline.dias : Object.keys(targetSchedule);
+
+  for (const current of enrolledDisciplines) {
+    if (!current || (targetDiscipline.id && current.id === targetDiscipline.id)) continue;
+
+    const currentSchedule = parseHorariosFromDiscipline(current);
+    const currentDays = Array.isArray(current.dias) ? current.dias : Object.keys(currentSchedule);
+
+    for (const tDay of targetDays) {
+      const matchingDay = currentDays.find(
+        (cDay) => getDayOrderIndex(cDay) !== 99 && getDayOrderIndex(cDay) === getDayOrderIndex(tDay)
+      );
+      if (!matchingDay) continue;
+
+      const tSlot = targetSchedule[tDay] || { inicio: '16:00', fin: '17:30' };
+      const cSlot = currentSchedule[matchingDay] || { inicio: '16:00', fin: '17:30' };
+
+      const tStart = parseMinutesFromTimeStr(tSlot.inicio) ?? 960;
+      const tEnd = parseMinutesFromTimeStr(tSlot.fin) ?? 1050;
+      const cStart = parseMinutesFromTimeStr(cSlot.inicio) ?? 960;
+      const cEnd = parseMinutesFromTimeStr(cSlot.fin) ?? 1050;
+
+      if (tStart < cEnd && cStart < tEnd) {
+        return {
+          disciplineName: current.nombre || current.titulo || 'otra actividad',
+          day: tDay,
+          overlapLabel: `${tDay} (${tSlot.inicio} - ${tSlot.fin}) se superpone con "${
+            current.nombre || 'otra actividad'
+          }" (${cSlot.inicio} - ${cSlot.fin})`,
+        };
+      }
+    }
+  }
+
+  return null;
+};
 
 

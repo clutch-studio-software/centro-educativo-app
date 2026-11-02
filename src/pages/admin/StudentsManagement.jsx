@@ -109,6 +109,7 @@ const normalizeStudent = (s, parents) => {
     cursoDisplay,
     estado: s.status === 'active' ? 'Activo - Regular' : s.status || 'Activo - Regular',
     servicios: s.servicios || ['Comedor Escolar'],
+    recorridoTransporte: s.recorridoTransporte || null,
     initials,
     avatarGradient,
     badgeVariant,
@@ -596,6 +597,8 @@ const useStudentActions = ({
             division: newStudent.division || 'sin asignar',
             genero: 'No especificado',
             domicilio: newStudent.domicilio || '',
+            servicios: newStudent.servicios || ['Comedor Escolar'],
+            recorridoTransporte: newStudent.recorridoTransporte || null,
           },
         ],
       });
