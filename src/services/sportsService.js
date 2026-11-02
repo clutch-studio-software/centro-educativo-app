@@ -160,6 +160,8 @@ export const fetchSportsActivities = async () => {
   }
 };
 
+export const fetchDisciplinesApi = fetchSportsActivities;
+
 /**
  * Suscripción reactiva en tiempo real al listado de disciplinas
  */
