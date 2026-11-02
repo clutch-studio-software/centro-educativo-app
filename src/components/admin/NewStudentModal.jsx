@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
-import { sortCourseNames, sortDivisions } from '../../utils/academicUtils';
+import {
+  sortCourseNames,
+  sortDivisions,
+  TRANSPORT_ROUTES,
+} from '../../utils/academicUtils';
 import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
 import { fetchAcademicOfferApi, DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
+
+const AVAILABLE_SERVICIOS = ['Comedor Escolar', 'Transporte Escolar'];
 
 const getNewStudentDivisiones = (academicOffer, studentNivel, studentCurso) => {
   if (!studentCurso || studentCurso === 'sin asignar') return ['A'];
@@ -28,6 +34,8 @@ const validateAndBuildNewStudent = ({
   studentDivision,
   studentDomicilio,
   studentEstado,
+  studentServicios = ['Comedor Escolar'],
+  recorridoTransporte = 'Recorrido 1',
   sameAddressAsTutor,
 }) => {
   if (!tutorNombre.trim() || !tutorDni.trim() || !tutorTelefono.trim() || !tutorEmail.trim()) {
@@ -108,7 +116,10 @@ const validateAndBuildNewStudent = ({
       division: studentDivision || 'sin asignar',
       cursoDisplay,
       estado: studentEstado,
-      servicios: ['Comedor Escolar'],
+      servicios: studentServicios,
+      recorridoTransporte: studentServicios.includes('Transporte Escolar')
+        ? recorridoTransporte || 'Recorrido 1'
+        : null,
       initials: initials || 'AL',
       avatarGradient,
       badgeVariant,
@@ -509,6 +520,10 @@ const StudentAcademicFields = ({
   availableDivisiones,
   studentEstado,
   setStudentEstado,
+  studentServicios = ['Comedor Escolar'],
+  handleToggleServicio,
+  recorridoTransporte = 'Recorrido 1',
+  setRecorridoTransporte,
 }) => (
   <>
     {/* Nivel Educativo, Curso y División */}
@@ -641,6 +656,62 @@ const StudentAcademicFields = ({
         </label>
       </div>
     </fieldset>
+
+    {/* Servicios Institucionales y Recorrido de Transporte */}
+    <div className="sm:col-span-2 p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-2xl flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-[15px] text-slate-400">room_service</span>
+          Servicios Institucionales (Comedor & Transporte)
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {AVAILABLE_SERVICIOS.map((servicio) => {
+          const isSelected = studentServicios.includes(servicio);
+          return (
+            <button
+              key={servicio}
+              type="button"
+              onClick={() => handleToggleServicio(servicio)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
+                isSelected
+                  ? 'bg-blue-100 text-blue-900 border-blue-300 shadow-xs'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[15px]">
+                {isSelected ? 'check_circle' : 'add_circle'}
+              </span>
+              <span>{servicio}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {studentServicios.includes('Transporte Escolar') && (
+        <div className="pt-1.5 flex flex-col gap-1">
+          <label
+            htmlFor="new-student-transport-route-select"
+            className="text-[10px] font-bold text-slate-500 uppercase tracking-wider"
+          >
+            Recorrido del Servicio de Transporte (4 recorridos disponibles)
+          </label>
+          <select
+            id="new-student-transport-route-select"
+            data-testid="new-student-transport-route-select"
+            value={recorridoTransporte}
+            onChange={(e) => setRecorridoTransporte(e.target.value)}
+            className="w-full h-9 px-3 bg-white text-slate-800 font-semibold text-xs rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-lime-400 cursor-pointer"
+          >
+            {TRANSPORT_ROUTES.map((route) => (
+              <option key={route.id} value={route.id}>
+                {route.nombre} — {route.zona} ({route.horarioIda})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
   </>
 );
 
@@ -699,6 +770,10 @@ const NewStudentDataSection = ({
   availableDivisiones,
   studentEstado,
   setStudentEstado,
+  studentServicios,
+  handleToggleServicio,
+  recorridoTransporte,
+  setRecorridoTransporte,
   handleAddSibling,
 }) => (
   <div
@@ -746,6 +821,10 @@ const NewStudentDataSection = ({
         availableDivisiones={availableDivisiones}
         studentEstado={studentEstado}
         setStudentEstado={setStudentEstado}
+        studentServicios={studentServicios}
+        handleToggleServicio={handleToggleServicio}
+        recorridoTransporte={recorridoTransporte}
+        setRecorridoTransporte={setRecorridoTransporte}
       />
     </div>
 
@@ -777,6 +856,8 @@ const useNewStudentForm = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
   const [studentCurso, setStudentCurso] = useState('sin asignar');
   const [studentDivision, setStudentDivision] = useState('sin asignar');
   const [studentEstado, setStudentEstado] = useState('Activo - Regular');
+  const [studentServicios, setStudentServicios] = useState(['Comedor Escolar']);
+  const [recorridoTransporte, setRecorridoTransporte] = useState('Recorrido 1');
 
   // Academic Offer State (Cursos fijos, divisiones dinámicas desde Firebase)
   const [academicOffer, setAcademicOffer] = useState(DEFAULT_ACADEMIC_OFFER);
@@ -875,6 +956,12 @@ const useNewStudentForm = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     }
   };
 
+  const handleToggleServicio = (servicio) => {
+    setStudentServicios((prev) =>
+      prev.includes(servicio) ? prev.filter((s) => s !== servicio) : [...prev, servicio]
+    );
+  };
+
   const validateAndBuildStudent = () => {
     setFormError('');
     const { error, student } = validateAndBuildNewStudent({
@@ -892,6 +979,8 @@ const useNewStudentForm = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
       studentDivision,
       studentDomicilio,
       studentEstado,
+      studentServicios,
+      recorridoTransporte,
       sameAddressAsTutor,
     });
 
@@ -979,6 +1068,10 @@ const useNewStudentForm = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
     availableDivisiones,
     studentEstado,
     setStudentEstado,
+    studentServicios,
+    handleToggleServicio,
+    recorridoTransporte,
+    setRecorridoTransporte,
     formError,
     successNotice,
     isSubmitting,
@@ -1101,6 +1194,10 @@ const NewStudentModal = ({ isOpen, onClose, onAddStudent, tutors = [] }) => {
             availableDivisiones={form.availableDivisiones}
             studentEstado={form.studentEstado}
             setStudentEstado={form.setStudentEstado}
+            studentServicios={form.studentServicios}
+            handleToggleServicio={form.handleToggleServicio}
+            recorridoTransporte={form.recorridoTransporte}
+            setRecorridoTransporte={form.setRecorridoTransporte}
             handleAddSibling={form.handleAddSibling}
           />
         </div>

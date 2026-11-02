@@ -217,6 +217,12 @@ export const createParentAndStudentsApi = async ({
         if (originalStudent?.apellido) {
           studentUpdates.apellido = originalStudent.apellido.trim();
         }
+        if (Array.isArray(originalStudent?.servicios)) {
+          studentUpdates.servicios = originalStudent.servicios;
+        }
+        if (originalStudent?.recorridoTransporte !== undefined) {
+          studentUpdates.recorridoTransporte = originalStudent.recorridoTransporte;
+        }
 
         if (Object.keys(studentUpdates).length > 0) {
           studentUpdates.updatedAt = serverTimestamp();
@@ -435,6 +441,10 @@ export const updateStudentAndTutorApi = async ({
 
   if (studentData.servicios) {
     studentUpdates.servicios = studentData.servicios;
+  }
+
+  if (studentData.recorridoTransporte !== undefined) {
+    studentUpdates.recorridoTransporte = studentData.recorridoTransporte;
   }
 
   if (studentData.apellido !== undefined) {
