@@ -17,7 +17,10 @@ import {
   INITIAL_STUDENTS_ROSTER,
 } from '../data/mockSportsDetailData.js';
 import { MOCK_STUDENTS } from '../data/mockStudents.js';
-import { sortWeekDays } from '../components/admin/sports/sportsScheduleUtils.js';
+import {
+  sortWeekDays,
+  checkScheduleConflict,
+} from '../components/admin/sports/sportsScheduleUtils.js';
 
 const SPORTS_COLLECTION = 'sportsActivities';
 const generarId = (prefijo) => `${prefijo}-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
@@ -436,10 +439,11 @@ export const enrollStudentInDisciplineApi = async (disciplineId, studentData) =>
     throw new Error('El cupo máximo de la disciplina ya se encuentra completo.');
   }
 
-  // REGLA DE NEGOCIO: Ningún alumno puede estar inscripto a más de 2 actividades extracurriculares
+  // REGLA DE NEGOCIO: Ningún alumno puede estar inscripto a más de 2 actividades extracurriculares ni con horarios superpuestos
   const allDisciplinesSnap = await getDocs(collection(db, SPORTS_COLLECTION));
   let existingActivitiesCount = 0;
   const existingActivitiesNames = [];
+  const enrolledDisciplineDocs = [];
 
   allDisciplinesSnap.forEach((dSnap) => {
     if (dSnap.id === disciplineId) return;
@@ -458,6 +462,7 @@ export const enrollStudentInDisciplineApi = async (disciplineId, studentData) =>
     if (isEnrolledInThis) {
       existingActivitiesCount += 1;
       existingActivitiesNames.push(dData.nombre || 'Otra actividad');
+      enrolledDisciplineDocs.push(normalizeSportActivity(dSnap.id, dData));
     }
   });
 
@@ -466,6 +471,14 @@ export const enrollStudentInDisciplineApi = async (disciplineId, studentData) =>
       `El alumno ya se encuentra inscripto en ${existingActivitiesCount} actividades (${existingActivitiesNames.join(
         ', '
       )}). Por normativa institucional, ningún alumno puede cursar más de 2 actividades simultáneas.`
+    );
+  }
+
+  const targetNormalized = normalizeSportActivity(disciplineId, current);
+  const scheduleConflict = checkScheduleConflict(enrolledDisciplineDocs, targetNormalized);
+  if (scheduleConflict) {
+    throw new Error(
+      `Conflicto de horario detectado: ${scheduleConflict.overlapLabel}. No se permiten actividades deportivas con superposición horaria.`
     );
   }
 
