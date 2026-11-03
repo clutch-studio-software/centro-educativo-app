@@ -6,6 +6,8 @@ import TeacherFilters from '../../components/admin/teachers/TeacherFilters';
 import TeacherTable from '../../components/admin/teachers/TeacherTable';
 import NewTeacherModal from '../../components/admin/teachers/NewTeacherModal';
 import EditTeacherModal from '../../components/admin/teachers/EditTeacherModal';
+import TeacherAssignmentsDrawer from '../../components/admin/teachers/TeacherAssignmentsDrawer';
+import TeacherSelfScheduleBanner from '../../components/admin/teachers/TeacherSelfScheduleBanner';
 import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import AdminTablePagination from '../../components/admin/AdminTablePagination';
 import {
@@ -15,14 +17,25 @@ import {
   toggleTeacherStatusApi,
   resetTeacherPasswordApi,
   deleteTeacherApi,
+  updateTeacherAssignmentsApi,
   exportTeachersPayrollCsv,
 } from '../../services/teachersService';
 import { auth } from '../../services/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '../../context/AuthContext';
 
 const PAGE_SIZE = 5;
 
-const ALLOWED_TEACHERS_ROLES = ['user_admin', 'directivo', 'administrador', 'admin', 'administrativo', 'docente'];
+const ALLOWED_TEACHERS_ROLES = [
+  'user_admin',
+  'directivo',
+  'administrador',
+  'admin',
+  'administrativo',
+  'docente',
+  'profesor',
+  'staff',
+];
 
 const useTeachersAuthCheck = (navigate, loadTeachers) => {
   useEffect(() => {
@@ -30,7 +43,7 @@ const useTeachersAuthCheck = (navigate, loadTeachers) => {
       const savedUser = localStorage.getItem('school_user');
       const currentUser = savedUser ? JSON.parse(savedUser) : null;
 
-      const userRole = String(currentUser?.role || '').toLowerCase();
+      const userRole = String(currentUser?.rol || currentUser?.role || '').toLowerCase();
       if (currentUser && ALLOWED_TEACHERS_ROLES.includes(userRole)) {
         return;
       }
@@ -78,7 +91,53 @@ const useTeachersAuthCheck = (navigate, loadTeachers) => {
   }, [navigate, loadTeachers]);
 };
 
-const TeachersManagementHeader = ({ onExportNomina, onOpenNewTeacherModal }) => (
+const filterTeachersByCriteria = (teachers, searchTerm, selectedEstado) => {
+  return teachers.filter((t) => {
+    if (searchTerm) {
+      const query = searchTerm.toLowerCase().trim();
+      const matchesName = (t.nombre || '').toLowerCase().includes(query);
+      const matchesApellido = (t.apellido || '').toLowerCase().includes(query);
+      const matchesCompleto = (t.nombreCompleto || '').toLowerCase().includes(query);
+      const matchesLegajo = (t.legajo || '').toLowerCase().includes(query);
+      const matchesDni = (t.dni || '').replace(/\./g, '').includes(query.replace(/\./g, ''));
+      const matchesEspecialidad = (t.especialidad || '').toLowerCase().includes(query);
+      const matchesEmail = (t.email || '').toLowerCase().includes(query);
+
+      if (
+        !matchesName &&
+        !matchesApellido &&
+        !matchesCompleto &&
+        !matchesLegajo &&
+        !matchesDni &&
+        !matchesEspecialidad &&
+        !matchesEmail
+      ) {
+        return false;
+      }
+    }
+
+    if (selectedEstado) {
+      if (selectedEstado.toLowerCase() === 'suspendido') {
+        if (String(t.estado || '').toLowerCase() !== 'suspendido' && !t.disabled) {
+          return false;
+        }
+      } else {
+        const tCond = String(t.condicion || t.estado || '').toLowerCase();
+        if (tCond !== selectedEstado.toLowerCase()) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+};
+
+const TeachersManagementHeader = ({
+  onExportNomina,
+  onOpenNewTeacherModal,
+  canManageTeachers = true,
+}) => (
   <section data-testid="teachers-management-header" className="flex flex-col gap-4">
     <div className="flex flex-wrap items-center justify-between gap-4">
       <AdminSectionTitle
@@ -99,21 +158,22 @@ const TeachersManagementHeader = ({ onExportNomina, onOpenNewTeacherModal }) => 
           <span>Exportar Nómina</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onOpenNewTeacherModal}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all rounded-full font-bold text-xs shadow-[0_4px_14px_rgba(11,80,213,0.3)] hover:shadow-lg active:scale-95 h-10 duration-200 text-center cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[18px] text-emerald-300">
-            person_add
-          </span>
-          <span>Registrar Docente</span>
-        </button>
+        {canManageTeachers && (
+          <button
+            type="button"
+            onClick={onOpenNewTeacherModal}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all rounded-full font-bold text-xs shadow-[0_4px_14px_rgba(11,80,213,0.3)] hover:shadow-lg active:scale-95 h-10 duration-200 text-center cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px] text-emerald-300">
+              person_add
+            </span>
+            <span>Registrar Docente</span>
+          </button>
+        )}
       </div>
     </div>
   </section>
 );
-
 
 const TeachersModals = ({
   isNewTeacherModalOpen,
@@ -141,23 +201,26 @@ const TeachersModals = ({
 
 const TeachersManagement = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Teachers State
+  const userRole = String(user?.rol || user?.role || 'Directivo').toLowerCase();
+  const canManageTeachers =
+    userRole === 'directivo' ||
+    userRole === 'administrativo' ||
+    userRole === 'admin' ||
+    userRole === 'user_admin' ||
+    userRole === 'administrador';
+  const isDocenteRole =
+    userRole === 'docente' || userRole === 'profesor' || userRole === 'staff';
+
   const [teachers, setTeachers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Filters State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEstado, setSelectedEstado] = useState('');
-
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Modals State
   const [isNewTeacherModalOpen, setIsNewTeacherModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
-
-  // Notification State
+  const [assigningTeacher, setAssigningTeacher] = useState(null);
   const [notification, setNotification] = useState(null);
 
   const showToast = useCallback((message, type = 'info') => {
@@ -167,7 +230,6 @@ const TeachersManagement = () => {
     }, 4000);
   }, []);
 
-  // Load teachers from Firebase
   const loadTeachers = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -181,14 +243,12 @@ const TeachersManagement = () => {
     }
   }, [showToast]);
 
-  // Authentication check for admin panel
   useTeachersAuthCheck(navigate, loadTeachers);
 
-  // Real-time listener for Auth changes to reload from Firestore
   useEffect(() => {
     let isMounted = true;
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user && isMounted) {
+    const unsubscribe = auth.onAuthStateChanged((fbUser) => {
+      if (fbUser && isMounted) {
         void loadTeachers();
       }
     });
@@ -201,57 +261,15 @@ const TeachersManagement = () => {
     };
   }, [loadTeachers]);
 
-  // Filter Logic
-  const filteredTeachers = useMemo(() => {
-    return teachers.filter((t) => {
-      // Text search in name, apellido, legajo, dni, especialidad, email
-      if (searchTerm) {
-        const query = searchTerm.toLowerCase().trim();
-        const matchesName = (t.nombre || '').toLowerCase().includes(query);
-        const matchesApellido = (t.apellido || '').toLowerCase().includes(query);
-        const matchesCompleto = (t.nombreCompleto || '').toLowerCase().includes(query);
-        const matchesLegajo = (t.legajo || '').toLowerCase().includes(query);
-        const matchesDni = (t.dni || '').replace(/\./g, '').includes(query.replace(/\./g, ''));
-        const matchesEspecialidad = (t.especialidad || '').toLowerCase().includes(query);
-        const matchesEmail = (t.email || '').toLowerCase().includes(query);
+  const filteredTeachers = useMemo(
+    () => filterTeachersByCriteria(teachers, searchTerm, selectedEstado),
+    [teachers, searchTerm, selectedEstado]
+  );
 
-        if (
-          !matchesName &&
-          !matchesApellido &&
-          !matchesCompleto &&
-          !matchesLegajo &&
-          !matchesDni &&
-          !matchesEspecialidad &&
-          !matchesEmail
-        ) {
-          return false;
-        }
-      }
-
-      // Estado/Condición filter (Titular, Suplente, Interino, Suspendido)
-      if (selectedEstado) {
-        if (selectedEstado.toLowerCase() === 'suspendido') {
-          if (String(t.estado || '').toLowerCase() !== 'suspendido' && !t.disabled) {
-            return false;
-          }
-        } else {
-          const tCond = String(t.condicion || t.estado || '').toLowerCase();
-          if (tCond !== selectedEstado.toLowerCase()) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    });
-  }, [teachers, searchTerm, selectedEstado]);
-
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedEstado]);
 
-  // Pagination calculation
   const totalItems = filteredTeachers.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
   const startIndex = (currentPage - 1) * PAGE_SIZE;
@@ -262,7 +280,6 @@ const TeachersManagement = () => {
     setSelectedEstado('');
   };
 
-  // Actions
   const handleCreateTeacher = async (teacherData) => {
     try {
       const created = await createTeacherApi(teacherData);
@@ -277,10 +294,6 @@ const TeachersManagement = () => {
     }
   };
 
-  const handleEditTeacher = (teacher) => {
-    setEditingTeacher(teacher);
-  };
-
   const handleSaveEditTeacher = async (teacherId, teacherData) => {
     try {
       const updated = await updateTeacherApi(teacherId, teacherData);
@@ -293,6 +306,32 @@ const TeachersManagement = () => {
     } catch (err) {
       console.error('Error al actualizar docente:', err);
       showToast('Error al actualizar datos del docente.', 'error');
+    }
+  };
+
+  const handleSaveAssignments = async (teacherId, { catedras, cargaHoras, grillaHoraria }) => {
+    try {
+      const updated = await updateTeacherAssignmentsApi(teacherId, {
+        catedras,
+        cargaHoras,
+        grillaHoraria,
+      });
+      setTeachers((prev) =>
+        prev.map((t) =>
+          t.id === teacherId
+            ? {
+                ...t,
+                catedras: updated?.catedras || catedras,
+                cargaHoras: updated?.cargaHoras ?? cargaHoras,
+                grillaHoraria: updated?.grillaHoraria || grillaHoraria,
+              }
+            : t
+        )
+      );
+      showToast('Cátedras, cursos y horarios actualizados correctamente.', 'success');
+    } catch (err) {
+      console.error('Error al guardar cátedras del docente:', err);
+      showToast('Error al guardar las asignaciones del docente.', 'error');
     }
   };
 
@@ -327,7 +366,7 @@ const TeachersManagement = () => {
 
   const handleDeleteTeacher = async (teacher) => {
     const displayName = teacher.nombreCompleto || `${teacher.nombre} ${teacher.apellido || ''}`;
-    const confirmed = window.confirm(
+    const confirmed = globalThis.confirm(
       `¿Confirmas la baja y eliminación definitiva del legajo de ${displayName} (${teacher.legajo})?\n\nEsta acción eliminará el registro del personal académico.`
     );
     if (!confirmed) return;
@@ -350,16 +389,22 @@ const TeachersManagement = () => {
   return (
     <AdminLayout activeItem="docentes" breadcrumbs={['Cuerpo Docente']}>
       <div className="flex flex-col w-full gap-6">
-        {/* Floating Toast Notification */}
         <AdminToast notification={notification} onClose={() => setNotification(null)} />
 
-        {/* Section Header */}
         <TeachersManagementHeader
           onExportNomina={handleExportNomina}
           onOpenNewTeacherModal={() => setIsNewTeacherModalOpen(true)}
+          canManageTeachers={canManageTeachers}
         />
 
-        {/* Filters Section */}
+        {isDocenteRole && (
+          <TeacherSelfScheduleBanner
+            user={user}
+            teachers={teachers}
+            onOpenSchedule={(teacher) => setAssigningTeacher(teacher)}
+          />
+        )}
+
         <TeacherFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -368,7 +413,6 @@ const TeachersManagement = () => {
           onResetFilters={handleResetFilters}
         />
 
-        {/* Indicador de sincronización activo */}
         {isLoading && (
           <div
             data-testid="teachers-sync-indicator"
@@ -379,19 +423,19 @@ const TeachersManagement = () => {
           </div>
         )}
 
-        {/* Teachers Table & Pagination Section */}
         <div className="flex flex-col gap-0">
           <TeacherTable
             teachers={currentTeachers}
             isLoading={isLoading}
-            onEditTeacher={handleEditTeacher}
+            onManageAssignments={(teacher) => setAssigningTeacher(teacher)}
+            onEditTeacher={(teacher) => setEditingTeacher(teacher)}
             onToggleStatus={handleToggleStatus}
             onResetPassword={handleResetPassword}
             onDeleteTeacher={handleDeleteTeacher}
             onResetFilters={handleResetFilters}
+            canManageTeachers={canManageTeachers}
           />
 
-          {/* Pagination Controls */}
           <AdminTablePagination
             isLoading={isLoading}
             totalItems={totalItems}
@@ -404,7 +448,6 @@ const TeachersManagement = () => {
           />
         </div>
 
-        {/* Modals */}
         <TeachersModals
           isNewTeacherModalOpen={isNewTeacherModalOpen}
           setIsNewTeacherModalOpen={setIsNewTeacherModalOpen}
@@ -412,6 +455,15 @@ const TeachersManagement = () => {
           editingTeacher={editingTeacher}
           setEditingTeacher={setEditingTeacher}
           handleSaveEditTeacher={handleSaveEditTeacher}
+        />
+
+        <TeacherAssignmentsDrawer
+          key={assigningTeacher?.id || 'closed'}
+          isOpen={Boolean(assigningTeacher)}
+          onClose={() => setAssigningTeacher(null)}
+          teacher={assigningTeacher}
+          onSaveAssignments={handleSaveAssignments}
+          readOnly={!canManageTeachers}
         />
       </div>
     </AdminLayout>
