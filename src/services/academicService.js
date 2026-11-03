@@ -1,6 +1,7 @@
 import {
   collection,
   getDocs,
+  getDoc,
   doc,
   setDoc,
   updateDoc,
@@ -30,7 +31,7 @@ export const fetchAcademicCourses = async () => {
     const courses = [];
     querySnapshot.forEach((docSnap) => {
       // Ignoramos el documento raíz del catálogo 'current'
-      if (docSnap.id === 'current') return;
+      if (docSnap.id === 'current' || docSnap.id === 'subjects_catalog') return;
 
       const data = docSnap.data();
       // Verificamos que sea un documento de curso
@@ -58,7 +59,7 @@ export const subscribeToAcademicCourses = (onUpdate, onError) => {
     (snapshot) => {
       const courses = [];
       snapshot.forEach((docSnap) => {
-        if (docSnap.id === 'current') return;
+        if (docSnap.id === 'current' || docSnap.id === 'subjects_catalog') return;
         const data = docSnap.data();
         if (data.type === 'course' || data.isCourse || (data.nivelId && data.nombre)) {
           courses.push({
@@ -272,7 +273,7 @@ export const unassignTeacherFromAllCourses = async (teacherId, teacherName = nul
     let updatedCount = 0;
 
     snap.forEach((docSnap) => {
-      if (docSnap.id === 'current') return;
+      if (docSnap.id === 'current' || docSnap.id === 'subjects_catalog') return;
       const data = docSnap.data();
       const matchesId = data.docenteId && data.docenteId === teacherId;
       const matchesName =
@@ -296,5 +297,43 @@ export const unassignTeacherFromAllCourses = async (teacherId, teacherName = nul
     }
   } catch (err) {
     console.warn('Error al desvincular docente de cursos academicOffer:', err.message);
+  }
+};
+
+
+/**
+ * Obtiene el catálogo de materias y planes de estudio desde Firestore ('academicOffer/subjects_catalog').
+ */
+export const fetchAcademicSubjects = async () => {
+  try {
+    await ensureAdminAuth();
+    const docRef = doc(db, 'academicOffer', 'subjects_catalog');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (Array.isArray(data?.items)) {
+        return data.items;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn('Error al obtener catálogo de materias desde Firestore:', err.message);
+    return null;
+  }
+};
+
+/**
+ * Persiste el catálogo de materias y planes de estudio en Firestore ('academicOffer/subjects_catalog').
+ */
+export const saveAcademicSubjects = async (subjectsList = []) => {
+  try {
+    await ensureAdminAuth();
+    const docRef = doc(db, 'academicOffer', 'subjects_catalog');
+    await setDoc(docRef, {
+      items: subjectsList,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn('No se pudo persistir academicOffer/subjects_catalog:', err.message);
   }
 };
