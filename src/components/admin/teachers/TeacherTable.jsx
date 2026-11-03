@@ -73,12 +73,16 @@ const TeacherFloatingMenu = ({
   menuRef,
   menuPosition,
   setActiveMenuTeacherId,
+  onManageAssignments,
   onEditTeacher,
   onResetPassword,
   onToggleStatus,
   onDeleteTeacher,
+  canManageTeachers = true,
 }) => {
   if (!activeTeacher) return null;
+
+  const isSuspended = String(activeTeacher.estado).toLowerCase() === 'suspendido';
 
   return (
     <div
@@ -91,7 +95,6 @@ const TeacherFloatingMenu = ({
       }}
       className="w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
     >
-      {/* Opción C: Modificar datos */}
       <div className="py-1">
         <button
           type="button"
@@ -99,101 +102,119 @@ const TeacherFloatingMenu = ({
             e.stopPropagation();
             const target = activeTeacher;
             setActiveMenuTeacherId?.(null);
-            onEditTeacher?.(target);
+            onManageAssignments?.(target);
           }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50/60 transition-colors cursor-pointer border-none bg-transparent"
         >
-          <span className="material-symbols-outlined text-[18px] text-blue-600">
-            edit
+          <span className="material-symbols-outlined text-[18px] text-indigo-600">
+            calendar_month
           </span>
           <div className="flex flex-col items-start leading-tight">
-            <span>Modificar datos</span>
+            <span>{canManageTeachers ? 'Cátedras y Horarios' : 'Ver Cátedras y Horarios'}</span>
             <span className="text-[10px] font-normal text-slate-400">
-              Editar legajo y contacto
+              {canManageTeachers ? 'Asignar materias y grilla' : 'Consultar cursos y horarios'}
             </span>
           </div>
         </button>
 
-        {/* Opción D: Restablecer contraseña */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeTeacher;
-            setActiveMenuTeacherId?.(null);
-            onResetPassword?.(target);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
-        >
-          <span className="material-symbols-outlined text-[18px] text-amber-500">
-            lock_reset
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>Restablecer contraseña</span>
-            <span className="text-[10px] font-normal text-slate-400">
-              Volver al DNI por defecto
-            </span>
-          </div>
-        </button>
+        {canManageTeachers && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeTeacher;
+                setActiveMenuTeacherId?.(null);
+                onEditTeacher?.(target);
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+            >
+              <span className="material-symbols-outlined text-[18px] text-blue-600">
+                edit
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>Modificar datos</span>
+                <span className="text-[10px] font-normal text-slate-400">
+                  Editar legajo y contacto
+                </span>
+              </div>
+            </button>
 
-        {/* Opción A: Deshabilitar / Habilitar usuario */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeTeacher;
-            setActiveMenuTeacherId?.(null);
-            onToggleStatus?.(target);
-          }}
-          className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
-            String(activeTeacher.estado).toLowerCase() === 'suspendido'
-              ? 'text-emerald-700 hover:bg-emerald-50'
-              : 'text-amber-700 hover:bg-amber-50'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[18px]">
-            {String(activeTeacher.estado).toLowerCase() === 'suspendido'
-              ? 'check_circle'
-              : 'person_off'}
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>
-              {String(activeTeacher.estado).toLowerCase() === 'suspendido'
-                ? 'Habilitar usuario'
-                : 'Deshabilitar usuario'}
-            </span>
-            <span className="text-[10px] font-normal text-slate-400">
-              {String(activeTeacher.estado).toLowerCase() === 'suspendido'
-                ? 'Restaurar a estado activo'
-                : 'Pasa a estado Suspendido'}
-            </span>
-          </div>
-        </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeTeacher;
+                setActiveMenuTeacherId?.(null);
+                onResetPassword?.(target);
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+            >
+              <span className="material-symbols-outlined text-[18px] text-amber-500">
+                lock_reset
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>Restablecer contraseña</span>
+                <span className="text-[10px] font-normal text-slate-400">
+                  Volver al DNI por defecto
+                </span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const target = activeTeacher;
+                setActiveMenuTeacherId?.(null);
+                onToggleStatus?.(target);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer border-none bg-transparent ${
+                isSuspended
+                  ? 'text-emerald-700 hover:bg-emerald-50'
+                  : 'text-amber-700 hover:bg-amber-50'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {isSuspended ? 'check_circle' : 'person_off'}
+              </span>
+              <div className="flex flex-col items-start leading-tight">
+                <span>
+                  {isSuspended ? 'Habilitar usuario' : 'Deshabilitar usuario'}
+                </span>
+                <span className="text-[10px] font-normal text-slate-400">
+                  {isSuspended ? 'Restaurar a estado activo' : 'Pasa a estado Suspendido'}
+                </span>
+              </div>
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Opción B: Borrar usuario */}
-      <div className="py-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeTeacher;
-            setActiveMenuTeacherId?.(null);
-            onDeleteTeacher?.(target);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
-        >
-          <span className="material-symbols-outlined text-[18px] text-red-500">
-            delete_forever
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>Borrar usuario</span>
-            <span className="text-[10px] font-normal text-red-400">
-              Eliminar legajo definitivamente
+      {canManageTeachers && (
+        <div className="py-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const target = activeTeacher;
+              setActiveMenuTeacherId?.(null);
+              onDeleteTeacher?.(target);
+            }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
+          >
+            <span className="material-symbols-outlined text-[18px] text-red-500">
+              delete_forever
             </span>
-          </div>
-        </button>
-      </div>
+            <div className="flex flex-col items-start leading-tight">
+              <span>Borrar usuario</span>
+              <span className="text-[10px] font-normal text-red-400">
+                Eliminar legajo definitivamente
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -203,6 +224,7 @@ const TeacherTableRow = ({
   activeMenuTeacherId,
   setActiveMenuTeacherId,
   setMenuPosition,
+  onManageAssignments,
 }) => {
   const isSuspended =
     String(teacher.estado).toLowerCase() === 'suspendido' || Boolean(teacher.disabled);
@@ -215,6 +237,8 @@ const TeacherTableRow = ({
       ? `${teacher.nombre} ${teacher.apellido}`
       : teacher.nombre);
   const initials = getInitials(teacher.nombre, teacher.apellido);
+  const catedrasCount = teacher.catedras?.length || 0;
+  const cargaHoras = teacher.cargaHoras || 0;
 
   return (
     <tr
@@ -223,12 +247,10 @@ const TeacherTableRow = ({
         isSuspended ? 'bg-rose-50/20 hover:bg-rose-50/30' : 'hover:bg-blue-50/30'
       }`}
     >
-      {/* Legajo */}
       <td className="py-4 px-6 font-mono font-bold text-xs text-blue-600 whitespace-nowrap">
         {teacher.legajo}
       </td>
 
-      {/* Docente & Titulación */}
       <td className="py-4 px-6">
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
@@ -266,14 +288,20 @@ const TeacherTableRow = ({
         </div>
       </td>
 
-      {/* Especialidad (texto libre con badge limpio) */}
       <td className="py-4 px-6">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-md font-bold text-[11px] border bg-slate-50 text-slate-700 border-slate-200">
-          {teacher.especialidad}
-        </span>
+        <div className="flex flex-col items-start gap-1">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md font-bold text-[11px] border bg-slate-50 text-slate-700 border-slate-200">
+            {teacher.especialidad}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600">
+            <span className="material-symbols-outlined text-[13px]">menu_book</span>
+            <span>
+              {catedrasCount} cátedra(s) · {cargaHoras} hs/sem
+            </span>
+          </span>
+        </div>
       </td>
 
-      {/* Estado (Titular, Suplente, Interino, Suspendido) */}
       <td className="py-4 px-6 whitespace-nowrap">
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-bold text-[11px] border ${status.badgeClass}`}
@@ -283,7 +311,6 @@ const TeacherTableRow = ({
         </span>
       </td>
 
-      {/* Contacto Institucional */}
       <td className="py-4 px-6">
         <div className="flex flex-col">
           <span className="text-xs font-semibold text-slate-800 truncate">
@@ -295,9 +322,22 @@ const TeacherTableRow = ({
         </div>
       </td>
 
-      {/* Botón de 3 Puntos Más Opciones */}
       <td className="py-4 px-6 text-right">
-        <div className="relative inline-block text-left">
+        <div className="relative inline-flex items-center justify-end gap-1 text-left">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onManageAssignments?.(teacher);
+            }}
+            className="p-1.5 rounded-full text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer border-none bg-transparent"
+            title="Cátedras, Cursos y Horarios"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              calendar_month
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={(e) => {
@@ -306,12 +346,12 @@ const TeacherTableRow = ({
                 setActiveMenuTeacherId(null);
               } else {
                 const rect = e.currentTarget.getBoundingClientRect();
-                const menuHeight = 180;
-                const spaceBelow = window.innerHeight - rect.bottom;
+                const menuHeight = 190;
+                const spaceBelow = globalThis.innerHeight - rect.bottom;
                 const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
                 setMenuPosition({
                   top: openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6,
-                  right: window.innerWidth - rect.right,
+                  right: globalThis.innerWidth - rect.right,
                 });
                 setActiveMenuTeacherId(teacher.id);
               }
@@ -333,20 +373,91 @@ const TeacherTableRow = ({
   );
 };
 
+const renderTableBodyContent = ({
+  isLoading,
+  teachers,
+  onResetFilters,
+  activeMenuTeacherId,
+  setActiveMenuTeacherId,
+  setMenuPosition,
+  onManageAssignments,
+}) => {
+  if (isLoading) {
+    return (
+      <tr data-testid="teacher-loading-row">
+        <td colSpan={6} className="py-12 text-center text-slate-400">
+          <div data-testid="teacher-loading-state" className="flex flex-col items-center justify-center gap-3">
+            <span className="material-symbols-outlined text-4xl text-blue-600 animate-spin">
+              sync
+            </span>
+            <p className="font-semibold text-slate-600 text-sm">
+              Cargando nómina docente...
+            </p>
+            <p className="text-xs text-slate-400">
+              Sincronizando información institucional y credenciales
+            </p>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  if (teachers.length === 0) {
+    return (
+      <tr data-testid="teacher-empty-row">
+        <td colSpan={6} className="py-12 text-center text-slate-400">
+          <div data-testid="teacher-empty-state" className="flex flex-col items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-4xl text-slate-300">
+              person_off
+            </span>
+            <p className="font-semibold text-slate-600 text-sm">
+              No se encontraron docentes con los filtros seleccionados
+            </p>
+            <p className="text-xs text-slate-400">
+              Prueba cambiando el término de búsqueda o el estado seleccionado.
+            </p>
+            {onResetFilters && (
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 underline transition-colors cursor-pointer"
+              >
+                Restablecer filtros
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return teachers.map((teacher) => (
+    <TeacherTableRow
+      key={teacher.id}
+      teacher={teacher}
+      activeMenuTeacherId={activeMenuTeacherId}
+      setActiveMenuTeacherId={setActiveMenuTeacherId}
+      setMenuPosition={setMenuPosition}
+      onManageAssignments={onManageAssignments}
+    />
+  ));
+};
+
 const TeacherTable = ({
   teachers = [],
   isLoading = false,
+  onManageAssignments,
   onEditTeacher,
   onToggleStatus,
   onResetPassword,
   onDeleteTeacher,
   onResetFilters,
+  canManageTeachers = true,
 }) => {
   const [activeMenuTeacherId, setActiveMenuTeacherId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const menuRef = useRef(null);
 
-  // Close floating menu on outside click or scroll
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -359,11 +470,11 @@ const TeacherTable = ({
 
     if (activeMenuTeacherId) {
       document.addEventListener('mousedown', handleOutsideClick);
-      window.addEventListener('scroll', handleScroll, true);
+      globalThis.addEventListener('scroll', handleScroll, true);
     }
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
-      window.removeEventListener('scroll', handleScroll, true);
+      globalThis.removeEventListener('scroll', handleScroll, true);
     };
   }, [activeMenuTeacherId]);
 
@@ -390,78 +501,36 @@ const TeacherTable = ({
               <th className="py-3.5 px-6 font-bold text-xs text-slate-500 uppercase tracking-wider">
                 Contacto Institucional
               </th>
-              <th className="py-3.5 px-6 font-bold text-xs text-slate-500 uppercase tracking-wider text-right w-20">
+              <th className="py-3.5 px-6 font-bold text-xs text-slate-500 uppercase tracking-wider text-right w-24">
                 Acciones
               </th>
             </tr>
           </thead>
           <tbody data-testid="teacher-table-body" className="divide-y divide-slate-100">
-            {isLoading ? (
-              <tr data-testid="teacher-loading-row">
-                <td colSpan={6} className="py-12 text-center text-slate-400">
-                  <div data-testid="teacher-loading-state" className="flex flex-col items-center justify-center gap-3">
-                    <span className="material-symbols-outlined text-4xl text-blue-600 animate-spin">
-                      sync
-                    </span>
-                    <p className="font-semibold text-slate-600 text-sm">
-                      Cargando nómina docente...
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Sincronizando información institucional y credenciales
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : teachers.length === 0 ? (
-              <tr data-testid="teacher-empty-row">
-                <td colSpan={6} className="py-12 text-center text-slate-400">
-                  <div data-testid="teacher-empty-state" className="flex flex-col items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-4xl text-slate-300">
-                      person_off
-                    </span>
-                    <p className="font-semibold text-slate-600 text-sm">
-                      No se encontraron docentes con los filtros seleccionados
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Prueba cambiando el término de búsqueda o el estado seleccionado.
-                    </p>
-                    {onResetFilters && (
-                      <button
-                        type="button"
-                        onClick={onResetFilters}
-                        className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 underline transition-colors cursor-pointer"
-                      >
-                        Restablecer filtros
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              teachers.map((teacher) => (
-                <TeacherTableRow
-                  key={teacher.id}
-                  teacher={teacher}
-                  activeMenuTeacherId={activeMenuTeacherId}
-                  setActiveMenuTeacherId={setActiveMenuTeacherId}
-                  setMenuPosition={setMenuPosition}
-                />
-              ))
-            )}
+            {renderTableBodyContent({
+              isLoading,
+              teachers,
+              onResetFilters,
+              activeMenuTeacherId,
+              setActiveMenuTeacherId,
+              setMenuPosition,
+              onManageAssignments,
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* Menú Flotante con Posicionamiento Fijo (Evita clipping por overflow) */}
       <TeacherFloatingMenu
         activeTeacher={activeTeacher}
         menuRef={menuRef}
         menuPosition={menuPosition}
         setActiveMenuTeacherId={setActiveMenuTeacherId}
+        onManageAssignments={onManageAssignments}
         onEditTeacher={onEditTeacher}
         onResetPassword={onResetPassword}
         onToggleStatus={onToggleStatus}
         onDeleteTeacher={onDeleteTeacher}
+        canManageTeachers={canManageTeachers}
       />
     </section>
   );
