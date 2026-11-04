@@ -17,9 +17,6 @@ const TeacherAddCatedraForm = ({
   const projectedTotal = totalHoras + currentHours;
   const isOverLimit = projectedTotal > maxHoras;
   const isAfternoon = formState.turno === 'Turno Tarde';
-  const scheduleSuggestions = isAfternoon
-    ? AFTERNOON_SCHEDULE_SUGGESTIONS
-    : MORNING_SCHEDULE_SUGGESTIONS;
 
   return (
     <fieldset className="flex flex-col gap-3 border border-slate-200/80 bg-slate-50/60 rounded-2xl p-4 m-0">
