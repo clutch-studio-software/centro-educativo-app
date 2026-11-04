@@ -192,15 +192,26 @@ const ReporteCursosPorNivelView = ({
                       </td>
                       <td className="py-3 px-4 min-w-[140px]">
                         <div className="flex items-center gap-2">
-                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/60">
+                          <div
+                            className="w-full bg-slate-100 print:bg-slate-200 rounded-full h-2.5 overflow-hidden border border-slate-200/80 print:border-slate-400"
+                            style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+                          >
                             <div
-                              className={`h-2 rounded-full transition-all ${
-                                isFull ? 'bg-rose-500' : isHigh ? 'bg-amber-500' : 'bg-emerald-500'
+                              className={`h-2.5 rounded-full transition-all print:border print:border-black/20 ${
+                                isFull
+                                  ? 'bg-rose-500 print:bg-rose-600'
+                                  : isHigh
+                                    ? 'bg-amber-500 print:bg-amber-600'
+                                    : 'bg-emerald-500 print:bg-emerald-600'
                               }`}
-                              style={{ width: `${Math.min(100, c.porcentajeOcupacion)}%` }}
+                              style={{
+                                width: `${Math.min(100, c.porcentajeOcupacion)}%`,
+                                WebkitPrintColorAdjust: 'exact',
+                                printColorAdjust: 'exact',
+                              }}
                             />
                           </div>
-                          <span className="font-mono text-[10px] font-bold text-slate-600 w-8 text-right">
+                          <span className="font-mono text-[10px] font-bold text-slate-700 print:text-black w-8 text-right">
                             {c.porcentajeOcupacion}%
                           </span>
                         </div>

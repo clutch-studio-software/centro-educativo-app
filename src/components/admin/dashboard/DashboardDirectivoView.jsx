@@ -178,7 +178,7 @@ const DashboardDirectivoView = ({ stats, roleTitle = 'Personal Directivo' }) => 
                 Servicios Escolares & Transporte (4 Recorridos Oficiales)
               </p>
               <p className="text-xs text-slate-500">
-                Inscripciones vigentes a los servicios del TPI Metodología II.
+                Inscripciones vigentes a los servicios.
               </p>
             </div>
           </div>

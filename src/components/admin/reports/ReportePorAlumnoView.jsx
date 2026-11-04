@@ -26,12 +26,12 @@ const ReportePorAlumnoView = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
-  // Alumno activo derivado
+  // Alumno activo derivado: por defecto null hasta que el usuario busque y seleccione uno
   const selectedStudent = useMemo(() => {
     if (selectedStudentId) {
-      return students.find((s) => s.id === selectedStudentId) || students[0] || null;
+      return students.find((s) => s.id === selectedStudentId) || null;
     }
-    return students[0] || null;
+    return null;
   }, [students, selectedStudentId]);
 
   // Alumnos filtrados para el buscador
@@ -137,9 +137,19 @@ const ReportePorAlumnoView = ({
       </div>
 
       {!reportData ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
-          <span className="material-symbols-outlined text-4xl text-slate-300">school</span>
-          <p className="text-xs font-semibold mt-2">No se encontró ningún estudiante seleccionado para generar el reporte.</p>
+        <div
+          data-testid="report-student-empty"
+          className="bg-white rounded-md border border-dashed border-slate-300 p-12 text-center flex flex-col items-center justify-center gap-3 shadow-2xs"
+        >
+          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+            <span className="material-symbols-outlined text-2xl">person_search</span>
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-sm font-bold text-slate-800">Ningún alumno seleccionado</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Ingrese el nombre, apellido, DNI o número de legajo en el buscador superior para seleccionar un alumno y consultar su reporte consolidado institucional.
+            </p>
+          </div>
         </div>
       ) : (
         <>
@@ -156,10 +166,24 @@ const ReportePorAlumnoView = ({
               </>
             }
             actions={
-              <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">verified</span>
-                Matrícula Oficial Activa
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">verified</span>
+                  Matrícula Oficial Activa
+                </span>
+                <button
+                  type="button"
+                  data-testid="btn-change-student-report"
+                  onClick={() => {
+                    setSelectedStudentId(null);
+                    setSearchTerm('');
+                  }}
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                  Cambiar
+                </button>
+              </div>
             }
           />
 

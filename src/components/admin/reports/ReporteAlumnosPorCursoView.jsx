@@ -1,5 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { formatFullName, exportReportToCsv } from './reportsUtils';
+import {
+  formatLastNameFirst,
+  compareStudentsForCourseReport,
+  compareCoursesHierarchy,
+  exportReportToCsv,
+} from './reportsUtils';
 import { normalizeNivel } from '../../../utils/academicUtils';
 import ReportHeaderActions from './ReportHeaderActions';
 import ReportTableHeader from './ReportTableHeader';
@@ -23,27 +28,35 @@ const ReporteAlumnosPorCursoView = ({
   const [selectedCurso, setSelectedCurso] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Cursos disponibles agrupados por nivel
+  // Cursos disponibles agrupados por nivel y ordenados jerárquicamente
   const cursosDisponibles = useMemo(() => {
-    const set = new Set();
+    const map = new Map();
     students.forEach((s) => {
       const c = String(s.curso || '').trim();
       const n = normalizeNivel(s.nivel);
       if (c && c !== 'Sin asignar') {
         if (selectedNivel === 'Todos' || n.toLowerCase() === selectedNivel.toLowerCase()) {
-          set.add(c);
+          if (!map.has(c)) {
+            map.set(c, { curso: c, nivel: n, division: s.division });
+          }
         }
       }
     });
-    return Array.from(set).sort();
+    return Array.from(map.values())
+      .sort(compareCoursesHierarchy)
+      .map((item) => item.curso);
   }, [students, selectedNivel]);
 
   // Curso efectivo derivado: si el curso seleccionado no pertenece al nivel, usa 'Todos'
   const effectiveCurso = cursosDisponibles.includes(selectedCurso) ? selectedCurso : 'Todos';
 
-  // Alumnos filtrados según los criterios
+  // Alumnos filtrados según los criterios y ordenados:
+  // 1. Nivel Educativo (Inicial -> Primario -> Secundario)
+  // 2. Grado / Año numérico
+  // 3. División
+  // 4. Alfabéticamente por Apellido, Nombre (ej. Ceballos, Godoy, Morales...)
   const filteredStudents = useMemo(() => {
-    return students.filter((s) => {
+    const filtered = students.filter((s) => {
       const sNivel = normalizeNivel(s.nivel).toLowerCase();
       const sCurso = String(s.curso || '').trim();
       const q = searchTerm.toLowerCase().trim();
@@ -60,6 +73,8 @@ const ReporteAlumnosPorCursoView = ({
 
       return matchesNivel && matchesCurso && matchesSearch;
     });
+
+    return filtered.sort(compareStudentsForCourseReport);
   }, [students, selectedNivel, effectiveCurso, searchTerm]);
 
   // Manejo directo de exportación CSV
@@ -71,7 +86,7 @@ const ReporteAlumnosPorCursoView = ({
         curso: st.curso || 'Sin curso',
         division: st.division || 'A',
         legajo: st.studentID_login || st.legajo || 'Sin legajo',
-        nombreCompleto: formatFullName(st),
+        nombreCompleto: formatLastNameFirst(st),
         dni: st.dni || 'Sin DNI',
         comedor: servicios.some((s) => String(s).toLowerCase().includes('comedor')) ? 'Sí' : 'No',
         transporte: st.recorridoTransporte || (servicios.some((s) => String(s).toLowerCase().includes('transporte')) ? 'Sí' : 'No'),
@@ -217,7 +232,7 @@ const ReporteAlumnosPorCursoView = ({
                         {st.studentID_login || st.legajo || 'S/L'}
                       </td>
                       <td className="py-3 px-4 font-bold text-slate-900">
-                        {formatFullName(st)}
+                        {formatLastNameFirst(st)}
                       </td>
                       <td className="py-3 px-4 font-mono text-slate-600">
                         {st.dni || 'S/DNI'}

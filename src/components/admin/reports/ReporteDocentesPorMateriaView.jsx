@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { normalizeNivel } from '../../../utils/academicUtils';
-import { exportReportToCsv } from './reportsUtils';
+import { exportReportToCsv, compareSubjectsByNivelAndName } from './reportsUtils';
 import ReportHeaderActions from './ReportHeaderActions';
 import ReportTableHeader from './ReportTableHeader';
 import ReportNivelSelect from './ReportNivelSelect';
@@ -97,7 +97,8 @@ const ReporteDocentesPorMateriaView = ({
       });
     });
 
-    return result.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    // Ordenar primero por nivel educativo (Inicial -> Primario -> Secundario) y luego por nombre de materia
+    return result.sort(compareSubjectsByNivelAndName);
   }, [subjects, coursesMap, teachersMap]);
 
   // Filtrado reactivo por nivel y buscador

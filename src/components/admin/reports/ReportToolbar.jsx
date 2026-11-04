@@ -13,17 +13,17 @@ const ReportToolbar = ({ activeReportId, onSelectReport }) => {
             <span className="material-symbols-outlined text-[24px]">insights</span>
           </div>
           <div className="text-left">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <div className="flex items-center text-left gap-2">
+              <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Central de Reportes Directivos
-              </h1>
-              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 uppercase">
-                TPI Metodología II
+              </span>
+              <span className="hidden sm:inline-flex px-2 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200 animate-pulse uppercase">
+                BETA
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <span className="text-xs text-left text-slate-500 mt-0.5">
               {currentReport.description}
-            </p>
+            </span>
           </div>
         </div>
       </div>

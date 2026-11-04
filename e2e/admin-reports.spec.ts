@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './helpers/auth';
 
 /**
- * Suite E2E: Central de Reportes Directivos (TPI Metodología II)
+ * Suite E2E: Central de Reportes Directivos (BETA)
  * Ruta: /admin/reportes
  */
 test.describe('Validación de la Central de Reportes Directivos (/admin/reportes)', () => {
@@ -18,10 +18,10 @@ test.describe('Validación de la Central de Reportes Directivos (/admin/reportes
   test('debe cargar la vista general y barra de navegación de 5 reportes', async ({ page }) => {
     // Encabezado institucional
     await expect(
-      page.getByRole('heading', { name: /central de reportes directivos/i })
+      page.getByText('Central de Reportes Directivos')
     ).toBeVisible();
     await expect(
-      page.locator('[data-testid="reports-toolbar-container"]').getByText('TPI Metodología II')
+      page.locator('[data-testid="reports-toolbar-container"]').getByText('BETA')
     ).toBeVisible();
 
     // Toolbar de navegación con los 5 tabs oficiales
@@ -33,12 +33,19 @@ test.describe('Validación de la Central de Reportes Directivos (/admin/reportes
     await expect(page.locator('[data-testid="tab-cursos-por-nivel"]')).toBeVisible();
   });
 
-  test('Reporte 1: debe visualizar y operar el Reporte por Alumno con servicios y materias', async ({
+  test('Reporte 1: debe visualizar estado inicial en blanco y cargar alumno tras búsqueda', async ({
     page,
   }) => {
-    // Tab por alumno activo por defecto
+    // Tab por alumno activo por defecto con estado inicial en blanco
     await expect(page.locator('[data-testid="report-alumno-container"]')).toBeVisible();
     await expect(page.locator('[data-testid="input-search-student-report"]')).toBeVisible();
+    await expect(page.locator('[data-testid="report-student-empty"]')).toBeVisible();
+
+    // Buscar y seleccionar un estudiante
+    await page.locator('[data-testid="input-search-student-report"]').fill('Gael');
+    const firstResult = page.locator('button[data-testid^="select-student-result-"]').first();
+    await expect(firstResult).toBeVisible();
+    await firstResult.click();
 
     // Verificación de tarjetas de servicios escolares integrados
     await expect(page.locator('[data-testid="card-report-cursado"]')).toBeVisible();
@@ -54,19 +61,36 @@ test.describe('Validación de la Central de Reportes Directivos (/admin/reportes
     await expect(page.locator('[data-testid="btn-print-report"]')).toBeVisible();
   });
 
-  test('Reporte 2: debe conmutar y mostrar el Reporte por Docente con cursos y horarios', async ({
+  test('Reporte 2: debe conmutar y mostrar estado en blanco hasta seleccionar docente', async ({
     page,
   }) => {
     await page.locator('[data-testid="tab-reporte-docente"]').click();
 
     await expect(page.locator('[data-testid="report-docente-container"]')).toBeVisible();
     await expect(page.locator('[data-testid="input-search-teacher-report"]')).toBeVisible();
-    await expect(page.locator('[data-testid="report-teacher-header-card"]')).toBeVisible();
+    await expect(page.locator('[data-testid="report-teacher-empty"]')).toBeVisible();
 
-    // Tablas de cursos asignados y grilla horaria semanal
-    await expect(page.locator('[data-testid="table-report-teacher-courses"]')).toBeVisible();
-    await expect(page.locator('[data-testid="table-report-teacher-schedules"]')).toBeVisible();
+    // Buscar y seleccionar un docente
+    await page.locator('[data-testid="input-search-teacher-report"]').fill('a');
+    const firstTeacherResult = page.locator('button[data-testid^="select-teacher-result-"]').first();
+    await expect(firstTeacherResult).toBeVisible();
+    await firstTeacherResult.click();
+
+    // Verificación de ficha de perfil y secciones de cursos y horarios
+    await expect(page.locator('[data-testid="report-teacher-header-card"]')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /cursos a cargo por nivel educativo/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /horarios semanales de dictado/i })
+    ).toBeVisible();
+
     await expect(page.locator('[data-testid="btn-export-csv"]')).toBeVisible();
+    await expect(page.locator('[data-testid="btn-print-report"]')).toBeVisible();
+
+    // Validar botón "Cambiar" para resetear la selección y volver al estado en blanco
+    await page.locator('[data-testid="btn-change-teacher-report"]').click();
+    await expect(page.locator('[data-testid="report-teacher-empty"]')).toBeVisible();
   });
 
   test('Reporte 3: debe conmutar y filtrar el Listado de Alumnos por Curso', async ({

@@ -71,10 +71,10 @@ const AdminReports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xl font-black text-slate-900 tracking-tight">
-                CENTRO EDUCATIVO INTEGRAL — TPI METODOLOGÍA II
+                CENTRO EDUCATIVO INTEGRAL
               </p>
               <p className="text-xs text-slate-600 font-semibold mt-0.5">
-                Dirección General y Secretaría Académica · Ciclo Lectivo 2027
+                Dirección General y Secretaría Académica
               </p>
             </div>
             <div className="text-right font-mono text-[11px] text-slate-500">

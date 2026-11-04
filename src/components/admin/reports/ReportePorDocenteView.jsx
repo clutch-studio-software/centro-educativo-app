@@ -27,12 +27,12 @@ const ReportePorDocenteView = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeacherId, setSelectedTeacherId] = useState(null);
 
-  // Docente activo derivado
+  // Docente activo derivado: por defecto null hasta que el usuario busque y seleccione uno
   const selectedTeacher = useMemo(() => {
     if (selectedTeacherId) {
-      return teachers.find((t) => t.id === selectedTeacherId) || teachers[0] || null;
+      return teachers.find((t) => t.id === selectedTeacherId) || null;
     }
-    return teachers[0] || null;
+    return null;
   }, [teachers, selectedTeacherId]);
 
   // Docentes filtrados por buscador
@@ -134,9 +134,19 @@ const ReportePorDocenteView = ({
       </div>
 
       {!reportData ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
-          <span className="material-symbols-outlined text-4xl text-slate-300">badge</span>
-          <p className="text-xs font-semibold mt-2">No se encontró ningún docente seleccionado.</p>
+        <div
+          data-testid="report-teacher-empty"
+          className="bg-white rounded-md border border-dashed border-slate-300 p-12 text-center flex flex-col items-center justify-center gap-3 shadow-2xs"
+        >
+          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+            <span className="material-symbols-outlined text-2xl">badge</span>
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-sm font-bold text-slate-800">Ningún docente seleccionado</h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Ingrese el nombre, apellido, legajo o especialidad en el buscador superior para seleccionar un docente y consultar su reporte de cátedras y horarios.
+            </p>
+          </div>
         </div>
       ) : (
         <>
@@ -153,10 +163,24 @@ const ReportePorDocenteView = ({
               </>
             }
             actions={
-              <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                {reportData.cargaHoras} hs semanales
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">schedule</span>
+                  {reportData.cargaHoras} hs semanales
+                </span>
+                <button
+                  type="button"
+                  data-testid="btn-change-teacher-report"
+                  onClick={() => {
+                    setSelectedTeacherId(null);
+                    setSearchTerm('');
+                  }}
+                  className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                  Cambiar
+                </button>
+              </div>
             }
           />
 

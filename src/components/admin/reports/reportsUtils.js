@@ -6,7 +6,7 @@ import {
 } from '../../../utils/academicUtils';
 
 /**
- * Reportes Oficiales disponibles en la Central Directiva (TPI Metodología II)
+ * Reportes Oficiales disponibles en la Central Directiva
  */
 export const REPORT_TYPES = [
   {
@@ -57,6 +57,217 @@ export const formatFullName = (person) => {
     person.nombre ||
     'Sin especificar'
   );
+};
+
+/**
+ * Formatea el nombre de un estudiante en orden "Apellido, Nombre"
+ */
+export const formatLastNameFirst = (person) => {
+  if (!person) return 'Sin especificar';
+  const ap = (person.apellido || '').trim();
+  const nom = (person.nombre || '').trim();
+
+  if (ap && nom) {
+    const cleanNom = nom.toLowerCase().endsWith(ap.toLowerCase())
+      ? nom.slice(0, nom.length - ap.length).trim()
+      : nom;
+    return `${ap}, ${cleanNom || nom}`;
+  }
+
+  if (person.nombreCompleto) {
+    const parts = person.nombreCompleto.trim().split(/\s+/);
+    if (parts.length > 1) {
+      const lastName = parts[parts.length - 1];
+      const firstNames = parts.slice(0, -1).join(' ');
+      return `${lastName}, ${firstNames}`;
+    }
+    return person.nombreCompleto;
+  }
+
+  return person.nombre || person.apellido || 'Sin especificar';
+};
+
+/**
+ * Ponderación numérica de niveles educativos para ordenamiento:
+ * Inicial (1) < Primario (2) < Secundario (3)
+ */
+export const getNivelWeight = (nivel = '') => {
+  const norm = normalizeNivel(nivel);
+  if (norm === 'inicial') return 1;
+  if (norm === 'primario') return 2;
+  return 3;
+};
+
+/**
+ * Extrae el número de año o grado de una cadena de curso (ej. "7mo Grado" -> 7, "1er Año" -> 1)
+ */
+export const getCourseGradeNumber = (courseStr = '') => {
+  const match = String(courseStr || '').match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
+};
+
+/**
+ * Comparador canónico de cursos:
+ * 1. Nivel (Inicial -> Primario -> Secundario)
+ * 2. Grado / Año numérico (1° Grado ... 7° Grado / 1° Año ... 6° Año)
+ * 3. División (A, B, C...)
+ */
+export const compareCoursesHierarchy = (courseA, courseB) => {
+  const nivelA = getNivelWeight(courseA?.nivel || courseA?.nivelId || courseA?.nivelNormalizado);
+  const nivelB = getNivelWeight(courseB?.nivel || courseB?.nivelId || courseB?.nivelNormalizado);
+  if (nivelA !== nivelB) return nivelA - nivelB;
+
+  const gradeA = getCourseGradeNumber(courseA?.nombre || courseA?.curso);
+  const gradeB = getCourseGradeNumber(courseB?.nombre || courseB?.curso);
+  if (gradeA !== gradeB) return gradeA - gradeB;
+
+  const divA = String(courseA?.division || '').toUpperCase();
+  const divB = String(courseB?.division || '').toUpperCase();
+  if (divA !== divB) return divA.localeCompare(divB);
+
+  const nameA = String(courseA?.nombre || courseA?.curso || '');
+  const nameB = String(courseB?.nombre || courseB?.curso || '');
+  return nameA.localeCompare(nameB);
+};
+
+/**
+ * Mapeo para orden canónico de días de la semana
+ */
+export const DAY_ORDER_MAP = {
+  lun: 1,
+  lunes: 1,
+  mar: 2,
+  martes: 2,
+  mie: 3,
+  mié: 3,
+  miercoles: 3,
+  miércoles: 3,
+  jue: 4,
+  jueves: 4,
+  vie: 5,
+  viernes: 5,
+  sab: 6,
+  sáb: 6,
+  dom: 7,
+};
+
+export const getDayOrderWeight = (token = '') => {
+  const clean = String(token || '').toLowerCase().trim();
+  for (const [key, weight] of Object.entries(DAY_ORDER_MAP)) {
+    if (clean.startsWith(key)) return weight;
+  }
+  return 99;
+};
+
+/**
+ * Ordena los días y bloques horarios dentro de una cadena semanal (ej. Lun -> Mié -> Jue -> Vie)
+ */
+export const sortScheduleSlotsAndDays = (rawDia, rawHora) => {
+  if (!rawHora || typeof rawHora !== 'string') {
+    return { dia: rawDia || 'Lunes a Viernes', hora: rawHora || '' };
+  }
+
+  // Si tiene múltiples bloques separados por viñeta o barra
+  if (rawHora.includes('•') || rawHora.includes('|')) {
+    const delimiter = rawHora.includes('•') ? '•' : '|';
+    const slots = rawHora
+      .split(delimiter)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    slots.sort((a, b) => {
+      const wA = getDayOrderWeight(a);
+      const wB = getDayOrderWeight(b);
+      if (wA !== wB) return wA - wB;
+      return a.localeCompare(b);
+    });
+
+    const detectedDays = [];
+    const dayLabels = [
+      { prefix: 'lun', full: 'Lunes' },
+      { prefix: 'mar', full: 'Martes' },
+      { prefix: 'mie', full: 'Miércoles' },
+      { prefix: 'mié', full: 'Miércoles' },
+      { prefix: 'jue', full: 'Jueves' },
+      { prefix: 'vie', full: 'Viernes' },
+      { prefix: 'sab', full: 'Sábado' },
+      { prefix: 'sáb', full: 'Sábado' },
+    ];
+
+    const lowerHora = slots.join(' ').toLowerCase();
+    dayLabels.forEach(({ prefix, full }) => {
+      if (lowerHora.includes(prefix) && !detectedDays.includes(full)) {
+        detectedDays.push(full);
+      }
+    });
+
+    let formattedDia = rawDia;
+    if (detectedDays.length >= 5 && detectedDays.includes('Lunes') && detectedDays.includes('Viernes')) {
+      formattedDia = 'Lunes a Viernes';
+    } else if (detectedDays.length === 2) {
+      formattedDia = `${detectedDays[0]} y ${detectedDays[1]}`;
+    } else if (detectedDays.length > 2) {
+      const last = detectedDays[detectedDays.length - 1];
+      formattedDia = `${detectedDays.slice(0, -1).join(', ')} y ${last}`;
+    } else if (detectedDays.length === 1) {
+      formattedDia = detectedDays[0];
+    }
+
+    return {
+      dia: formattedDia || rawDia || 'Lunes a Viernes',
+      hora: slots.join(' • '),
+    };
+  }
+
+  const lower = rawHora.toLowerCase();
+  if (lower.includes('mar y vie')) return { dia: 'Martes y Viernes', hora: rawHora };
+  if (lower.includes('lun y mie') || lower.includes('lun y mié')) return { dia: 'Lunes y Miércoles', hora: rawHora };
+  if (lower.includes('lun y jue')) return { dia: 'Lunes y Jueves', hora: rawHora };
+  if (lower.includes('mar y jue')) return { dia: 'Martes y Jueves', hora: rawHora };
+  if (lower.includes('mie y vie') || lower.includes('mié y vie')) return { dia: 'Miércoles y Viernes', hora: rawHora };
+
+  return {
+    dia: rawDia || 'Lunes a Viernes',
+    hora: rawHora,
+  };
+};
+
+/**
+ * Comparador de alumnos para el Reporte de Alumnos por Curso:
+ * 1. Nivel Educativo (Inicial -> Primario -> Secundario)
+ * 2. Grado / Año del curso
+ * 3. División
+ * 4. Alfabético por Apellido, Nombre
+ */
+export const compareStudentsForCourseReport = (stA, stB) => {
+  const nivelA = getNivelWeight(stA.nivel);
+  const nivelB = getNivelWeight(stB.nivel);
+  if (nivelA !== nivelB) return nivelA - nivelB;
+
+  const gradeA = getCourseGradeNumber(stA.curso);
+  const gradeB = getCourseGradeNumber(stB.curso);
+  if (gradeA !== gradeB) return gradeA - gradeB;
+
+  const divA = String(stA.division || '').toUpperCase();
+  const divB = String(stB.division || '').toUpperCase();
+  if (divA !== divB) return divA.localeCompare(divB);
+
+  const nameA = formatLastNameFirst(stA);
+  const nameB = formatLastNameFirst(stB);
+  return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+};
+
+/**
+ * Comparador de materias:
+ * 1. Nivel Educativo (Inicial -> Primario -> Secundario)
+ * 2. Nombre de la materia (A-Z)
+ */
+export const compareSubjectsByNivelAndName = (subA, subB) => {
+  const nivelA = getNivelWeight(subA.nivel);
+  const nivelB = getNivelWeight(subB.nivel);
+  if (nivelA !== nivelB) return nivelA - nivelB;
+
+  return String(subA.nombre || '').localeCompare(String(subB.nombre || ''), 'es', { sensitivity: 'base' });
 };
 
 /**
@@ -181,9 +392,10 @@ export const extractTeacherSchedulesByCourse = (teacher) => {
   // Si no hay grilla detallada, sintetizamos desde sus cátedras
   if (schedules.length === 0 && Array.isArray(teacher.catedras) && teacher.catedras.length > 0) {
     teacher.catedras.forEach((cat) => {
+      const { dia, hora } = sortScheduleSlotsAndDays(cat.dia, cat.horario);
       schedules.push({
-        dia: cat.dia || 'Lunes a Viernes',
-        hora: cat.horario || 'Turno Mañana (08:00 - 12:00 hs)',
+        dia,
+        hora,
         curso: cat.curso || 'División a cargo',
         materia: cat.materia || teacher.especialidad || 'Asignatura',
         nivel: cat.nivel || teacher.nivel || 'Nivel Primario',
@@ -191,7 +403,10 @@ export const extractTeacherSchedulesByCourse = (teacher) => {
     });
   }
 
-  return schedules;
+  // Ordenar bloques horarios por jerarquía de curso y luego por día de la semana
+  return schedules.sort(
+    (a, b) => compareCoursesHierarchy(a, b) || getDayOrderWeight(a.dia) - getDayOrderWeight(b.dia)
+  );
 };
 
 /**
@@ -218,6 +433,9 @@ export const buildTeacherFullReport = (teacher) => {
       });
     }
   });
+
+  // Ordenar cursos asignados del nivel más básico al más alto (ej. Primario 7mo antes que Secundario 1er año)
+  cursosList.sort(compareCoursesHierarchy);
 
   return {
     teacher,
