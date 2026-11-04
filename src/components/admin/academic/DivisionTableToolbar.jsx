@@ -97,7 +97,7 @@ export const DivisionTableToolbar = ({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar por curso, división, aula..."
           aria-label="Buscar por curso, división o aula"
-          className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+          className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
         />
         {searchTerm && (
           <button
@@ -122,7 +122,7 @@ export const DivisionTableToolbar = ({
           value={shiftFilter}
           onChange={(e) => onShiftChange(e.target.value)}
           aria-label="Filtrar por turno"
-          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
         >
           <option value="all">Todos los turnos</option>
           <option value="manana">Mañana</option>
@@ -138,7 +138,7 @@ export const DivisionTableToolbar = ({
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value)}
           aria-label="Filtrar por estado"
-          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
         >
           <option value="all">Todos los estados</option>
           <option value="active">Activas</option>

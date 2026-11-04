@@ -77,7 +77,7 @@ const SubjectPlanPanel = ({
               onCourseChange(e.target.value);
               setCurrentPage(1);
             }}
-            className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+            className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
           >
             {sortedCourses.map((c) => (
               <option key={c.id} value={c.id}>
