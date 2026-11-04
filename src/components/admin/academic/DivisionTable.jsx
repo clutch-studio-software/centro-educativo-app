@@ -4,6 +4,7 @@ import { getEnrolledStudentsForCourse, sortCourseObjects } from '../../../utils/
 import { DivisionRowMenu } from './DivisionRowMenu';
 import { DivisionStatsCards, DivisionTableToolbar } from './DivisionTableToolbar';
 import { DivisionTableRow } from './DivisionTableRow';
+import DivisionTableRowSkeleton from './DivisionTableRowSkeleton';
 
 const EMPTY_COURSES = [];
 const EMPTY_STUDENTS = [];
@@ -17,6 +18,8 @@ const DivisionTable = ({
   onViewCourse,
   onDeleteCourse,
   onAddNewDivision,
+  canManageAcademic = true,
+  isLoading = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [shiftFilter, setShiftFilter] = useState('all');
@@ -122,7 +125,7 @@ const DivisionTable = ({
   return (
     <div className="space-y-5 animate-in fade-in duration-200" data-testid={`division-table-${level?.id}`}>
       {/* Level Summary Banner & Stat Cards */}
-      <DivisionStatsCards stats={stats} />
+      <DivisionStatsCards stats={stats} isLoading={isLoading} />
 
       {/* Filter and Action Toolbar */}
       <DivisionTableToolbar
@@ -132,12 +135,12 @@ const DivisionTable = ({
         onShiftChange={setShiftFilter}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
-        onAddNewDivision={onAddNewDivision}
+        onAddNewDivision={canManageAcademic ? onAddNewDivision : null}
       />
 
       {/* Main Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_18px_rgba(15,23,42,0.03)] overflow-hidden">
-        {filteredCourses.length === 0 ? (
+        {!isLoading && filteredCourses.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
               <span className="material-symbols-outlined text-[28px]">search_off</span>
@@ -186,17 +189,26 @@ const DivisionTable = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                {filteredCourses.map((course) => (
-                  <DivisionTableRow
-                    key={course.id}
-                    course={course}
-                    level={level}
-                    students={students}
-                    activeMenuCourseId={activeMenuCourseId}
-                    onToggleStatus={onToggleStatus}
-                    onOpenMenu={handleOpenMenu}
-                  />
-                ))}
+                {isLoading ? (
+                  <>
+                    {[1, 2, 3, 4, 5].map((idx) => (
+                      <DivisionTableRowSkeleton key={idx} />
+                    ))}
+                  </>
+                ) : (
+                  filteredCourses.map((course) => (
+                    <DivisionTableRow
+                      key={course.id}
+                      course={course}
+                      level={level}
+                      students={students}
+                      activeMenuCourseId={activeMenuCourseId}
+                      onToggleStatus={onToggleStatus}
+                      onOpenMenu={handleOpenMenu}
+                      canManageAcademic={canManageAcademic}
+                    />
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -213,6 +225,7 @@ const DivisionTable = ({
         onView={onViewCourse}
         onEdit={onEditCourse}
         onDelete={onDeleteCourse}
+        canManageAcademic={canManageAcademic}
       />
     </div>
   );

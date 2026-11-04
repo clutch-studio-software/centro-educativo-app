@@ -97,6 +97,7 @@ const ViewDivisionModal = ({
   course,
   enrolledStudents = EMPTY_STUDENTS,
   onEdit,
+  canManageAcademic = true,
 }) => {
   if (!isOpen || !course) return null;
 
@@ -175,17 +176,20 @@ const ViewDivisionModal = ({
             >
               Cerrar
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                if (onEdit) onEdit(course);
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer border-none"
-            >
-              <span className="material-symbols-outlined text-[16px]">edit</span>
-              Editar División
-            </button>
+            {canManageAcademic && onEdit && (
+              <button
+                type="button"
+                data-testid="btn-modal-edit-division"
+                onClick={() => {
+                  onClose();
+                  onEdit(course);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer border-none"
+              >
+                <span className="material-symbols-outlined text-[16px]">edit</span>
+                Editar División
+              </button>
+            )}
           </div>
         </div>
       </div>

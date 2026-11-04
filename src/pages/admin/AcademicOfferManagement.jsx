@@ -3,24 +3,18 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import AdminToast from '../../components/admin/AdminToast';
 import DivisionTable from '../../components/admin/academic/DivisionTable';
 import SubjectPlanPanel from '../../components/admin/academic/SubjectPlanPanel';
-import AcademicTabsNav from '../../components/admin/academic/AcademicTabsNav';
 import AcademicModals from '../../components/admin/academic/AcademicModals';
+import AcademicOfferHeaderSection from '../../components/admin/academic/AcademicOfferHeaderSection';
 import { ACADEMIC_LEVELS } from '../../data/mockAcademicOffer';
 import { getEnrolledStudentsForCourse } from '../../utils/academicUtils';
-import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import { useAcademicOfferData } from '../../hooks/useAcademicOfferData';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
+import { useTeacherCourseScope } from '../../hooks/useTeacherCourseScope';
 
 const AcademicOfferManagement = () => {
   const { user } = useAuth();
-  const role = String(user?.rol || user?.role || 'Directivo').toLowerCase();
-  const canManageAcademic = [
-    'directivo',
-    'administrativo',
-    'admin',
-    'user_admin',
-    'administrador',
-  ].includes(role);
+  const { canManageAcademicOffer, canManageSubjects, isDocente } = usePermissions();
 
   // Toast Notification State
   const [notification, setNotification] = useState(null);
@@ -62,9 +56,25 @@ const AcademicOfferManagement = () => {
   const [viewingEnrolledStudents, setViewingEnrolledStudents] = useState([]);
   const [reassigningSubject, setReassigningSubject] = useState(null);
 
-  /**
-   * Abre el modal de detalles con la nómina de alumnos inscriptos
-   */
+  // Alcance filtrado según rol docente
+  const {
+    currentTeacher,
+    visibleCourses,
+    displayedCoursesByLevel,
+    effectiveActiveTab,
+    effectiveSelectedCourseId,
+    visibleSubjectsCount,
+  } = useTeacherCourseScope({
+    courses,
+    subjects,
+    teachers,
+    user,
+    isDocente,
+    coursesByLevel,
+    activeTab,
+    selectedCourseId,
+  });
+
   const handleViewCourse = (course, enrolledList) => {
     const list = enrolledList || getEnrolledStudentsForCourse(students, course);
     setViewingCourse(course);
@@ -103,8 +113,11 @@ const AcademicOfferManagement = () => {
   );
 
   const activeLevelConfig = useMemo(() => {
-    return ACADEMIC_LEVELS.find((l) => l.id === activeTab) || ACADEMIC_LEVELS[1];
-  }, [activeTab]);
+    return ACADEMIC_LEVELS.find((l) => l.id === effectiveActiveTab) || ACADEMIC_LEVELS[1];
+  }, [effectiveActiveTab]);
+
+  const teacherDisplayName =
+    currentTeacher?.nombreCompleto || currentTeacher?.nombre || user?.nombre || 'Docente';
 
   return (
     <AdminLayout activeItem="oferta-academica" breadcrumbs={['Oferta Académica']}>
@@ -112,89 +125,51 @@ const AcademicOfferManagement = () => {
         {/* Floating Toast Notification */}
         <AdminToast notification={notification} onClose={() => setNotification(null)} />
 
-        {/* Top Title & Action Hub */}
-        <section className="mb-2" data-purpose="section-header">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <AdminSectionTitle
-              icon="menu_book"
-              title="Gestión de Niveles Académicos"
-              subtitle="Administración centralizada de divisiones, turnos, matrícula de alumnos y oferta pedagógica."
-            />
-
-            {/* Section Primary CTA Buttons */}
-            {canManageAcademic && (
-              <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
-                <button
-                  type="button"
-                  data-testid="btn-new-subject"
-                  onClick={() => setIsNewSubjectModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-xs transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[16px] text-blue-500">add_circle</span>
-                  Nueva Materia
-                </button>
-                <button
-                  type="button"
-                  data-testid="btn-create-course"
-                  onClick={() => setIsNewCourseModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[16px]">add</span>
-                  Crear División / Curso
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation Tabs Bar: 3 Pestañas por Nivel + Planes de Estudio */}
-          <AcademicTabsNav
-            levels={ACADEMIC_LEVELS}
-            coursesByLevel={coursesByLevel}
-            activeTab={activeTab}
-            onSelectTab={setActiveTab}
-            subjectsCount={subjects.length}
-          />
-        </section>
-
-        {/* Loading Indicator */}
-        {isLoading && (
-          <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center flex flex-col items-center justify-center gap-3 text-slate-500 shadow-2xs">
-            <span className="material-symbols-outlined text-3xl text-blue-600 animate-spin">
-              progress_activity
-            </span>
-            <span className="text-xs font-bold text-slate-600">
-              Sincronizando divisiones y matrícula en tiempo real con Firebase Store...
-            </span>
-          </div>
-        )}
+        {/* Top Title, CTAs, Notice and Tabs Hub */}
+        <AcademicOfferHeaderSection
+          canManageSubjects={canManageSubjects}
+          canManageAcademicOffer={canManageAcademicOffer}
+          onOpenNewSubjectModal={() => setIsNewSubjectModalOpen(true)}
+          onOpenNewCourseModal={() => setIsNewCourseModalOpen(true)}
+          isDocente={isDocente}
+          currentTeacherName={teacherDisplayName}
+          levels={ACADEMIC_LEVELS}
+          coursesByLevel={displayedCoursesByLevel}
+          activeTab={effectiveActiveTab}
+          onSelectTab={setActiveTab}
+          subjectsCount={visibleSubjectsCount}
+        />
 
         {/* Tab Content: Level Divisions Table */}
-        {!isLoading && activeTab !== 'planes' && (
-          <div className="animate-in fade-in duration-200" id={`viewLevel-${activeTab}`}>
+        {effectiveActiveTab !== 'planes' && (
+          <div className="animate-in fade-in duration-200" id={`viewLevel-${effectiveActiveTab}`}>
             <DivisionTable
               level={activeLevelConfig}
-              courses={coursesByLevel[activeTab] || []}
+              courses={displayedCoursesByLevel[effectiveActiveTab] || []}
               students={students}
               onToggleStatus={handleToggleCourseStatus}
               onEditCourse={handleManageCourse}
               onViewCourse={handleViewCourse}
               onDeleteCourse={handleDeleteCourseAndSyncView}
               onAddNewDivision={() => setIsNewCourseModalOpen(true)}
+              canManageAcademic={canManageAcademicOffer}
+              isLoading={isLoading}
             />
           </div>
         )}
 
         {/* Tab: Planes Curriculares y Materias */}
-        {!isLoading && activeTab === 'planes' && (
+        {!isLoading && effectiveActiveTab === 'planes' && (
           <div className="animate-in fade-in duration-200" id="viewPlanes">
             <SubjectPlanPanel
-              courses={courses}
+              courses={visibleCourses}
               subjects={subjects}
-              selectedCourseId={selectedCourseId}
+              selectedCourseId={effectiveSelectedCourseId}
               onCourseChange={setSelectedCourseId}
               onToggleDictado={handleToggleSubjectDictado}
               onReassignTeacher={setReassigningSubject}
               onAddNewSubject={() => setIsNewSubjectModalOpen(true)}
+              canManageSubjects={canManageSubjects}
             />
           </div>
         )}
@@ -217,13 +192,14 @@ const AcademicOfferManagement = () => {
           isNewSubjectModalOpen={isNewSubjectModalOpen}
           onCloseNewSubject={() => setIsNewSubjectModalOpen(false)}
           onSaveNewSubject={handleCreateSubject}
-          courses={courses}
+          courses={visibleCourses}
           teachers={teachers}
-          selectedCourseId={selectedCourseId}
+          selectedCourseId={effectiveSelectedCourseId}
           reassigningSubject={reassigningSubject}
           onCloseReassignTeacher={() => setReassigningSubject(null)}
           onSaveReassignTeacher={handleSaveReassignedTeacher}
-          defaultNivelId={activeTab !== 'planes' ? activeTab : 'inicial'}
+          defaultNivelId={effectiveActiveTab !== 'planes' ? effectiveActiveTab : 'inicial'}
+          canManageAcademic={canManageAcademicOffer}
         />
       </div>
     </AdminLayout>
