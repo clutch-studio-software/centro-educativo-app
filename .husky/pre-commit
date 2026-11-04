@@ -33,7 +33,7 @@ run_step() {
   wait "$pid"
   local exit_code=$?
 
-  if [ $exit_code -eq 0 ]; then
+  if [[ $exit_code -eq 0 ]]; then
     printf "\r${BLUE}[INFO]${RESET} %s: ${GREEN}✔${RESET}\033[K\n" "$step_name"
     rm -f "$log_file"
     return 0
