@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { findCurrentTeacher } from './teacherScheduleUtils';
 
 const LEVEL_STYLES = {
   Inicial: 'bg-amber-50 text-amber-800 border-amber-200',
@@ -22,20 +23,9 @@ const inferNivelFromCatedra = (cat) => {
 
 const EMPTY_TEACHERS = [];
 
-const TeacherSelfScheduleBanner = ({ user, teachers = EMPTY_TEACHERS, onOpenSchedule }) => {
+const TeacherSelfScheduleBanner = ({ user, teachers = EMPTY_TEACHERS }) => {
   const matchedTeacher = useMemo(() => {
-    if (!Array.isArray(teachers) || teachers.length === 0) return null;
-    const userEmail = String(user?.email || '').trim().toLowerCase();
-    const userId = String(user?.uid || user?.id || '').trim();
-
-    const byMatch = teachers.find(
-      (t) =>
-        (userId && t.id === userId) ||
-        (userEmail && String(t.email || '').trim().toLowerCase() === userEmail)
-    );
-    if (byMatch) return byMatch;
-
-    return teachers.find((t) => Array.isArray(t.catedras) && t.catedras.length > 0) || teachers[0];
+    return findCurrentTeacher(user, teachers);
   }, [user, teachers]);
 
   const groupedByLevel = useMemo(() => {
@@ -66,11 +56,11 @@ const TeacherSelfScheduleBanner = ({ user, teachers = EMPTY_TEACHERS, onOpenSche
           <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
             <span className="material-symbols-outlined text-[22px]">calendar_month</span>
           </div>
-          <div className="flex flex-col">
+          <div className="flex text-start flex-col">
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600">
               Mis Cursos a Cargo y Horarios Disponibles
             </span>
-            <h3 className="text-base font-extrabold text-slate-900">{displayName}</h3>
+            <span className="text-base font-extrabold text-slate-900">{displayName}</span>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-0.5">
               <span className="font-mono font-bold text-blue-700">{matchedTeacher.legajo}</span>
               <span>•</span>
@@ -80,15 +70,6 @@ const TeacherSelfScheduleBanner = ({ user, teachers = EMPTY_TEACHERS, onOpenSche
             </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => onOpenSchedule?.(matchedTeacher)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-full shadow-xs transition-all cursor-pointer border-none"
-        >
-          <span className="material-symbols-outlined text-[18px]">schedule</span>
-          <span>Ver Mi Grilla Horaria Completa</span>
-        </button>
       </div>
 
       {catedrasCount === 0 ? (
@@ -123,9 +104,9 @@ const TeacherSelfScheduleBanner = ({ user, teachers = EMPTY_TEACHERS, onOpenSche
                       <span className="font-bold text-slate-800">
                         {cat.nombre} — <span className="text-indigo-700">{cat.curso}</span>
                       </span>
-                      <span className="text-[11px] text-slate-500">
+                      {/* <span className="text-[11px] text-slate-500">
                         {cat.horario || 'Horario a confirmar'} ({cat.horasSemanales || 4} hs/sem)
-                      </span>
+                      </span> */}
                     </div>
                   ))}
                 </div>

@@ -305,3 +305,18 @@ export const findCourseScheduleConflict = (
 
   return null;
 };
+
+export const findCurrentTeacher = (user, teachers = []) => {
+  if (!Array.isArray(teachers) || teachers.length === 0) return null;
+  const userEmail = String(user?.email || '').trim().toLowerCase();
+  const userId = String(user?.uid || user?.id || '').trim();
+
+  const byMatch = teachers.find(
+    (t) =>
+      (userId && String(t.id) === userId) ||
+      (userEmail && String(t.email || '').trim().toLowerCase() === userEmail)
+  );
+  if (byMatch) return byMatch;
+
+  return teachers.find((t) => Array.isArray(t.catedras) && t.catedras.length > 0) || teachers[0];
+};

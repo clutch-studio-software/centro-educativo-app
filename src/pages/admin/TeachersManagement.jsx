@@ -6,7 +6,7 @@ import TeacherTable from '../../components/admin/teachers/TeacherTable';
 import NewTeacherModal from '../../components/admin/teachers/NewTeacherModal';
 import EditTeacherModal from '../../components/admin/teachers/EditTeacherModal';
 import TeacherAssignmentsDrawer from '../../components/admin/teachers/TeacherAssignmentsDrawer';
-import TeacherSelfScheduleBanner from '../../components/admin/teachers/TeacherSelfScheduleBanner';
+import TeacherDocenteScheduleView from '../../components/admin/teachers/TeacherDocenteScheduleView';
 import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import AdminTablePagination from '../../components/admin/AdminTablePagination';
 import { useTeachersManagement, PAGE_SIZE } from './useTeachersManagement';
@@ -25,16 +25,18 @@ const TeachersManagementHeader = ({
       />
 
       <div data-testid="buttons-actions-teachers" className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onExportNomina}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[18px] text-amber-500">
-            file_download
-          </span>
-          <span>Exportar Nómina</span>
-        </button>
+        {canManageTeachers && (
+          <button
+            type="button"
+            onClick={onExportNomina}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-slate-700 hover:bg-slate-50 transition-colors rounded-full font-semibold text-xs border border-slate-200 shadow-xs h-10 active:scale-95 duration-200 text-center cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px] text-amber-500">
+              file_download
+            </span>
+            <span>Exportar Nómina</span>
+          </button>
+        )}
 
         {canManageTeachers && (
           <button
@@ -125,22 +127,6 @@ const TeachersManagement = () => {
           canManageTeachers={canManageTeachers}
         />
 
-        {isDocenteRole && (
-          <TeacherSelfScheduleBanner
-            user={user}
-            teachers={teachers}
-            onOpenSchedule={handleOpenAssignments}
-          />
-        )}
-
-        <TeacherFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedEstado={selectedEstado}
-          onEstadoChange={setSelectedEstado}
-          onResetFilters={handleResetFilters}
-        />
-
         {isLoading && (
           <div
             data-testid="teachers-sync-indicator"
@@ -151,51 +137,65 @@ const TeachersManagement = () => {
           </div>
         )}
 
-        <div className="flex flex-col gap-0">
-          <TeacherTable
-            teachers={currentTeachers}
-            isLoading={isLoading}
-            currentUser={user}
-            onManageAssignments={handleOpenAssignments}
-            onEditTeacher={(teacher) => setEditingTeacher(teacher)}
-            onToggleStatus={handleToggleStatus}
-            onResetPassword={handleResetPassword}
-            onDeleteTeacher={handleDeleteTeacher}
-            onResetFilters={handleResetFilters}
-            canManageTeachers={canManageTeachers}
-          />
+        {isDocenteRole ? (
+          <TeacherDocenteScheduleView user={user} teachers={teachers} />
+        ) : (
+          <>
+            <TeacherFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              selectedEstado={selectedEstado}
+              onEstadoChange={setSelectedEstado}
+              onResetFilters={handleResetFilters}
+            />
 
-          <AdminTablePagination
-            isLoading={isLoading}
-            totalItems={totalItems}
-            startIndex={startIndex}
-            pageSize={PAGE_SIZE}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            itemLabel="docentes registrados"
-          />
-        </div>
+            <div className="flex flex-col gap-0">
+              <TeacherTable
+                teachers={currentTeachers}
+                isLoading={isLoading}
+                currentUser={user}
+                onManageAssignments={handleOpenAssignments}
+                onEditTeacher={(teacher) => setEditingTeacher(teacher)}
+                onToggleStatus={handleToggleStatus}
+                onResetPassword={handleResetPassword}
+                onDeleteTeacher={handleDeleteTeacher}
+                onResetFilters={handleResetFilters}
+                canManageTeachers={canManageTeachers}
+              />
 
-        <TeachersModals
-          isNewTeacherModalOpen={isNewTeacherModalOpen}
-          setIsNewTeacherModalOpen={setIsNewTeacherModalOpen}
-          handleCreateTeacher={handleCreateTeacher}
-          editingTeacher={editingTeacher}
-          setEditingTeacher={setEditingTeacher}
-          handleSaveEditTeacher={handleSaveEditTeacher}
-        />
+              <AdminTablePagination
+                isLoading={isLoading}
+                totalItems={totalItems}
+                startIndex={startIndex}
+                pageSize={PAGE_SIZE}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemLabel="docentes registrados"
+              />
+            </div>
 
-        <TeacherAssignmentsDrawer
-          key={assigningTeacher?.id || 'closed'}
-          isOpen={Boolean(assigningTeacher)}
-          onClose={() => setAssigningTeacher(null)}
-          teacher={assigningTeacher}
-          allTeachers={teachers}
-          courses={courses}
-          onSaveAssignments={handleSaveAssignments}
-          readOnly={!canManageTeachers}
-        />
+            <TeachersModals
+              isNewTeacherModalOpen={isNewTeacherModalOpen}
+              setIsNewTeacherModalOpen={setIsNewTeacherModalOpen}
+              handleCreateTeacher={handleCreateTeacher}
+              editingTeacher={editingTeacher}
+              setEditingTeacher={setEditingTeacher}
+              handleSaveEditTeacher={handleSaveEditTeacher}
+            />
+
+            <TeacherAssignmentsDrawer
+              key={assigningTeacher?.id || 'closed'}
+              isOpen={Boolean(assigningTeacher)}
+              onClose={() => setAssigningTeacher(null)}
+              teacher={assigningTeacher}
+              allTeachers={teachers}
+              courses={courses}
+              onSaveAssignments={handleSaveAssignments}
+              readOnly={!canManageTeachers}
+            />
+          </>
+        )}
       </div>
     </AdminLayout>
   );

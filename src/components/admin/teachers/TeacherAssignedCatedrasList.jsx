@@ -64,7 +64,7 @@ const TeacherAssignedCatedrasList = ({
                     <span>•</span>
                     <span className="font-bold text-blue-700">{cat.horasSemanales} hs/sem</span>
                     <span>•</span>
-                    <span className="inline-flex items-center gap-1 font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+                    <span className="inline-flex items-center gap-1 font-medium text-emerald-700 px-2 py-0.5 rounded-lg border border-emerald-200/60">
                       <span className="material-symbols-outlined text-[13px]">schedule</span>
                       <span>{horarioReal}</span>
                     </span>

@@ -10,7 +10,7 @@ export const TeacherAssignmentsDrawerHeader = ({ teacher, readOnly, onClose }) =
       data-testid="teacher-assignments-header"
       className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10"
     >
-      <div className="flex flex-col">
+      <div className="flex text-start flex-col">
         <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
           {readOnly ? 'Consulta de Asignación Académica' : 'Planificación Académica 2026'}
         </span>
