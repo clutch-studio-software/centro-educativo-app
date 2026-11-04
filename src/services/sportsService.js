@@ -375,7 +375,7 @@ export const deleteSportActivityApi = async (disciplineId) => {
         await addPreceptoriaNoteToStudent({
           studentId: student.id || student.studentId || student.alumnoId,
           studentDni: student.dni,
-          studentLegajo: student.legajo,
+          studentLegajo: student.studentID_login,
           studentName: student.nombre,
           note: {
             tipo: 'Extracurricular',
@@ -564,6 +564,46 @@ export const withdrawStudentFromDisciplineApi = async (disciplineId, studentIden
 };
 
 /**
+ * Helper interno para localizar el DocumentReference y datos de un estudiante en Firestore.
+ */
+const findStudentDocAndData = async ({
+  studentId,
+  studentDni,
+  studentLegajo,
+  studentName,
+}) => {
+  if (studentId) {
+    const directRef = doc(db, 'students', String(studentId).trim());
+    const directSnap = await getDoc(directRef);
+    if (directSnap.exists()) {
+      return { targetDocRef: directRef, currentData: directSnap.data() };
+    }
+  }
+
+  const cleanDni = String(studentDni || '').replace(/\D/g, '');
+  const cleanLegajo = String(studentLegajo || '').trim().toLowerCase();
+  const cleanName = String(studentName || '').trim().toLowerCase();
+
+  const snap = await getDocs(collection(db, 'students'));
+  for (const dSnap of snap.docs) {
+    const dData = dSnap.data();
+    const dDni = String(dData.dni || '').replace(/\D/g, '');
+    const dLeg = String(dData.legajo || dData.studentID_login || '').trim().toLowerCase();
+    const dNom = String(dData.nombre || '').trim().toLowerCase();
+
+    if (
+      (cleanDni && dDni && cleanDni === dDni) ||
+      (cleanLegajo && dLeg && cleanLegajo === dLeg) ||
+      (cleanName && dNom && cleanName === dNom)
+    ) {
+      return { targetDocRef: dSnap.ref, currentData: dData };
+    }
+  }
+
+  return { targetDocRef: null, currentData: null };
+};
+
+/**
  * Agrega un registro / nota de Preceptoría al perfil del estudiante en Firestore
  */
 export const addPreceptoriaNoteToStudent = async ({
@@ -576,41 +616,12 @@ export const addPreceptoriaNoteToStudent = async ({
   try {
     await ensureAdminAuth();
 
-    let targetDocRef = null;
-    let currentData = null;
-
-    if (studentId) {
-      const directRef = doc(db, 'students', String(studentId).trim());
-      const directSnap = await getDoc(directRef);
-      if (directSnap.exists()) {
-        targetDocRef = directRef;
-        currentData = directSnap.data();
-      }
-    }
-
-    if (!targetDocRef) {
-      const cleanDni = String(studentDni || '').replace(/\D/g, '');
-      const cleanLegajo = String(studentLegajo || '').trim().toLowerCase();
-      const cleanName = String(studentName || '').trim().toLowerCase();
-
-      const snap = await getDocs(collection(db, 'students'));
-      for (const dSnap of snap.docs) {
-        const dData = dSnap.data();
-        const dDni = String(dData.dni || '').replace(/\D/g, '');
-        const dLeg = String(dData.legajo || '').trim().toLowerCase();
-        const dNom = String(dData.nombre || '').trim().toLowerCase();
-
-        if (
-          (cleanDni && dDni && cleanDni === dDni) ||
-          (cleanLegajo && dLeg && cleanLegajo === dLeg) ||
-          (cleanName && dNom && cleanName === dNom)
-        ) {
-          targetDocRef = dSnap.ref;
-          currentData = dData;
-          break;
-        }
-      }
-    }
+    const { targetDocRef, currentData } = await findStudentDocAndData({
+      studentId,
+      studentDni,
+      studentLegajo,
+      studentName,
+    });
 
     const currentAuthUser = auth.currentUser;
     const authorFromAuth =
@@ -665,41 +676,12 @@ export const addEnfermeriaNoteToStudent = async ({
   try {
     await ensureAdminAuth();
 
-    let targetDocRef = null;
-    let currentData = null;
-
-    if (studentId) {
-      const directRef = doc(db, 'students', String(studentId).trim());
-      const directSnap = await getDoc(directRef);
-      if (directSnap.exists()) {
-        targetDocRef = directRef;
-        currentData = directSnap.data();
-      }
-    }
-
-    if (!targetDocRef) {
-      const cleanDni = String(studentDni || '').replace(/\D/g, '');
-      const cleanLegajo = String(studentLegajo || '').trim().toLowerCase();
-      const cleanName = String(studentName || '').trim().toLowerCase();
-
-      const snap = await getDocs(collection(db, 'students'));
-      for (const dSnap of snap.docs) {
-        const dData = dSnap.data();
-        const dDni = String(dData.dni || '').replace(/\D/g, '');
-        const dLeg = String(dData.legajo || '').trim().toLowerCase();
-        const dNom = String(dData.nombre || '').trim().toLowerCase();
-
-        if (
-          (cleanDni && dDni && cleanDni === dDni) ||
-          (cleanLegajo && dLeg && cleanLegajo === dLeg) ||
-          (cleanName && dNom && cleanName === dNom)
-        ) {
-          targetDocRef = dSnap.ref;
-          currentData = dData;
-          break;
-        }
-      }
-    }
+    const { targetDocRef, currentData } = await findStudentDocAndData({
+      studentId,
+      studentDni,
+      studentLegajo,
+      studentName,
+    });
 
     const currentAuthUser = auth.currentUser;
     const authorFromAuth =
@@ -743,6 +725,59 @@ export const addEnfermeriaNoteToStudent = async ({
 };
 
 /**
+ * Marca una atención de enfermería existente como notificada a los tutores (irreversible).
+ */
+export const markEnfermeriaNoteAsNotified = async ({
+  studentId,
+  studentDni,
+  noteId,
+  author,
+}) => {
+  try {
+    await ensureAdminAuth();
+
+    const { targetDocRef, currentData } = await findStudentDocAndData({
+      studentId,
+      studentDni,
+    });
+
+    if (targetDocRef) {
+      const existingNotes = Array.isArray(currentData?.entradasEnfermeria)
+        ? currentData.entradasEnfermeria
+        : Array.isArray(currentData?.historialEnfermeria)
+        ? currentData.historialEnfermeria
+        : [];
+
+      const updatedNotes = existingNotes.map((n) => {
+        if (n.id === noteId || (noteId && String(n.id) === String(noteId))) {
+          return {
+            ...n,
+            notificadoFamilias: true,
+            fechaNotificacion: new Date().toISOString(),
+            notificadoPor: author || 'Enfermería Escolar',
+          };
+        }
+        return n;
+      });
+
+      await setDoc(
+        targetDocRef,
+        {
+          entradasEnfermeria: updatedNotes,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('Error al marcar atención como notificada en Firestore:', err);
+    return false;
+  }
+};
+
+/**
  * Elimina una entrada del historial de preceptoría de un alumno en Firestore.
  */
 export const deletePreceptoriaNoteFromStudent = async ({
@@ -756,41 +791,12 @@ export const deletePreceptoriaNoteFromStudent = async ({
   try {
     await ensureAdminAuth();
 
-    let targetDocRef = null;
-    let currentData = null;
-
-    if (studentId) {
-      const directRef = doc(db, 'students', String(studentId).trim());
-      const directSnap = await getDoc(directRef);
-      if (directSnap.exists()) {
-        targetDocRef = directRef;
-        currentData = directSnap.data();
-      }
-    }
-
-    if (!targetDocRef) {
-      const cleanDni = String(studentDni || '').replace(/\D/g, '');
-      const cleanLegajo = String(studentLegajo || '').trim().toLowerCase();
-      const cleanName = String(studentName || '').trim().toLowerCase();
-
-      const snap = await getDocs(collection(db, 'students'));
-      for (const dSnap of snap.docs) {
-        const dData = dSnap.data();
-        const dDni = String(dData.dni || '').replace(/\D/g, '');
-        const dLeg = String(dData.legajo || '').trim().toLowerCase();
-        const dNom = String(dData.nombre || '').trim().toLowerCase();
-
-        if (
-          (cleanDni && dDni && cleanDni === dDni) ||
-          (cleanLegajo && dLeg && cleanLegajo === dLeg) ||
-          (cleanName && dNom && cleanName === dNom)
-        ) {
-          targetDocRef = dSnap.ref;
-          currentData = dData;
-          break;
-        }
-      }
-    }
+    const { targetDocRef, currentData } = await findStudentDocAndData({
+      studentId,
+      studentDni,
+      studentLegajo,
+      studentName,
+    });
 
     if (!targetDocRef) {
       console.warn('No se encontró el estudiante para eliminar la entrada de preceptoría');

@@ -138,7 +138,7 @@ const TeachersManagement = () => {
         )}
 
         {isDocenteRole ? (
-          <TeacherDocenteScheduleView user={user} teachers={teachers} />
+          <TeacherDocenteScheduleView user={user} teachers={teachers} isLoading={isLoading} />
         ) : (
           <>
             <TeacherFilters

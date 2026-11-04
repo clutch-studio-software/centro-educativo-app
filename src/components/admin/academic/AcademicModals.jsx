@@ -26,6 +26,7 @@ export const AcademicModals = ({
   onCloseReassignTeacher,
   onSaveReassignTeacher,
   defaultNivelId = 'inicial',
+  canManageAcademic = true,
 }) => {
   return (
     <>
@@ -35,6 +36,7 @@ export const AcademicModals = ({
         enrolledStudents={viewingEnrolledStudents}
         onClose={onCloseViewCourse}
         onEdit={onEditFromView}
+        canManageAcademic={canManageAcademic}
       />
 
       <NewCourseModal

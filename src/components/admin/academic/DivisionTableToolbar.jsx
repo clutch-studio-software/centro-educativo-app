@@ -1,6 +1,25 @@
 import React from 'react';
 
-export const DivisionStatsCards = ({ stats }) => {
+export const DivisionStatsCards = ({ stats, isLoading = false }) => {
+  if (isLoading) {
+    return (
+      <div data-testid="division-stats-skeleton" className="grid grid-cols-2 sm:grid-cols-4 gap-3 animate-pulse">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-3"
+          >
+            <div className="w-10 h-10 rounded-xl bg-slate-200 shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-2.5 bg-slate-200 rounded-md w-20" />
+              <div className="h-4 bg-slate-300 rounded-md w-12" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex items-center gap-3">
@@ -78,7 +97,7 @@ export const DivisionTableToolbar = ({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Buscar por curso, división, aula..."
           aria-label="Buscar por curso, división o aula"
-          className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+          className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
         />
         {searchTerm && (
           <button
@@ -103,7 +122,7 @@ export const DivisionTableToolbar = ({
           value={shiftFilter}
           onChange={(e) => onShiftChange(e.target.value)}
           aria-label="Filtrar por turno"
-          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
         >
           <option value="all">Todos los turnos</option>
           <option value="manana">Mañana</option>
@@ -119,7 +138,7 @@ export const DivisionTableToolbar = ({
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value)}
           aria-label="Filtrar por estado"
-          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+          className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
         >
           <option value="all">Todos los estados</option>
           <option value="active">Activas</option>

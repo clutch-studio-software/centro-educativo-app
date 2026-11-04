@@ -301,7 +301,7 @@ export const useSportsDetailManagement = () => {
       await addPreceptoriaNoteToStudent({
         studentId,
         studentDni: targetStudent?.dni,
-        studentLegajo: targetStudent?.legajo,
+        studentLegajo: targetStudent?.studentID_login,
         studentName,
         note: noteEntry,
       });

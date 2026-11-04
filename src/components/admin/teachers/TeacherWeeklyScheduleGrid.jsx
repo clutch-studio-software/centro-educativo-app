@@ -5,6 +5,7 @@ import {
   SLOT_COLOR_CLASSES,
   findCourseScheduleConflict,
 } from './teacherScheduleUtils';
+import TeacherScheduleGridSkeleton from './TeacherScheduleGridSkeleton';
 
 const TeacherWeeklyScheduleGrid = ({
   grilla,
@@ -18,10 +19,16 @@ const TeacherWeeklyScheduleGrid = ({
   onToggleSlot,
   conflictAlert = null,
   onClearConflict = null,
+  isLoading = false,
 }) => {
   const [turnoFilter, setTurnoFilter] = useState('manana');
 
-  const visibleRows = grilla.filter((row) => {
+  if (isLoading) {
+    return <TeacherScheduleGridSkeleton />;
+  }
+
+  const safeGrilla = Array.isArray(grilla) ? grilla : [];
+  const visibleRows = safeGrilla.filter((row) => {
     if (turnoFilter === 'manana') return MORNING_SLOTS.includes(row.hora);
     if (turnoFilter === 'tarde') return AFTERNOON_SLOTS.includes(row.hora);
     return true;

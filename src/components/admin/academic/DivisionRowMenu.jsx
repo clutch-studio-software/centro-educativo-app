@@ -11,6 +11,7 @@ export const DivisionRowMenu = ({
   onView,
   onEdit,
   onDelete,
+  canManageAcademic = true,
 }) => {
   if (!course) return null;
 
@@ -46,43 +47,47 @@ export const DivisionRowMenu = ({
         </button>
 
         {/* Opción 2: Editar división */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-            onEdit(course);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
-        >
-          <span className="material-symbols-outlined text-[18px] text-indigo-600">edit</span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>Editar división</span>
-            <span className="text-[10px] font-normal text-slate-400">Modificar cupos y turno</span>
-          </div>
-        </button>
+        {canManageAcademic && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+              onEdit(course);
+            }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+          >
+            <span className="material-symbols-outlined text-[18px] text-indigo-600">edit</span>
+            <div className="flex flex-col items-start leading-tight">
+              <span>Editar división</span>
+              <span className="text-[10px] font-normal text-slate-400">Modificar cupos y turno</span>
+            </div>
+          </button>
+        )}
       </div>
 
       {/* Opción 3: Borrar división */}
-      <div className="py-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-            onDelete(course);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer border-none bg-transparent"
-        >
-          <span className="material-symbols-outlined text-[18px] text-rose-500">delete</span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>Borrar división</span>
-            <span className="text-[10px] font-normal text-rose-400">
-              {enrolledStudents.length > 0 ? `${enrolledStudents.length} pasarán a sin asignar` : 'Eliminar de la oferta'}
-            </span>
-          </div>
-        </button>
-      </div>
+      {canManageAcademic && (
+        <div className="py-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+              onDelete(course);
+            }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer border-none bg-transparent"
+          >
+            <span className="material-symbols-outlined text-[18px] text-rose-500">delete</span>
+            <div className="flex flex-col items-start leading-tight">
+              <span>Borrar división</span>
+              <span className="text-[10px] font-normal text-rose-400">
+                {enrolledStudents.length > 0 ? `${enrolledStudents.length} pasarán a sin asignar` : 'Eliminar de la oferta'}
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

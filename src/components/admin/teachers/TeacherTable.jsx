@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import TeacherTableRowSkeleton from './TeacherTableRowSkeleton';
 
 const getStatusBadge = (estado = '') => {
   const norm = String(estado).toLowerCase();
@@ -464,21 +465,11 @@ const renderTableBodyContent = ({
 }) => {
   if (isLoading) {
     return (
-      <tr data-testid="teacher-loading-row">
-        <td colSpan={6} className="py-12 text-center text-slate-400">
-          <div data-testid="teacher-loading-state" className="flex flex-col items-center justify-center gap-3">
-            <span className="material-symbols-outlined text-4xl text-blue-600 animate-spin">
-              sync
-            </span>
-            <p className="font-semibold text-slate-600 text-sm">
-              Cargando nómina docente...
-            </p>
-            <p className="text-xs text-slate-400">
-              Sincronizando información institucional y credenciales
-            </p>
-          </div>
-        </td>
-      </tr>
+      <>
+        {[1, 2, 3, 4, 5].map((idx) => (
+          <TeacherTableRowSkeleton key={idx} />
+        ))}
+      </>
     );
   }
 
