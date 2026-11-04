@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { images } from '../../services/imagesConfig';
 import { useAuth } from '../../context/AuthContext';
-import { normalizeRole, getRoleConfig } from './users/userRbacConstants';
+import { usePermissions } from '../../hooks/usePermissions';
+import { getRoleConfig } from './users/userRbacConstants';
 
 const NAV_ITEMS = [
   {
@@ -53,7 +54,7 @@ const NAV_ITEMS = [
     name: 'Reportes Directivos',
     icon: 'insights',
     path: '/admin/reportes',
-    allowedRoles: ['Directivo'],
+    allowedRoles: ['Directivo', 'Administrativo'],
   },
 ];
 
@@ -292,8 +293,7 @@ const AdminSidebar = ({
   const { userName, userRoleDisplay } = resolveUserProfile(user);
   const initials = getInitials(userName);
 
-  const userRoleNorm = normalizeRole(user?.role);
-  const isSuperadmin = user?.role === 'user_admin';
+  const { role: userRoleNorm, isSuperadmin } = usePermissions();
 
   const visibleNavItems = useMemo(() => {
     return NAV_ITEMS.filter((item) => {
