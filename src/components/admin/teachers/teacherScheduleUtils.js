@@ -230,3 +230,78 @@ export const deriveScheduleFromGrilla = (grilla = [], catedra) => {
 
   return result.join(' • ');
 };
+
+/**
+ * Normaliza el nombre de un curso/división para comparaciones robustas.
+ * Ej: "5° Año A", "5° Año - División A", "5to Año A" -> "5ano a"
+ */
+export const normalizeCourseName = (courseStr = '') => {
+  return String(courseStr || '')
+    .toLowerCase()
+    .replace(/[º°]/g, '')
+    .replace(/to|er|do|ro|vo/g, '')
+    .replace(/divisi[oó]n/g, '')
+    .replace(/[-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+export const areCoursesEqual = (courseA, courseB) => {
+  if (!courseA || !courseB) return false;
+  const normA = normalizeCourseName(courseA);
+  const normB = normalizeCourseName(courseB);
+  if (normA === normB) return true;
+  return normA.includes(normB) || normB.includes(normA);
+};
+
+export const getDiaFullLabel = (diaKey) => {
+  const found = DIAS_SEMANA.find((d) => d.key === diaKey);
+  return found?.full || found?.label || diaKey;
+};
+
+/**
+ * Busca si un curso/división ya está ocupado por OTRO docente en el mismo día y franja horaria.
+ * Retorna null si está libre, o un objeto con detalles del conflicto: { teacherName, subjectName, hora, dia, curso }
+ */
+export const findCourseScheduleConflict = (
+  allTeachers = [],
+  currentTeacherId,
+  targetCourse,
+  hora,
+  diaKey
+) => {
+  if (!targetCourse || !hora || !diaKey || !Array.isArray(allTeachers)) {
+    return null;
+  }
+
+  for (const t of allTeachers) {
+    if (t.id === currentTeacherId) continue;
+    if (!Array.isArray(t.grillaHoraria)) continue;
+
+    const row = t.grillaHoraria.find((r) => r.hora === hora);
+    if (!row) continue;
+
+    const slot = row[diaKey];
+    if (!slot || !slot.curso) continue;
+
+    if (areCoursesEqual(slot.curso, targetCourse)) {
+      const tName =
+        t.nombreCompleto ||
+        (t.apellido ? `${t.nombre} ${t.apellido}` : t.nombre) ||
+        'Otro docente';
+
+      return {
+        teacherId: t.id,
+        teacherName: tName,
+        teacherLegajo: t.legajo || '',
+        subjectName: slot.materia || 'Materia curricular',
+        hora,
+        dia: diaKey,
+        diaLabel: getDiaFullLabel(diaKey),
+        curso: slot.curso,
+      };
+    }
+  }
+
+  return null;
+};

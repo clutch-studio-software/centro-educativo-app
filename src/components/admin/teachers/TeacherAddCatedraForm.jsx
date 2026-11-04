@@ -19,7 +19,10 @@ const TeacherAddCatedraForm = ({
   const isAfternoon = formState.turno === 'Turno Tarde';
 
   return (
-    <fieldset className="flex flex-col gap-3 border border-slate-200/80 bg-slate-50/60 rounded-2xl p-4 m-0">
+    <fieldset
+      data-testid="teacher-add-catedra-form"
+      className="flex flex-col gap-3 border border-slate-200/80 bg-slate-50/60 rounded-2xl p-4 m-0"
+    >
       <legend className="font-bold text-sm text-slate-800 px-1 flex items-center gap-2">
         <span>Añadir Nueva Cátedra / Módulo Horario</span>
         {formState.turno && (
@@ -42,6 +45,7 @@ const TeacherAddCatedraForm = ({
           </label>
           <select
             id="drawer-nivel-select"
+            data-testid="drawer-nivel-select"
             value={formState.nivel}
             onChange={(e) => onFormChange('nivel', e.target.value)}
             className="w-full bg-white text-slate-800 text-xs font-medium px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500/40 focus:outline-none"
@@ -58,6 +62,7 @@ const TeacherAddCatedraForm = ({
           </label>
           <select
             id="drawer-curso-select"
+            data-testid="drawer-curso-select"
             value={formState.curso}
             onChange={(e) => onFormChange('curso', e.target.value)}
             className="w-full bg-white text-slate-800 text-xs font-medium px-3.5 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500/40 focus:outline-none"
@@ -76,6 +81,7 @@ const TeacherAddCatedraForm = ({
           </label>
           <input
             id="drawer-subject-input"
+            data-testid="drawer-subject-input"
             type="text"
             list="drawer-subjects-datalist"
             value={formState.subjectName}
@@ -98,6 +104,7 @@ const TeacherAddCatedraForm = ({
             </label>
             <input
               id="drawer-hours-input"
+              data-testid="drawer-hours-input"
               type="number"
               min="1"
               max="20"
@@ -110,7 +117,10 @@ const TeacherAddCatedraForm = ({
       </div>
 
       {isOverLimit && (
-        <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-semibold animate-in fade-in">
+        <div
+          data-testid="overlimit-warning"
+          className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-semibold animate-in fade-in"
+        >
           <span className="material-symbols-outlined text-[18px]">warning</span>
           <span>
             No se puede vincular: la carga semanal superaría el tope institucional de {maxHoras} hs permitidas (alcanzaría {projectedTotal} hs).
@@ -121,6 +131,7 @@ const TeacherAddCatedraForm = ({
       <div className="flex justify-end mt-1">
         <button
           type="button"
+          data-testid="btn-add-catedra"
           disabled={isOverLimit}
           onClick={onAddCatedra}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-bold text-xs shadow-sm transition-all ${

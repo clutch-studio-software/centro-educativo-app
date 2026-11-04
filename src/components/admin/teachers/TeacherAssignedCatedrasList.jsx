@@ -11,7 +11,7 @@ const TeacherAssignedCatedrasList = ({
   onRemoveCatedra,
   readOnly,
 }) => (
-  <div className="flex flex-col gap-2">
+  <div data-testid="teacher-assigned-catedras-list" className="flex flex-col gap-2">
     <div className="flex items-center justify-between">
       <span className="font-bold text-sm text-slate-800">
         Cátedras Asignadas Actualmente ({catedrasList.length})
@@ -35,6 +35,7 @@ const TeacherAssignedCatedrasList = ({
           return (
             <div
               key={cat.id || `${cat.nombre}-${cat.curso}`}
+              data-testid={`catedra-item-${cat.id}`}
               className="p-3 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-200/80 transition-all hover:bg-white hover:border-slate-300"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -74,6 +75,7 @@ const TeacherAssignedCatedrasList = ({
               {!readOnly && (
                 <button
                   type="button"
+                  data-testid={`btn-remove-catedra-${cat.id}`}
                   onClick={() => onRemoveCatedra(cat.id)}
                   className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors cursor-pointer shrink-0"
                   title="Desasignar cátedra"

@@ -3,20 +3,24 @@ import {
   resolveCoursesForNivel,
   ensureCompleteGrilla,
   deriveScheduleFromGrilla,
+  findCourseScheduleConflict,
   CATEDRA_COLORS,
   MORNING_SCHEDULE_SUGGESTIONS,
   AFTERNOON_SCHEDULE_SUGGESTIONS,
 } from './teacherScheduleUtils';
 
 const EMPTY_COURSES = [];
+const EMPTY_TEACHERS = [];
 
 export const useTeacherAssignmentsForm = (
   teacher,
   courses = EMPTY_COURSES,
+  allTeachers = EMPTY_TEACHERS,
   readOnly = false,
   onClose,
   onSaveAssignments
 ) => {
+  const [conflictAlert, setConflictAlert] = useState(null);
   const [catedrasList, setCatedrasList] = useState(() =>
     Array.isArray(teacher?.catedras) ? [...teacher.catedras] : []
   );
@@ -124,14 +128,37 @@ export const useTeacherAssignmentsForm = (
       catedrasList.find((c) => c.id === selectedCatedraId) ||
       catedrasList[catedrasList.length - 1];
 
+    if (!activeCat) return;
+
+    // Si el casillero actual ya pertenece a esta cátedra, desasignarlo
+    const currentRow = grilla.find((r) => r.hora === hora);
+    const currentSlot = currentRow?.[dia];
+    if (currentSlot && currentSlot.catedraId === activeCat.id) {
+      setConflictAlert(null);
+      setGrilla((prev) =>
+        prev.map((row) => (row.hora === hora ? { ...row, [dia]: null } : row))
+      );
+      return;
+    }
+
+    // Verificar si el curso ya está ocupado por OTRO docente en el mismo día y hora
+    const conflict = findCourseScheduleConflict(
+      allTeachers,
+      teacher?.id,
+      activeCat.curso,
+      hora,
+      dia
+    );
+
+    if (conflict) {
+      setConflictAlert(conflict);
+      return;
+    }
+
+    setConflictAlert(null);
     setGrilla((prev) =>
       prev.map((row) => {
         if (row.hora !== hora) return row;
-        const currentSlot = row[dia];
-        if (currentSlot && (!activeCat || currentSlot.catedraId === activeCat.id)) {
-          return { ...row, [dia]: null };
-        }
-        if (!activeCat) return row;
         return {
           ...row,
           [dia]: {
@@ -192,6 +219,8 @@ export const useTeacherAssignmentsForm = (
     maxHoras,
     isOverLimit,
     porcentajeCarga,
+    conflictAlert,
+    setConflictAlert,
     handleAddCatedra,
     handleToggleSlot,
     handleRemoveCatedra,

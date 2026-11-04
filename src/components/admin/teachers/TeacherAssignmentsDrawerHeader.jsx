@@ -6,7 +6,10 @@ export const TeacherAssignmentsDrawerHeader = ({ teacher, readOnly, onClose }) =
     (teacher.apellido ? `${teacher.nombre} ${teacher.apellido}` : teacher.nombre);
 
   return (
-    <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10">
+    <div
+      data-testid="teacher-assignments-header"
+      className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between sticky top-0 z-10"
+    >
       <div className="flex flex-col">
         <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
           {readOnly ? 'Consulta de Asignación Académica' : 'Planificación Académica 2026'}
@@ -26,6 +29,7 @@ export const TeacherAssignmentsDrawerHeader = ({ teacher, readOnly, onClose }) =
       </div>
       <button
         type="button"
+        data-testid="btn-close-drawer"
         onClick={onClose}
         className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-full transition-colors cursor-pointer"
         title="Cerrar panel"
@@ -43,6 +47,7 @@ export const TeacherAccumulatedHoursCard = ({
   porcentajeCarga,
 }) => (
   <div
+    data-testid="accumulated-hours-card"
     className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
       isOverLimit
         ? 'bg-rose-50/80 border-rose-200'
@@ -66,6 +71,7 @@ export const TeacherAccumulatedHoursCard = ({
       </div>
       <div className="flex items-baseline gap-1.5 mt-0.5">
         <span
+          data-testid="total-hours-value"
           className={`text-2xl font-extrabold ${
             isOverLimit ? 'text-rose-600' : 'text-blue-600'
           }`}
@@ -99,6 +105,7 @@ export const TeacherAssignmentsDrawerFooter = ({
   <div className="p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-4">
     <button
       type="button"
+      data-testid="btn-cancel-drawer"
       onClick={onClose}
       className="px-5 py-2.5 bg-white text-slate-700 font-bold text-xs rounded-full hover:bg-slate-100 transition-colors border border-slate-200 cursor-pointer"
     >
@@ -107,6 +114,7 @@ export const TeacherAssignmentsDrawerFooter = ({
     {!readOnly && (
       <button
         type="button"
+        data-testid="btn-save-assignments"
         disabled={isOverLimit}
         onClick={onConfirmSave}
         title={

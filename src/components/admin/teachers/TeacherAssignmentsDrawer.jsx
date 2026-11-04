@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import TeacherAddCatedraForm from './TeacherAddCatedraForm';
 import TeacherWeeklyScheduleGrid from './TeacherWeeklyScheduleGrid';
 import TeacherAssignedCatedrasList from './TeacherAssignedCatedrasList';
@@ -10,10 +10,12 @@ import {
 import { useTeacherAssignmentsForm } from './useTeacherAssignmentsForm';
 
 const EMPTY_COURSES = [];
+const EMPTY_TEACHERS = [];
 
 const TeacherAssignmentsDrawerContent = ({
   teacher,
   courses = EMPTY_COURSES,
+  allTeachers = EMPTY_TEACHERS,
   readOnly = false,
   onClose,
   onSaveAssignments,
@@ -30,11 +32,28 @@ const TeacherAssignmentsDrawerContent = ({
     maxHoras,
     isOverLimit,
     porcentajeCarga,
+    conflictAlert,
+    setConflictAlert,
     handleAddCatedra,
     handleToggleSlot,
     handleRemoveCatedra,
     handleConfirmSave,
-  } = useTeacherAssignmentsForm(teacher, courses, readOnly, onClose, onSaveAssignments);
+  } = useTeacherAssignmentsForm(
+    teacher,
+    courses,
+    allTeachers,
+    readOnly,
+    onClose,
+    onSaveAssignments
+  );
+
+  const selectedCatedra = useMemo(() => {
+    return (
+      catedrasList.find((c) => c.id === selectedCatedraId) ||
+      catedrasList[catedrasList.length - 1] ||
+      null
+    );
+  }, [catedrasList, selectedCatedraId]);
 
   const dialogRef = useRef(null);
 
@@ -53,6 +72,7 @@ const TeacherAssignmentsDrawerContent = ({
   return (
     <dialog
       ref={dialogRef}
+      data-testid="teacher-assignments-drawer"
       aria-labelledby="slide-over-title"
       className="fixed inset-0 z-50 overflow-hidden bg-transparent p-0 max-w-none w-full h-full"
     >
@@ -63,7 +83,10 @@ const TeacherAssignmentsDrawerContent = ({
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-xl bg-white shadow-2xl flex flex-col justify-between rounded-l-3xl overflow-hidden animate-in slide-in-from-right duration-300">
+        <div
+          data-testid="teacher-assignments-content"
+          className="w-screen max-w-xl bg-white shadow-2xl flex flex-col justify-between rounded-l-3xl overflow-hidden animate-in slide-in-from-right duration-300"
+        >
           <div className="flex flex-col flex-1 overflow-y-auto">
             <TeacherAssignmentsDrawerHeader
               teacher={teacher}
@@ -93,10 +116,15 @@ const TeacherAssignmentsDrawerContent = ({
               <TeacherWeeklyScheduleGrid
                 grilla={grilla}
                 readOnly={readOnly}
+                allTeachers={allTeachers}
+                currentTeacherId={teacher?.id}
+                selectedCatedra={selectedCatedra}
                 catedrasList={catedrasList}
                 selectedCatedraId={selectedCatedraId}
                 onSelectCatedraId={setSelectedCatedraId}
                 onToggleSlot={handleToggleSlot}
+                conflictAlert={conflictAlert}
+                onClearConflict={() => setConflictAlert(null)}
               />
 
               <TeacherAssignedCatedrasList
@@ -124,6 +152,7 @@ const TeacherAssignmentsDrawer = ({
   isOpen,
   teacher,
   courses = EMPTY_COURSES,
+  allTeachers = EMPTY_TEACHERS,
   readOnly = false,
   onClose,
   onSaveAssignments,
@@ -135,6 +164,7 @@ const TeacherAssignmentsDrawer = ({
       key={teacher.id}
       teacher={teacher}
       courses={courses}
+      allTeachers={allTeachers}
       readOnly={readOnly}
       onClose={onClose}
       onSaveAssignments={onSaveAssignments}
