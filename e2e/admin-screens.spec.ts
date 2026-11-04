@@ -105,14 +105,18 @@ test.describe('Validación de Pantallas del Panel de Administración', () => {
 
     // Verificación de elementos clave de la pantalla
     await expect(
-      page.getByRole('heading', { level: 1, name: /finanzas & pagos/i })
+      page.getByTestId('view-comprobantes')
     ).toBeVisible();
     await expect(
-      page.getByText(/módulo en construcción/i)
+      page.getByTestId('finance-table-container')
     ).toBeVisible();
+    
+    await page.waitForSelector('tr[data-testid*="receipt-row-rec-fam"]')
+    const rows = await page.$$('tr[data-testid*="receipt-row-rec-fam"]')
+    
     await expect(
-      page.getByText(/emisión de comprobantes de pago/i)
-    ).toBeVisible();
+      rows.length
+    ).toBeGreaterThan(0)
   });
 
   test('Pantalla 6: debe cargar y validar la pantalla de Usuarios & Roles (RBAC)', async ({

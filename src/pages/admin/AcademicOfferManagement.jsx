@@ -9,8 +9,19 @@ import { ACADEMIC_LEVELS } from '../../data/mockAcademicOffer';
 import { getEnrolledStudentsForCourse } from '../../utils/academicUtils';
 import AdminSectionTitle from '../../components/admin/AdminSectionTitle';
 import { useAcademicOfferData } from '../../hooks/useAcademicOfferData';
+import { useAuth } from '../../context/AuthContext';
 
 const AcademicOfferManagement = () => {
+  const { user } = useAuth();
+  const role = String(user?.rol || user?.role || 'Directivo').toLowerCase();
+  const canManageAcademic = [
+    'directivo',
+    'administrativo',
+    'admin',
+    'user_admin',
+    'administrador',
+  ].includes(role);
+
   // Toast Notification State
   const [notification, setNotification] = useState(null);
 
@@ -111,26 +122,28 @@ const AcademicOfferManagement = () => {
             />
 
             {/* Section Primary CTA Buttons */}
-            <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
-              <button
-                type="button"
-                data-testid="btn-new-subject"
-                onClick={() => setIsNewSubjectModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-xs transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[16px] text-blue-500">add_circle</span>
-                Nueva Materia
-              </button>
-              <button
-                type="button"
-                data-testid="btn-create-course"
-                onClick={() => setIsNewCourseModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[16px]">add</span>
-                Crear División / Curso
-              </button>
-            </div>
+            {canManageAcademic && (
+              <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
+                <button
+                  type="button"
+                  data-testid="btn-new-subject"
+                  onClick={() => setIsNewSubjectModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 shadow-xs transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px] text-blue-500">add_circle</span>
+                  Nueva Materia
+                </button>
+                <button
+                  type="button"
+                  data-testid="btn-create-course"
+                  onClick={() => setIsNewCourseModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  Crear División / Curso
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Navigation Tabs Bar: 3 Pestañas por Nivel + Planes de Estudio */}

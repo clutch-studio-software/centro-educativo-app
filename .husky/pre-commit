@@ -1,3 +1,5 @@
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 echo "🔍 Ejecutando validación Pre-commit (Linter + React Doctor)..."
 
 # 1. Corre el linter estándar del proyecto
