@@ -156,7 +156,7 @@ export const getRecentPreceptoriaEntries = (students = [], limit = 8) => {
         studentId: s.id,
         studentName: s.nombreCompleto || `${s.nombre || ''} ${s.apellido || ''}`.trim() || 'Estudiante',
         studentDni: s.dni || '',
-        studentLegajo: s.legajo || '',
+        studentLegajo: s.studentID_login || '',
         studentCurso: s.curso || 'Sin curso',
         studentNivel: inferStudentNivel(s),
       });

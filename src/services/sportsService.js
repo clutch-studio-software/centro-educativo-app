@@ -375,7 +375,7 @@ export const deleteSportActivityApi = async (disciplineId) => {
         await addPreceptoriaNoteToStudent({
           studentId: student.id || student.studentId || student.alumnoId,
           studentDni: student.dni,
-          studentLegajo: student.legajo,
+          studentLegajo: student.studentID_login,
           studentName: student.nombre,
           note: {
             tipo: 'Extracurricular',
@@ -739,6 +739,80 @@ export const addEnfermeriaNoteToStudent = async ({
   } catch (err) {
     console.warn('Error al registrar nota de enfermería:', err.message);
     return null;
+  }
+};
+
+/**
+ * Marca una atención de enfermería existente como notificada a los tutores (irreversible).
+ */
+export const markEnfermeriaNoteAsNotified = async ({
+  studentId,
+  studentDni,
+  noteId,
+  author,
+}) => {
+  try {
+    await ensureAdminAuth();
+
+    let targetDocRef = null;
+    let currentData = null;
+
+    if (studentId) {
+      const directRef = doc(db, 'students', String(studentId).trim());
+      const directSnap = await getDoc(directRef);
+      if (directSnap.exists()) {
+        targetDocRef = directRef;
+        currentData = directSnap.data();
+      }
+    }
+
+    if (!targetDocRef && studentDni) {
+      const cleanDni = String(studentDni).replace(/\D/g, '');
+      const snap = await getDocs(collection(db, 'students'));
+      for (const dSnap of snap.docs) {
+        const dData = dSnap.data();
+        const dDni = String(dData.dni || '').replace(/\D/g, '');
+        if (cleanDni && dDni && cleanDni === dDni) {
+          targetDocRef = dSnap.ref;
+          currentData = dData;
+          break;
+        }
+      }
+    }
+
+    if (targetDocRef) {
+      const existingNotes = Array.isArray(currentData?.entradasEnfermeria)
+        ? currentData.entradasEnfermeria
+        : Array.isArray(currentData?.historialEnfermeria)
+        ? currentData.historialEnfermeria
+        : [];
+
+      const updatedNotes = existingNotes.map((n) => {
+        if (n.id === noteId || (noteId && String(n.id) === String(noteId))) {
+          return {
+            ...n,
+            notificadoFamilias: true,
+            fechaNotificacion: new Date().toISOString(),
+            notificadoPor: author || 'Enfermería Escolar',
+          };
+        }
+        return n;
+      });
+
+      await setDoc(
+        targetDocRef,
+        {
+          entradasEnfermeria: updatedNotes,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('Error al marcar atención como notificada en Firestore:', err);
+    return false;
   }
 };
 

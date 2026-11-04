@@ -1065,7 +1065,7 @@ const StudentDetailsModal = ({
     await addPreceptoriaNoteToStudent({
       studentId: student.id,
       studentDni: student.dni,
-      studentLegajo: student.legajo,
+      studentLegajo: student.studentID_login,
       studentName: student.nombre,
       note: {
         tipo: tipo || 'Observación de Preceptoría',
@@ -1095,7 +1095,7 @@ const StudentDetailsModal = ({
     await addEnfermeriaNoteToStudent({
       studentId: student.id,
       studentDni: student.dni,
-      studentLegajo: student.legajo,
+      studentLegajo: student.studentID_login,
       studentName: student.nombre,
       note: {
         tipo: tipo || 'Atención / Primeros Auxilios',
@@ -1116,7 +1116,7 @@ const StudentDetailsModal = ({
       await deletePreceptoriaNoteFromStudent({
         studentId: student.id,
         studentDni: student.dni,
-        studentLegajo: student.legajo,
+        studentLegajo: student.studentID_login,
         studentName: student.nombre,
         noteId: entryToDelete.id,
         noteFecha: entryToDelete.fecha,
