@@ -1,5 +1,14 @@
 import React from 'react';
 
+const DAYS_HEADER_COLUMNS = [
+  { label: 'Hora', isHourCol: true },
+  { label: 'Lun', isHourCol: false },
+  { label: 'Mar', isHourCol: false },
+  { label: 'Mié', isHourCol: false },
+  { label: 'Jue', isHourCol: false },
+  { label: 'Vie', isHourCol: false },
+];
+
 export const TeacherScheduleGridSkeleton = () => {
   return (
     <div data-testid="teacher-schedule-skeleton" className="flex flex-col gap-2.5 animate-pulse">
@@ -10,12 +19,14 @@ export const TeacherScheduleGridSkeleton = () => {
 
       <div className="bg-slate-50 rounded-2xl p-3 border border-slate-200/80 overflow-x-auto">
         <div className="grid grid-cols-6 gap-1 text-center text-xs min-w-[440px]">
-          <div className="py-1 text-slate-400 font-bold">Hora</div>
-          <div className="py-1 text-slate-700 font-extrabold">Lun</div>
-          <div className="py-1 text-slate-700 font-extrabold">Mar</div>
-          <div className="py-1 text-slate-700 font-extrabold">Mié</div>
-          <div className="py-1 text-slate-700 font-extrabold">Jue</div>
-          <div className="py-1 text-slate-700 font-extrabold">Vie</div>
+          {DAYS_HEADER_COLUMNS.map((col) => (
+            <div
+              key={col.label}
+              className={`py-1 ${col.isHourCol ? 'text-slate-400 font-bold' : 'text-slate-700 font-extrabold'}`}
+            >
+              {col.label}
+            </div>
+          ))}
 
           {[1, 2, 3].map((slotIdx) => (
             <React.Fragment key={slotIdx}>

@@ -116,9 +116,9 @@ const DashboardDirectivoView = ({ stats, roleTitle = 'Personal Directivo' }) => 
             <span className="text-xs font-bold text-blue-200 uppercase tracking-widest animate-pulse">
               Sistema de Gestión Integral · {roleTitle}
             </span>
-            <h2 className="text-2xl font-black tracking-tight text-white">
+            <h1 className="text-2xl font-black tracking-tight text-white">
               Tablero General Institucional
-            </h2>
+            </h1>
             <p className="text-xs text-blue-100 leading-relaxed">
               Monitoreo centralizado de matrícula escolar, servicios complementarios,
               cobertura de cátedras y accesos rápidos de supervisión.

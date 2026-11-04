@@ -103,21 +103,23 @@ export const computeEnrollmentStats = (students = []) => {
 };
 
 /**
- * Obtiene y unifica las últimas atenciones de enfermería de todos los estudiantes, ordenadas cronológicamente.
+ * Unifica y ordena cronológicamente las entradas del historial de estudiantes según las claves provistas.
  */
-export const getRecentEnfermeriaEntries = (students = [], limit = 8) => {
+const getRecentStudentEntries = (students = [], entryKeys = [], limit = 8) => {
   if (!Array.isArray(students)) return [];
 
   const allEntries = [];
 
   for (const s of students) {
-    const entries = Array.isArray(s.entradasEnfermeria)
-      ? s.entradasEnfermeria
-      : Array.isArray(s.historialEnfermeria)
-      ? s.historialEnfermeria
-      : [];
+    let studentEntries = [];
+    for (const key of entryKeys) {
+      if (Array.isArray(s[key])) {
+        studentEntries = s[key];
+        break;
+      }
+    }
 
-    for (const entry of entries) {
+    for (const entry of studentEntries) {
       allEntries.push({
         ...entry,
         studentId: s.id,
@@ -136,36 +138,17 @@ export const getRecentEnfermeriaEntries = (students = [], limit = 8) => {
 };
 
 /**
+ * Obtiene y unifica las últimas atenciones de enfermería de todos los estudiantes, ordenadas cronológicamente.
+ */
+export const getRecentEnfermeriaEntries = (students = [], limit = 8) => {
+  return getRecentStudentEntries(students, ['entradasEnfermeria', 'historialEnfermeria'], limit);
+};
+
+/**
  * Obtiene y unifica las últimas actas y observaciones de preceptoría de todos los estudiantes, ordenadas cronológicamente.
  */
 export const getRecentPreceptoriaEntries = (students = [], limit = 8) => {
-  if (!Array.isArray(students)) return [];
-
-  const allEntries = [];
-
-  for (const s of students) {
-    const entries = Array.isArray(s.entradasPreceptoria)
-      ? s.entradasPreceptoria
-      : Array.isArray(s.observacionesPreceptoria)
-      ? s.observacionesPreceptoria
-      : [];
-
-    for (const entry of entries) {
-      allEntries.push({
-        ...entry,
-        studentId: s.id,
-        studentName: s.nombreCompleto || `${s.nombre || ''} ${s.apellido || ''}`.trim() || 'Estudiante',
-        studentDni: s.dni || '',
-        studentLegajo: s.studentID_login || '',
-        studentCurso: s.curso || 'Sin curso',
-        studentNivel: inferStudentNivel(s),
-      });
-    }
-  }
-
-  return allEntries
-    .sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0))
-    .slice(0, limit);
+  return getRecentStudentEntries(students, ['entradasPreceptoria', 'observacionesPreceptoria'], limit);
 };
 
 /**
@@ -175,7 +158,7 @@ export const formatDashboardDate = (isoString) => {
   if (!isoString) return 'Fecha no especificada';
   try {
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return String(isoString);
+    if (Number.isNaN(date.getTime())) return String(isoString);
 
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
