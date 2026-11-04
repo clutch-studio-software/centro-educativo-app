@@ -5,7 +5,7 @@ import { findCurrentTeacher, ensureCompleteGrilla } from './teacherScheduleUtils
 
 const EMPTY_TEACHERS = [];
 
-const TeacherDocenteScheduleView = ({ user, teachers = EMPTY_TEACHERS }) => {
+const TeacherDocenteScheduleView = ({ user, teachers = EMPTY_TEACHERS, isLoading = false }) => {
   const matchedTeacher = useMemo(() => {
     return findCurrentTeacher(user, teachers);
   }, [user, teachers]);
@@ -31,6 +31,7 @@ const TeacherDocenteScheduleView = ({ user, teachers = EMPTY_TEACHERS }) => {
           allTeachers={teachers}
           currentTeacherId={matchedTeacher?.id}
           catedrasList={matchedTeacher?.catedras || []}
+          isLoading={isLoading}
         />
       </section>
     </div>
