@@ -79,14 +79,17 @@ const TeacherFloatingMenu = ({
   onToggleStatus,
   onDeleteTeacher,
   canManageTeachers = true,
+  isOwnTeacher = false,
 }) => {
   if (!activeTeacher) return null;
 
   const isSuspended = String(activeTeacher.estado).toLowerCase() === 'suspendido';
+  const canViewSchedule = canManageTeachers || isOwnTeacher;
 
   return (
     <div
       ref={menuRef}
+      data-testid="teacher-floating-menu"
       style={{
         position: 'fixed',
         top: `${menuPosition.top}px`,
@@ -96,26 +99,29 @@ const TeacherFloatingMenu = ({
       className="w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-1.5 animate-in fade-in zoom-in-95 duration-150 text-left divide-y divide-slate-100"
     >
       <div className="py-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            const target = activeTeacher;
-            setActiveMenuTeacherId?.(null);
-            onManageAssignments?.(target);
-          }}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50/60 transition-colors cursor-pointer border-none bg-transparent"
-        >
-          <span className="material-symbols-outlined text-[18px] text-indigo-600">
-            calendar_month
-          </span>
-          <div className="flex flex-col items-start leading-tight">
-            <span>{canManageTeachers ? 'Cátedras y Horarios' : 'Ver Cátedras y Horarios'}</span>
-            <span className="text-[10px] font-normal text-slate-400">
-              {canManageTeachers ? 'Asignar materias y grilla' : 'Consultar cursos y horarios'}
+        {canViewSchedule && (
+          <button
+            type="button"
+            data-testid={`menu-assignments-${activeTeacher.id}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const target = activeTeacher;
+              setActiveMenuTeacherId?.(null);
+              onManageAssignments?.(target);
+            }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50/60 transition-colors cursor-pointer border-none bg-transparent"
+          >
+            <span className="material-symbols-outlined text-[18px] text-indigo-600">
+              calendar_month
             </span>
-          </div>
-        </button>
+            <div className="flex flex-col items-start leading-tight">
+              <span>{canManageTeachers ? 'Cátedras y Horarios' : 'Ver Mi Grilla Horaria'}</span>
+              <span className="text-[10px] font-normal text-slate-400">
+                {canManageTeachers ? 'Asignar materias y grilla' : 'Consultar cursos y horarios'}
+              </span>
+            </div>
+          </button>
+        )}
 
         {canManageTeachers && (
           <>
@@ -219,74 +225,181 @@ const TeacherFloatingMenu = ({
   );
 };
 
+const TeacherAvatar = ({ isSuspended, initials, teacherId }) => {
+  if (isSuspended) {
+    return (
+      <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 text-xs flex items-center justify-center font-bold shadow-xs">
+        {initials}
+      </div>
+    );
+  }
+  return (
+    <div
+      className={`w-10 h-10 rounded-full bg-gradient-to-tr ${getAvatarGradient(
+        teacherId
+      )} text-white font-bold text-xs flex items-center justify-center shadow-sm`}
+    >
+      {initials}
+    </div>
+  );
+};
+
+const TeacherRowActions = ({
+  teacher,
+  canViewSchedule,
+  canManageTeachers,
+  canShowActions,
+  activeMenuTeacherId,
+  setActiveMenuTeacherId,
+  setMenuPosition,
+  onManageAssignments,
+}) => {
+  if (!canShowActions && !canViewSchedule) {
+    return <span className="text-slate-300 text-xs px-2">—</span>;
+  }
+
+  const handleToggleMenu = (e) => {
+    e.stopPropagation();
+    if (activeMenuTeacherId === teacher.id) {
+      setActiveMenuTeacherId(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const menuHeight = 190;
+    const spaceBelow = globalThis.innerHeight - rect.bottom;
+    const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
+    setMenuPosition({
+      top: openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6,
+      right: globalThis.innerWidth - rect.right,
+    });
+    setActiveMenuTeacherId(teacher.id);
+  };
+
+  return (
+    <div className="relative inline-flex items-center justify-end gap-1 text-left">
+      {canViewSchedule && (
+        <button
+          type="button"
+          data-testid={`btn-open-schedule-${teacher.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onManageAssignments?.(teacher);
+          }}
+          className="p-1.5 rounded-full text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer border-none bg-transparent"
+          title={canManageTeachers ? 'Cátedras, Cursos y Horarios' : 'Ver Mi Grilla Horaria'}
+        >
+          <span className="material-symbols-outlined text-[20px]">
+            calendar_month
+          </span>
+        </button>
+      )}
+
+      {canShowActions ? (
+        <button
+          type="button"
+          data-testid={`btn-menu-teacher-${teacher.id}`}
+          onClick={handleToggleMenu}
+          className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${
+            activeMenuTeacherId === teacher.id
+              ? 'bg-slate-200 text-slate-800 shadow-xs'
+              : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100 bg-transparent'
+          }`}
+          title="Más opciones"
+        >
+          <span className="material-symbols-outlined text-[20px]">
+            more_vert
+          </span>
+        </button>
+      ) : (
+        <span className="text-slate-300 text-xs px-2">—</span>
+      )}
+    </div>
+  );
+};
+
+const checkIsOwnTeacher = (teacher, currentUser) => {
+  if (!currentUser) return false;
+  const currentUserId = String(currentUser.uid || currentUser.id || '');
+  if (currentUserId && String(teacher.id) === currentUserId) return true;
+  if (!teacher.email || !currentUser.email) return false;
+  return teacher.email.toLowerCase() === currentUser.email.toLowerCase();
+};
+
+const getTeacherDisplayName = (teacher) => {
+  if (teacher.nombreCompleto) return teacher.nombreCompleto;
+  if (teacher.apellido) return `${teacher.nombre} ${teacher.apellido}`;
+  return teacher.nombre || '';
+};
+
+const TeacherInfoCell = ({ teacher, isSuspended, initials, displayName }) => (
+  <td className="py-4 px-6">
+    <div className="flex items-center gap-3">
+      <div className="relative shrink-0">
+        <TeacherAvatar
+          isSuspended={isSuspended}
+          initials={initials}
+          teacherId={teacher.id}
+        />
+      </div>
+      <div className="flex flex-col min-w-0">
+        <span
+          className={`font-bold text-xs truncate transition-colors ${
+            isSuspended
+              ? 'text-slate-400 line-through'
+              : 'text-slate-900 group-hover:text-blue-600'
+          }`}
+        >
+          {displayName}
+        </span>
+        <span className="text-[11px] text-slate-500 truncate" title={teacher.titulacion}>
+          {teacher.titulacion}
+        </span>
+        <span className="text-[10px] font-mono text-slate-400">
+          DNI: {teacher.dni}
+        </span>
+      </div>
+    </div>
+  </td>
+);
+
 const TeacherTableRow = ({
   teacher,
   activeMenuTeacherId,
   setActiveMenuTeacherId,
   setMenuPosition,
   onManageAssignments,
+  canManageTeachers = true,
+  currentUser = null,
 }) => {
   const isSuspended =
     String(teacher.estado).toLowerCase() === 'suspendido' || Boolean(teacher.disabled);
   const status = getStatusBadge(
     isSuspended ? 'Suspendido' : (teacher.condicion || teacher.estado || 'Titular')
   );
-  const displayName =
-    teacher.nombreCompleto ||
-    (teacher.apellido
-      ? `${teacher.nombre} ${teacher.apellido}`
-      : teacher.nombre);
+  const displayName = getTeacherDisplayName(teacher);
   const initials = getInitials(teacher.nombre, teacher.apellido);
-  const catedrasCount = teacher.catedras?.length || 0;
-  const cargaHoras = teacher.cargaHoras || 0;
+  const isOwnTeacher = checkIsOwnTeacher(teacher, currentUser);
+  const canViewSchedule = canManageTeachers || isOwnTeacher;
+  const canShowActions = canManageTeachers || isOwnTeacher;
+  const rowBgClass = isSuspended
+    ? 'bg-rose-50/20 hover:bg-rose-50/30'
+    : 'hover:bg-blue-50/30';
 
   return (
     <tr
       data-testid={`teacher-row-${teacher.id}`}
-      className={`transition-colors group ${
-        isSuspended ? 'bg-rose-50/20 hover:bg-rose-50/30' : 'hover:bg-blue-50/30'
-      }`}
+      className={`transition-colors group ${rowBgClass}`}
     >
       <td className="py-4 px-6 font-mono font-bold text-xs text-blue-600 whitespace-nowrap">
         {teacher.legajo}
       </td>
 
-      <td className="py-4 px-6">
-        <div className="flex items-center gap-3">
-          <div className="relative shrink-0">
-            {isSuspended ? (
-              <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 text-xs flex items-center justify-center font-bold shadow-xs">
-                {initials}
-              </div>
-            ) : (
-              <div
-                className={`w-10 h-10 rounded-full bg-gradient-to-tr ${getAvatarGradient(
-                  teacher.id
-                )} text-white font-bold text-xs flex items-center justify-center shadow-sm`}
-              >
-                {initials}
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span
-              className={`font-bold text-xs truncate transition-colors ${
-                isSuspended
-                  ? 'text-slate-400 line-through'
-                  : 'text-slate-900 group-hover:text-blue-600'
-              }`}
-            >
-              {displayName}
-            </span>
-            <span className="text-[11px] text-slate-500 truncate" title={teacher.titulacion}>
-              {teacher.titulacion}
-            </span>
-            <span className="text-[10px] font-mono text-slate-400">
-              DNI: {teacher.dni}
-            </span>
-          </div>
-        </div>
-      </td>
+      <TeacherInfoCell
+        teacher={teacher}
+        isSuspended={isSuspended}
+        initials={initials}
+        displayName={displayName}
+      />
 
       <td className="py-4 px-6">
         <div className="flex flex-col items-start gap-1">
@@ -296,7 +409,7 @@ const TeacherTableRow = ({
           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600">
             <span className="material-symbols-outlined text-[13px]">menu_book</span>
             <span>
-              {catedrasCount} cátedra(s) · {cargaHoras} hs/sem
+              {teacher.catedras?.length || 0} cátedra(s) · {teacher.cargaHoras || 0} hs/sem
             </span>
           </span>
         </div>
@@ -323,51 +436,16 @@ const TeacherTableRow = ({
       </td>
 
       <td className="py-4 px-6 text-right">
-        <div className="relative inline-flex items-center justify-end gap-1 text-left">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onManageAssignments?.(teacher);
-            }}
-            className="p-1.5 rounded-full text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer border-none bg-transparent"
-            title="Cátedras, Cursos y Horarios"
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              calendar_month
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (activeMenuTeacherId === teacher.id) {
-                setActiveMenuTeacherId(null);
-              } else {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const menuHeight = 190;
-                const spaceBelow = globalThis.innerHeight - rect.bottom;
-                const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
-                setMenuPosition({
-                  top: openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6,
-                  right: globalThis.innerWidth - rect.right,
-                });
-                setActiveMenuTeacherId(teacher.id);
-              }
-            }}
-            className={`p-1.5 rounded-full transition-colors cursor-pointer border-none ${
-              activeMenuTeacherId === teacher.id
-                ? 'bg-slate-200 text-slate-800 shadow-xs'
-                : 'text-slate-400 hover:text-slate-800 hover:bg-slate-100 bg-transparent'
-            }`}
-            title="Más opciones"
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              more_vert
-            </span>
-          </button>
-        </div>
+        <TeacherRowActions
+          teacher={teacher}
+          canViewSchedule={canViewSchedule}
+          canManageTeachers={canManageTeachers}
+          canShowActions={canShowActions}
+          activeMenuTeacherId={activeMenuTeacherId}
+          setActiveMenuTeacherId={setActiveMenuTeacherId}
+          setMenuPosition={setMenuPosition}
+          onManageAssignments={onManageAssignments}
+        />
       </td>
     </tr>
   );
@@ -381,6 +459,8 @@ const renderTableBodyContent = ({
   setActiveMenuTeacherId,
   setMenuPosition,
   onManageAssignments,
+  canManageTeachers = true,
+  currentUser = null,
 }) => {
   if (isLoading) {
     return (
@@ -439,6 +519,8 @@ const renderTableBodyContent = ({
       setActiveMenuTeacherId={setActiveMenuTeacherId}
       setMenuPosition={setMenuPosition}
       onManageAssignments={onManageAssignments}
+      canManageTeachers={canManageTeachers}
+      currentUser={currentUser}
     />
   ));
 };
@@ -453,6 +535,7 @@ const TeacherTable = ({
   onDeleteTeacher,
   onResetFilters,
   canManageTeachers = true,
+  currentUser = null,
 }) => {
   const [activeMenuTeacherId, setActiveMenuTeacherId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
@@ -479,6 +562,13 @@ const TeacherTable = ({
   }, [activeMenuTeacherId]);
 
   const activeTeacher = teachers.find((t) => t.id === activeMenuTeacherId);
+  const isOwnActiveTeacher =
+    Boolean(currentUser) &&
+    Boolean(activeTeacher) &&
+    (String(activeTeacher.id) === String(currentUser.uid || currentUser.id) ||
+      (activeTeacher.email &&
+        String(activeTeacher.email).toLowerCase() ===
+          String(currentUser.email || '').toLowerCase()));
 
   return (
     <section className="bg-white rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden relative">
@@ -515,6 +605,8 @@ const TeacherTable = ({
               setActiveMenuTeacherId,
               setMenuPosition,
               onManageAssignments,
+              canManageTeachers,
+              currentUser,
             })}
           </tbody>
         </table>
@@ -531,6 +623,7 @@ const TeacherTable = ({
         onToggleStatus={onToggleStatus}
         onDeleteTeacher={onDeleteTeacher}
         canManageTeachers={canManageTeachers}
+        isOwnTeacher={isOwnActiveTeacher}
       />
     </section>
   );

@@ -104,7 +104,7 @@ const TeacherSelfScheduleBanner = ({ user, teachers = EMPTY_TEACHERS, onOpenSche
             return (
               <div
                 key={nivel}
-                className="bg-white/90 rounded-xl p-3.5 border border-slate-200/70 flex flex-col gap-2"
+                className="bg-white/90 rounded-md p-3.5 border border-slate-200/70 flex flex-col gap-2"
               >
                 <div className="flex items-center justify-between">
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}`}>
@@ -118,7 +118,7 @@ const TeacherSelfScheduleBanner = ({ user, teachers = EMPTY_TEACHERS, onOpenSche
                   {list.map((cat) => (
                     <div
                       key={cat.id || `${cat.nombre}-${cat.curso}`}
-                      className="text-xs flex flex-col bg-slate-50/80 rounded-lg px-2.5 py-1.5 border border-slate-100"
+                      className="text-xs flex flex-col bg-slate-50/80 rounded-md px-2.5 py-1.5 border border-slate-100"
                     >
                       <span className="font-bold text-slate-800">
                         {cat.nombre} — <span className="text-indigo-700">{cat.curso}</span>
