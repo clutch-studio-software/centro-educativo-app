@@ -23,6 +23,8 @@ import {
 import { auth } from '../../services/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '../../context/AuthContext';
+import { fetchAcademicCourses } from '../../services/academicService';
+import { INITIAL_COURSES } from '../../data/mockAcademicOffer';
 
 const PAGE_SIZE = 5;
 
@@ -221,7 +223,24 @@ const TeachersManagement = () => {
   const [isNewTeacherModalOpen, setIsNewTeacherModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState(null);
   const [assigningTeacher, setAssigningTeacher] = useState(null);
+  const [courses, setCourses] = useState(INITIAL_COURSES);
   const [notification, setNotification] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchAcademicCourses()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setCourses(data);
+        }
+      })
+      .catch((err) => {
+        console.warn('Error al cargar cursos para gestión docente:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const showToast = useCallback((message, type = 'info') => {
     setNotification({ message, type });
@@ -462,6 +481,7 @@ const TeachersManagement = () => {
           isOpen={Boolean(assigningTeacher)}
           onClose={() => setAssigningTeacher(null)}
           teacher={assigningTeacher}
+          courses={courses}
           onSaveAssignments={handleSaveAssignments}
           readOnly={!canManageTeachers}
         />
