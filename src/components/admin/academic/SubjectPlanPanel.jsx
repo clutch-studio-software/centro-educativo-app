@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { sortCourseObjects } from '../../../utils/academicUtils';
+import {
+  sortCourseObjects,
+  matchesSubjectToCourse,
+} from '../../../utils/academicUtils';
 
 const PAGE_SIZE = 5;
 
@@ -14,10 +17,15 @@ const SubjectPlanPanel = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
+  const selectedCourse = useMemo(() => {
+    return courses.find((c) => c.id === selectedCourseId) || courses[0];
+  }, [courses, selectedCourseId]);
+
   // Filter subjects for the selected course
   const currentCourseSubjects = useMemo(() => {
-    return subjects.filter((s) => s.cursoId === selectedCourseId);
-  }, [subjects, selectedCourseId]);
+    if (!selectedCourse) return [];
+    return subjects.filter((s) => matchesSubjectToCourse(s, selectedCourse));
+  }, [subjects, selectedCourse]);
 
   // Pagination
   const totalItems = currentCourseSubjects.length;
@@ -30,8 +38,6 @@ const SubjectPlanPanel = ({
       setCurrentPage(page);
     }
   };
-
-  const selectedCourse = courses.find((c) => c.id === selectedCourseId);
 
   const sortedCourses = useMemo(() => {
     return sortCourseObjects(courses);
@@ -136,9 +142,17 @@ const SubjectPlanPanel = ({
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 whitespace-nowrap">
-                        {cargaHoraria}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 whitespace-nowrap">
+                          {cargaHoraria}
+                        </span>
+                        {subject.horario && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 whitespace-nowrap">
+                            <span className="material-symbols-outlined text-[13px]">schedule</span>
+                            <span>{subject.horario}</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">

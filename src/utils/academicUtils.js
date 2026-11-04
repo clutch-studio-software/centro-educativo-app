@@ -251,6 +251,57 @@ export const normalizeNivel = (nivel = '') => {
 /**
  * Determina si un alumno pertenece a una división/curso determinado.
  */
+export const LEGACY_COURSE_MAP = {
+  'curso-ns-1': { nombre: '1° Año', division: 'A' },
+  'curso-ns-2': { nombre: '2° Año', division: 'A' },
+  'curso-np-1': { nombre: '1° Grado', division: 'A' },
+  'curso-ni-3': { nombre: 'Sala 4 Años', division: 'Verde' },
+};
+
+/**
+ * Determina si una materia pertenece a un curso/división (por ID exacto, mapeo legado o coincidencia de curso y división).
+ */
+export const matchesSubjectToCourse = (subject, course) => {
+  if (!subject || !course) return false;
+
+  if (subject.cursoId && subject.cursoId === course.id) {
+    return true;
+  }
+
+  const legacyTarget = LEGACY_COURSE_MAP[subject.cursoId];
+  if (legacyTarget) {
+    const cNom = String(course.nombre || '').toLowerCase();
+    const cDiv = String(course.division || 'A').toLowerCase();
+    if (
+      cNom.includes(legacyTarget.nombre.toLowerCase()) &&
+      cDiv.includes(legacyTarget.division.toLowerCase())
+    ) {
+      return true;
+    }
+  }
+
+  const cNombre = String(course.nombre || '').trim().toLowerCase();
+  const cDivision = String(course.division || 'A').trim().toLowerCase();
+  const sCurso = String(subject.curso || subject.cursoNombre || '').trim().toLowerCase();
+
+  if (sCurso) {
+    const isNameMatch = sCurso.includes(cNombre) || cNombre.includes(sCurso);
+    const isDivMatch =
+      !subject.division ||
+      sCurso.includes(cDivision) ||
+      String(subject.division).trim().toLowerCase() === cDivision;
+
+    if (isNameMatch && isDivMatch) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+/**
+ * Determina si un alumno pertenece a una división/curso determinado.
+ */
 export const matchesStudentToDivision = (student, course) => {
   if (!student || !course) return false;
 

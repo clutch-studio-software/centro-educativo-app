@@ -62,6 +62,7 @@ export const useAcademicOfferData = (showToast) => {
       );
       const activeTeacherIds = new Set(realTeachers.map((t) => t.id));
 
+      let activeCourses = INITIAL_COURSES;
       if (firestoreCourses && firestoreCourses.length > 0) {
         const sanitizedCourses = firestoreCourses.map((c) => {
           const hasDocenteId = c.docenteId && activeTeacherIds.has(c.docenteId);
@@ -74,6 +75,7 @@ export const useAcademicOfferData = (showToast) => {
           return c;
         });
 
+        activeCourses = sanitizedCourses;
         setCourses(sanitizedCourses);
         setSelectedCourseId((prev) => {
           const exists = sanitizedCourses.some((c) => c.id === prev);
@@ -85,10 +87,77 @@ export const useAcademicOfferData = (showToast) => {
         setStudents(Array.isArray(adminData.students) ? adminData.students : []);
       }
 
-      if (Array.isArray(firestoreSubjects) && firestoreSubjects.length > 0) {
-        setSubjects(firestoreSubjects);
-      } else if (firestoreSubjects === null) {
-        void saveAcademicSubjects(INITIAL_SUBJECTS);
+      const baseSubjects =
+        Array.isArray(firestoreSubjects) && firestoreSubjects.length > 0
+          ? [...firestoreSubjects]
+          : [...INITIAL_SUBJECTS];
+
+      const mergedSubjects = [...baseSubjects];
+
+      for (const t of realTeachers) {
+        if (!Array.isArray(t.catedras)) continue;
+        const tName =
+          t.nombreCompleto ||
+          (t.apellido ? `${t.nombre} ${t.apellido}` : t.nombre) ||
+          'Docente a cargo';
+        const tLegajo = t.legajo || '#DOC';
+        const tInitials =
+          t.iniciales ||
+          (t.nombre ? `${t.nombre[0]}${t.apellido?.[0] || 'D'}`.toUpperCase() : 'DC');
+
+        for (const cat of t.catedras) {
+          const cleanNombre = (cat.nombre || '').trim();
+          const cleanCurso = (cat.curso || '').trim();
+          if (!cleanNombre || !cleanCurso) continue;
+
+          const matchedCourse = activeCourses.find((c) => {
+            const cFullName = `${c.nombre} ${c.division || 'A'}`.toLowerCase();
+            return (
+              c.id === cat.cursoId ||
+              cFullName === cleanCurso.toLowerCase() ||
+              cleanCurso.toLowerCase().includes(String(c.nombre || '').toLowerCase())
+            );
+          });
+
+          const targetCourseId = matchedCourse?.id || cat.cursoId || null;
+
+          const idx = mergedSubjects.findIndex((s) => {
+            const isSameName = String(s.nombre || '').trim().toLowerCase() === cleanNombre.toLowerCase();
+            const isSameCourseId = targetCourseId && s.cursoId === targetCourseId;
+            const isSameCursoName = String(s.curso || '').trim().toLowerCase() === cleanCurso.toLowerCase();
+            return isSameName && (isSameCourseId || isSameCursoName);
+          });
+
+          const entry = {
+            id: idx >= 0 ? mergedSubjects[idx].id : `sub-cat-${cat.id || Date.now()}`,
+            cursoId: targetCourseId || (idx >= 0 ? mergedSubjects[idx].cursoId : null),
+            curso: cleanCurso,
+            division: cat.division || (cleanCurso.includes('B') ? 'B' : 'A'),
+            nombre: cleanNombre,
+            cargaHoraria: `${cat.horasSemanales || 4} hs / semana`,
+            horario: cat.horario || '',
+            profesor: {
+              id: t.id,
+              nombre: tName,
+              legajo: tLegajo,
+              initials: tInitials,
+              avatarBg: 'bg-indigo-100 text-indigo-700',
+              online: true,
+            },
+            dictadoActivo: true,
+          };
+
+          if (idx >= 0) {
+            mergedSubjects[idx] = { ...mergedSubjects[idx], ...entry };
+          } else {
+            mergedSubjects.push(entry);
+          }
+        }
+      }
+
+      setSubjects(mergedSubjects);
+      if (firestoreSubjects === null) {
+        void saveAcademicSubjects(mergedSubjects);
       }
 
       setIsLoading(false);

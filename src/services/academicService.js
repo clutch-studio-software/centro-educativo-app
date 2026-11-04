@@ -337,3 +337,80 @@ export const saveAcademicSubjects = async (subjectsList = []) => {
     console.warn('No se pudo persistir academicOffer/subjects_catalog:', err.message);
   }
 };
+
+/**
+ * Sincroniza las cátedras y horarios asignados a un docente con el catálogo de materias en academicOffer/subjects_catalog.
+ */
+export const syncTeacherCatedrasToAcademicSubjectsApi = async (teacher, catedras = [], courses = []) => {
+  try {
+    const currentSubjects = (await fetchAcademicSubjects()) || [];
+    const teacherName =
+      teacher.nombreCompleto ||
+      (teacher.apellido ? `${teacher.nombre} ${teacher.apellido}` : teacher.nombre);
+    const teacherLegajo = teacher.legajo || '#DOC-1000';
+    const initials =
+      teacher.iniciales ||
+      (teacher.nombre ? `${teacher.nombre[0]}${teacher.apellido?.[0] || 'D'}`.toUpperCase() : 'DC');
+
+    const updatedSubjects = [...currentSubjects];
+
+    for (const cat of catedras) {
+      const cleanNombre = (cat.nombre || '').trim();
+      const cleanCurso = (cat.curso || '').trim();
+      if (!cleanNombre || !cleanCurso) continue;
+
+      const matchedCourse = (courses || []).find((c) => {
+        const cFullName = `${c.nombre} ${c.division || 'A'}`.toLowerCase();
+        return (
+          c.id === cat.cursoId ||
+          cFullName === cleanCurso.toLowerCase() ||
+          cleanCurso.toLowerCase().includes(String(c.nombre || '').toLowerCase())
+        );
+      });
+
+      const courseId =
+        matchedCourse?.id || cat.cursoId || `curso-${cleanCurso.replace(/\s+/g, '-').toLowerCase()}`;
+
+      const existingIndex = updatedSubjects.findIndex(
+        (s) =>
+          (s.cursoId === courseId || String(s.curso || '').toLowerCase() === cleanCurso.toLowerCase()) &&
+          String(s.nombre || '').trim().toLowerCase() === cleanNombre.toLowerCase()
+      );
+
+      const subjectData = {
+        id: existingIndex >= 0 ? updatedSubjects[existingIndex].id : `sub-${cat.id || Date.now()}`,
+        cursoId: courseId,
+        curso: cleanCurso,
+        division: cat.division || (cleanCurso.includes('B') ? 'B' : 'A'),
+        nombre: cleanNombre,
+        cargaHoraria: `${cat.horasSemanales || 4} hs / semana`,
+        horario: cat.horario || '',
+        profesor: {
+          id: teacher.id,
+          nombre: teacherName,
+          legajo: teacherLegajo,
+          initials,
+          avatarBg: 'bg-indigo-100 text-indigo-700',
+          online: true,
+        },
+        dictadoActivo: true,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingIndex >= 0) {
+        updatedSubjects[existingIndex] = {
+          ...updatedSubjects[existingIndex],
+          ...subjectData,
+        };
+      } else {
+        updatedSubjects.push(subjectData);
+      }
+    }
+
+    await saveAcademicSubjects(updatedSubjects);
+    return updatedSubjects;
+  } catch (err) {
+    console.warn('Error al sincronizar cátedras de docente con catálogo académico:', err.message);
+    return null;
+  }
+};
