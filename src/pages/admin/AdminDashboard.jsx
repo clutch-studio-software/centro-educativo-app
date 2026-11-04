@@ -85,6 +85,8 @@ const AdminDashboard = () => {
             students={students}
             recentEntries={recentEnfermeriaEntries}
             onRefreshData={loadData}
+            isLoading={isLoading}
+            user={user}
           />
         )}
 
@@ -93,6 +95,7 @@ const AdminDashboard = () => {
             students={students}
             recentEntries={recentPreceptoriaEntries}
             onRefreshData={loadData}
+            isLoading={isLoading}
           />
         )}
 

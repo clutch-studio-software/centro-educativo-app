@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { addEnfermeriaNoteToStudent } from '../../../services/sportsService';
+import {
+  addEnfermeriaNoteToStudent,
+  markEnfermeriaNoteAsNotified,
+} from '../../../services/sportsService';
 import { formatDashboardDate } from './dashboardUtils';
+import DashboardEntryDetailModal from './DashboardEntryDetailModal';
+import { EnfermeriaTableRowSkeleton } from './DashboardTableSkeleton';
 
 const ENFERMERIA_TIPOS = [
   'Atención / Primeros Auxilios',
@@ -108,7 +113,7 @@ const NewAttentionModal = ({ student, onClose, onSaved }) => {
             />
           </div>
 
-          <label htmlFor="check-attention-notificado" className="flex items-center text-left gap-2 p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl cursor-pointer">
+          <label htmlFor="check-attention-notificado" className="flex items-center text-left gap-2 p-3 bg-amber-50/70 border border-amber-200/70 rounded-md cursor-pointer">
             <input
               type="checkbox"
               id="check-attention-notificado"
@@ -150,17 +155,29 @@ const NewAttentionModal = ({ student, onClose, onSaved }) => {
   );
 };
 
-const AttentionRow = ({ entry }) => (
+const AttentionRow = ({ entry, onSelectEntry }) => (
   <tr
     data-testid={`attention-row-${entry.id || entry.fecha}`}
-    className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 text-xs"
+    onClick={() => onSelectEntry?.(entry)}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onSelectEntry?.(entry);
+      }
+    }}
+    tabIndex={0}
+    role="button"
+    title="Haz clic para ver el detalle clínico completo"
+    className="hover:bg-rose-50/50 transition-colors border-b border-slate-100 text-xs cursor-pointer group focus:outline-hidden focus:bg-rose-50/60"
   >
     <td className="py-3 px-4 font-mono font-bold text-slate-500 whitespace-nowrap">
       {formatDashboardDate(entry.fecha)}
     </td>
     <td className="py-3 px-4">
       <div className="flex flex-col">
-        <span className="font-bold text-slate-900">{entry.studentName}</span>
+        <span className="font-bold text-slate-900 group-hover:text-rose-700 transition-colors">
+          {entry.studentName}
+        </span>
         <span className="text-[10px] text-slate-400 font-mono">
           {entry.studentLegajo} · {entry.studentCurso}
         </span>
@@ -202,9 +219,28 @@ const DashboardEnfermeriaView = ({
   students = EMPTY_STUDENTS,
   recentEntries = EMPTY_ENTRIES,
   onRefreshData,
+  isLoading = false,
+  user = null,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentForAttention, setSelectedStudentForAttention] = useState(null);
+  const [viewingDetailEntry, setViewingDetailEntry] = useState(null);
+
+  const handleMarkAsNotified = async (entry) => {
+    const author =
+      user?.displayName ||
+      user?.nombreCompleto ||
+      user?.email?.split('@')[0] ||
+      'Enfermería Escolar';
+
+    await markEnfermeriaNoteAsNotified({
+      studentId: entry.studentId,
+      studentDni: entry.studentDni,
+      noteId: entry.id,
+      author,
+    });
+    onRefreshData?.();
+  };
 
   const filteredStudents = useMemo(() => {
     if (!searchTerm.trim()) return [];
@@ -265,7 +301,7 @@ const DashboardEnfermeriaView = ({
             placeholder="Buscar por apellido, nombre, legajo o DNI del alumno..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-rose-500/20 focus:outline-hidden"
+            className="w-full px-4 py-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-rose-500/20 focus:outline-hidden"
           />
           <span className="material-symbols-outlined text-[18px] text-slate-400 absolute left-3 top-3">
             search
@@ -320,7 +356,7 @@ const DashboardEnfermeriaView = ({
           </span>
         </div>
 
-        {recentEntries.length === 0 ? (
+        {!isLoading && recentEntries.length === 0 ? (
           <div className="py-8 text-center text-slate-400 flex flex-col items-center gap-2">
             <span className="material-symbols-outlined text-4xl text-slate-300">health_and_safety</span>
             <p className="font-medium text-xs">No hay atenciones de enfermería registradas recientemente.</p>
@@ -339,9 +375,21 @@ const DashboardEnfermeriaView = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentEntries.map((entry) => (
-                  <AttentionRow key={entry.id || entry.fecha} entry={entry} />
-                ))}
+                {isLoading ? (
+                  <>
+                    {[1, 2, 3, 4].map((idx) => (
+                      <EnfermeriaTableRowSkeleton key={idx} />
+                    ))}
+                  </>
+                ) : (
+                  recentEntries.map((entry) => (
+                    <AttentionRow
+                      key={entry.id || entry.fecha}
+                      entry={entry}
+                      onSelectEntry={setViewingDetailEntry}
+                    />
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -353,6 +401,15 @@ const DashboardEnfermeriaView = ({
           student={selectedStudentForAttention}
           onClose={() => setSelectedStudentForAttention(null)}
           onSaved={onRefreshData}
+        />
+      )}
+
+      {viewingDetailEntry && (
+        <DashboardEntryDetailModal
+          entry={viewingDetailEntry}
+          onClose={() => setViewingDetailEntry(null)}
+          category="enfermeria"
+          onMarkAsNotified={handleMarkAsNotified}
         />
       )}
     </div>

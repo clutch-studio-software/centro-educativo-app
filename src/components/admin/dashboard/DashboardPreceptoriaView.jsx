@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { addPreceptoriaNoteToStudent } from '../../../services/sportsService';
 import { formatDashboardDate } from './dashboardUtils';
+import DashboardEntryDetailModal from './DashboardEntryDetailModal';
+import { PreceptoriaTableRowSkeleton } from './DashboardTableSkeleton';
 
 const PRECEPTORIA_TIPOS = [
   'Tardanza',
@@ -25,7 +27,7 @@ const NewPreceptoriaModal = ({ student, onClose, onSaved }) => {
       await addPreceptoriaNoteToStudent({
         studentId: student.id,
         studentDni: student.dni,
-        studentLegajo: student.legajo,
+        studentLegajo: student.studentID_login,
         studentName: student.nombreCompleto || `${student.nombre || ''} ${student.apellido || ''}`,
         note: {
           tipo,
@@ -48,16 +50,16 @@ const NewPreceptoriaModal = ({ student, onClose, onSaved }) => {
     >
       <div className="bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-xl overflow-hidden">
         <div className="px-5 py-4 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <div className="flex text-left items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]">assignment_ind</span>
             </div>
             <div>
-              <h3 className="font-extrabold text-slate-900 text-sm">
+              <p className="font-extrabold text-slate-900 text-sm">
                 Registrar Novedad / Acta de Preceptoría
-              </h3>
+              </p>
               <p className="text-[11px] text-slate-600">
-                {student.nombreCompleto || `${student.nombre} ${student.apellido}`} ({student.legajo} · {student.curso})
+                {student.nombreCompleto || `${student.nombre} ${student.apellido}`} (<strong>{student.studentID_login}</strong> · {student.curso})
               </p>
             </div>
           </div>
@@ -81,7 +83,7 @@ const NewPreceptoriaModal = ({ student, onClose, onSaved }) => {
               data-testid="select-preceptoria-type"
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:ring-2 focus:ring-purple-500/20 focus:outline-hidden"
+              className="px-3 py-2 bg-slate-50 text-[14px] border border-slate-200 rounded-md text-slate-800 font-medium focus:ring-2 focus:ring-purple-500/20 focus:outline-hidden"
             >
               {PRECEPTORIA_TIPOS.map((t) => (
                 <option key={t} value={t}>
@@ -103,7 +105,7 @@ const NewPreceptoriaModal = ({ student, onClose, onSaved }) => {
               placeholder="Describa el incidente, motivo de tardanza o acuerdo de convivencia..."
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-purple-500/20 focus:outline-hidden"
+              className="px-3 py-2 text-[14px] bg-slate-50 border border-slate-200 rounded-md text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-purple-500/20 focus:outline-hidden"
             />
           </div>
 
@@ -131,17 +133,29 @@ const NewPreceptoriaModal = ({ student, onClose, onSaved }) => {
   );
 };
 
-const PreceptoriaRow = ({ entry }) => (
+const PreceptoriaRow = ({ entry, onSelectEntry }) => (
   <tr
     data-testid={`preceptoria-row-${entry.id || entry.fecha}`}
-    className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 text-xs"
+    onClick={() => onSelectEntry?.(entry)}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onSelectEntry?.(entry);
+      }
+    }}
+    tabIndex={0}
+    role="button"
+    title="Haz clic para ver el acta o novedad completa"
+    className="hover:bg-purple-50/50 transition-colors border-b border-slate-100 text-xs cursor-pointer group focus:outline-hidden focus:bg-purple-50/60"
   >
     <td className="py-3 px-4 font-mono font-bold text-slate-500 whitespace-nowrap">
       {formatDashboardDate(entry.fecha)}
     </td>
     <td className="py-3 px-4">
       <div className="flex flex-col">
-        <span className="font-bold text-slate-900">{entry.studentName}</span>
+        <span className="font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+          {entry.studentName}
+        </span>
         <span className="text-[10px] text-slate-400 font-mono">
           {entry.studentLegajo} · {entry.studentCurso}
         </span>
@@ -170,9 +184,11 @@ const DashboardPreceptoriaView = ({
   students = EMPTY_STUDENTS,
   recentEntries = EMPTY_ENTRIES,
   onRefreshData,
+  isLoading = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentForAction, setSelectedStudentForAction] = useState(null);
+  const [viewingDetailEntry, setViewingDetailEntry] = useState(null);
 
   const filteredStudents = useMemo(() => {
     if (!searchTerm.trim()) return [];
@@ -194,21 +210,20 @@ const DashboardPreceptoriaView = ({
         data-testid="preceptoria-banner"
         className="bg-gradient-to-r from-purple-700 via-indigo-700 to-slate-900 rounded-3xl p-6 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
-        <div className="flex flex-col gap-1 max-w-xl">
-          <span className="text-xs font-bold text-purple-200 uppercase tracking-widest flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[16px] text-lime-300">verified</span>
+        <div className="flex flex-col text-left">
+          <span className="text-xs font-bold text-purple-200 uppercase tracking-widest flex items-center">
+            <span className="material-symbols-outlined text-[24px] text-lime-300 animate-pulse pr-2">verified</span>
             Convivencia & Asistencia Escolar
           </span>
-          <h2 className="text-2xl font-black tracking-tight text-white">
-            Panel Operativo de Preceptoría y Celaduría
-          </h2>
-          <p className="text-xs text-purple-100 leading-relaxed">
-            Control de asistencia general, partes de tardanzas, actas disciplinarias y acuerdos
-            de convivencia del alumnado por división.
+          <p className="text-2xl font-black tracking-tight text-white">
+            Panel Operativo de Preceptoría
+          </p>
+          <p className="text-xs text-purple-100">
+            Control de asistencia general, partes de tardanzas, actas disciplinarias y acuerdos de convivencia del alumnado por división.
           </p>
         </div>
         <div className="flex items-center gap-3 bg-white/10 backdrop-blur-xs px-4 py-3 rounded-2xl border border-white/20 self-start md:self-auto">
-          <div className="flex flex-col text-right">
+          <div className="flex flex-col text-center">
             <span className="text-2xl font-black text-white">{recentEntries.length}</span>
             <span className="text-[10px] text-purple-200 font-semibold uppercase">Actas y partes</span>
           </div>
@@ -234,7 +249,7 @@ const DashboardPreceptoriaView = ({
             placeholder="Buscar por apellido, nombre, legajo o curso (ej. 1° Año A)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-purple-500/20 focus:outline-hidden"
+            className="w-full px-4 py-2.5 pl-10 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-purple-500/20 focus:outline-hidden"
           />
           <span className="material-symbols-outlined text-[18px] text-slate-400 absolute left-3 top-3">
             search
@@ -249,12 +264,12 @@ const DashboardPreceptoriaView = ({
                 data-testid={`search-student-result-${st.id}`}
                 className="p-3 bg-slate-50 border border-slate-200/80 rounded-md flex items-center justify-between gap-2"
               >
-                <div className="flex flex-col min-w-0">
+                <div className="flex text-left flex-col min-w-0">
                   <span className="font-bold text-xs text-slate-900 truncate">
                     {st.nombreCompleto || `${st.nombre} ${st.apellido}`}
                   </span>
                   <span className="text-[10px] text-slate-500 font-mono">
-                    {st.legajo} · {st.curso}
+                    {st.studentID_login} · {st.curso}
                   </span>
                 </div>
                 <button
@@ -289,7 +304,7 @@ const DashboardPreceptoriaView = ({
           </span>
         </div>
 
-        {recentEntries.length === 0 ? (
+        {!isLoading && recentEntries.length === 0 ? (
           <div className="py-8 text-center text-slate-400 flex flex-col items-center gap-2">
             <span className="material-symbols-outlined text-4xl text-slate-300">fact_check</span>
             <p className="font-medium text-xs">No hay actas o tardanzas registradas recientemente.</p>
@@ -307,9 +322,21 @@ const DashboardPreceptoriaView = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentEntries.map((entry) => (
-                  <PreceptoriaRow key={entry.id || entry.fecha} entry={entry} />
-                ))}
+                {isLoading ? (
+                  <>
+                    {[1, 2, 3, 4].map((idx) => (
+                      <PreceptoriaTableRowSkeleton key={idx} />
+                    ))}
+                  </>
+                ) : (
+                  recentEntries.map((entry) => (
+                    <PreceptoriaRow
+                      key={entry.id || entry.fecha}
+                      entry={entry}
+                      onSelectEntry={setViewingDetailEntry}
+                    />
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -321,6 +348,14 @@ const DashboardPreceptoriaView = ({
           student={selectedStudentForAction}
           onClose={() => setSelectedStudentForAction(null)}
           onSaved={onRefreshData}
+        />
+      )}
+
+      {viewingDetailEntry && (
+        <DashboardEntryDetailModal
+          entry={viewingDetailEntry}
+          onClose={() => setViewingDetailEntry(null)}
+          category="preceptoria"
         />
       )}
     </div>
