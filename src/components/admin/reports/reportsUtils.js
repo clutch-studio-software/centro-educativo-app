@@ -142,7 +142,7 @@ export const getNivelWeight = (nivel = '') => {
  */
 export const getCourseGradeNumber = (courseStr = '') => {
   const match = String(courseStr || '').match(/\d+/);
-  return match ? parseInt(match[0], 10) : 0;
+  return match ? Number.parseInt(match[0], 10) : 0;
 };
 
 /**
