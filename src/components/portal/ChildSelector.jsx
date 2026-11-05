@@ -33,7 +33,7 @@ const ChildSelector = ({ childrenList = [], selectedStudentId, onSelectChild }) 
   return (
     <div
       data-testid="multi-child-selector"
-      className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-2.5"
+      className="bg-white border border-slate-200 rounded-md p-4 shadow-sm space-y-2.5"
     >
       <div className="flex items-center justify-between">
         <label

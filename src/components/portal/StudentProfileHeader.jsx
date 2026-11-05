@@ -1,4 +1,5 @@
 import React from 'react';
+import { getStudentAttendanceData } from '../../utils/studentPortalRecordsUtils.js';
 
 /**
  * Normaliza y formatea los datos del perfil del alumno para el encabezado
@@ -36,6 +37,7 @@ const parseStudentHeaderData = (student) => {
  */
 const StudentProfileHeader = ({ student, isParentView = false }) => {
   const data = parseStudentHeaderData(student);
+  const attendanceData = getStudentAttendanceData(student);
   if (!data) return null;
 
   return (
@@ -43,7 +45,7 @@ const StudentProfileHeader = ({ student, isParentView = false }) => {
       data-testid="student-profile-header"
       className="bg-white rounded-xl border border-slate-200/80 p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6"
     >
-      <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white text-2xl md:text-3xl font-extrabold shadow-md shrink-0">
+      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white text-2xl md:text-3xl font-extrabold shadow-md shrink-0">
         {data.initials}
       </div>
 
@@ -93,6 +95,26 @@ const StudentProfileHeader = ({ student, isParentView = false }) => {
           <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold border border-slate-200">
             {data.turno}
           </span>
+          {attendanceData?.faltasInjustificadas > 0 ? (
+            <span
+              data-testid="student-header-absences-badge"
+              className="px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 font-bold border border-rose-200 flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-xs">warning</span>
+              {attendanceData.faltasInjustificadas}{' '}
+              {attendanceData.faltasInjustificadas === 1
+                ? 'falta injustificada'
+                : 'faltas injustificadas'}
+            </span>
+          ) : (
+            <span
+              data-testid="student-header-absences-badge"
+              className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-xs">check_circle</span>
+              Sin faltas injustificadas
+            </span>
+          )}
         </div>
       </div>
     </div>
