@@ -3,6 +3,7 @@ import { buildTeacherFullReport, exportReportToCsv } from './reportsUtils';
 import ReportHeaderActions from './ReportHeaderActions';
 import ReportTableHeader from './ReportTableHeader';
 import ReportProfileCard from './ReportProfileCard';
+import ReportEmptyState from './ReportEmptyState';
 
 const EMPTY_TEACHERS = [];
 
@@ -134,20 +135,12 @@ const ReportePorDocenteView = ({
       </div>
 
       {!reportData ? (
-        <div
-          data-testid="report-teacher-empty"
-          className="bg-white rounded-md border border-dashed border-slate-300 p-12 text-center flex flex-col items-center justify-center gap-3 shadow-2xs"
-        >
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">badge</span>
-          </div>
-          <div className="max-w-md">
-            <h3 className="text-sm font-bold text-slate-800">Ningún docente seleccionado</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Ingrese el nombre, apellido, legajo o especialidad en el buscador superior para seleccionar un docente y consultar su reporte de cátedras y horarios.
-            </p>
-          </div>
-        </div>
+        <ReportEmptyState
+          testId="report-teacher-empty"
+          icon="badge"
+          title="Ningún docente seleccionado"
+          description="Ingrese el nombre, apellido, legajo o especialidad en el buscador superior para seleccionar un docente y consultar su reporte de cátedras y horarios."
+        />
       ) : (
         <>
           {/* Ficha Principal del Docente */}
