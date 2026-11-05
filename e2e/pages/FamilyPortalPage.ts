@@ -21,7 +21,9 @@ export class FamilyPortalPage {
   readonly multiChildSelector: Locator;
   readonly toggleInscripcionesBtn: Locator;
   readonly togglePerfilBtn: Locator;
+  readonly toggleFacturacionBtn: Locator;
   readonly parentServicesManager: Locator;
+  readonly parentBillingPanel: Locator;
   readonly transportTab: Locator;
   readonly sportsTab: Locator;
   readonly diningTab: Locator;
@@ -51,7 +53,9 @@ export class FamilyPortalPage {
     this.multiChildSelector = page.locator('[data-testid="multi-child-selector"]');
     this.toggleInscripcionesBtn = page.locator('[data-testid="toggle-view-inscripciones"]');
     this.togglePerfilBtn = page.locator('[data-testid="toggle-view-perfil"]');
+    this.toggleFacturacionBtn = page.locator('[data-testid="toggle-view-facturacion"]');
     this.parentServicesManager = page.locator('[data-testid="parent-services-manager"]');
+    this.parentBillingPanel = page.locator('[data-testid="parent-billing-panel"]');
     this.transportTab = page.locator('[data-testid="tab-transporte"]');
     this.sportsTab = page.locator('[data-testid="tab-deportes"]');
     this.diningTab = page.locator('[data-testid="tab-comedor"]');
@@ -82,6 +86,10 @@ export class FamilyPortalPage {
 
   async switchToServicesManagement() {
     await this.toggleInscripcionesBtn.click();
+  }
+
+  async switchToBilling() {
+    await this.toggleFacturacionBtn.click();
   }
 
   async selectTransportRoute(routeId: string) {

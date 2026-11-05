@@ -153,11 +153,72 @@ test.describe('Feature: Portal del Estudiante y de la Familia (/mi-portal)', () 
         await expect(page.locator('[data-testid="dining-status-tag"]')).toContainText(/Servicio Contratado/i);
       }
 
-      // 2. Probar inscripción a deportes
+      // 2. Probar interacción de deportes (baja o inscripción según cupo actual)
       await portalPage.sportsTab.click();
-      const enrollSportBtn = page.locator('[data-testid^="btn-enroll-sport-"]').first();
+      const enrollSportBtn = page.locator('[data-testid^="btn-enroll-sport-"]:not([disabled])').first();
+      const withdrawSportBtn = page.locator('[data-testid^="btn-withdraw-sport-"]').first();
+
       if (await enrollSportBtn.isVisible()) {
         await enrollSportBtn.click();
+        await expect(page.locator('[data-testid="portal-feedback-alert"]')).toBeVisible();
+      } else if (await withdrawSportBtn.isVisible()) {
+        await withdrawSportBtn.click();
+        const confirmModalBtn = page.locator('[data-testid="btn-confirm-cancel-service"]');
+        if (await confirmModalBtn.isVisible()) {
+          await confirmModalBtn.click();
+        }
+        await expect(page.locator('[data-testid="portal-feedback-alert"]')).toBeVisible();
+      }
+    });
+
+    test('Scenario: Panel de Facturación - Supervisión de aranceles y carga de comprobante', async ({ page }) => {
+      // When se ingresa a la pestaña de Facturación
+      await portalPage.switchToBilling();
+
+      // Then se muestra el panel consolidado de facturación
+      await expect(portalPage.parentBillingPanel).toBeVisible();
+      await expect(page.locator('[data-testid="billing-grand-total-badge"]')).toBeVisible();
+
+      // Pestaña de Carga de Comprobante
+      await page.locator('[data-testid="billing-tab-upload"]').click();
+      await expect(page.locator('[data-testid="form-upload-voucher"]')).toBeVisible();
+
+      // Completar datos del comprobante y enviar
+      await page.locator('[data-testid="voucher-operation-code"]').fill('TRF-9827110');
+      await page.locator('[data-testid="btn-upload-voucher"]').click();
+      await expect(page.locator('[data-testid="voucher-success-alert"]')).toBeVisible();
+
+      // Pestaña de Historial de Recibos Anteriores
+      await page.locator('[data-testid="billing-tab-history"]').click();
+      await expect(page.locator('[data-testid^="invoice-past-row-"]').first()).toBeVisible();
+    });
+
+    test('Scenario: Supervisión Escolar - Dar el Visto en notificaciones y Justificar Falta', async ({ page }) => {
+      // When se accede a la Ficha Escolar
+      await portalPage.switchToAcademicProfile();
+
+      // 1. Dar el visto a una falta si existe botón disponible
+      const ackAttendanceBtn = page.locator('[data-testid^="btn-ack-attendance-"]').first();
+      if (await ackAttendanceBtn.isVisible()) {
+        await ackAttendanceBtn.click();
+        await expect(page.locator('[data-testid="portal-feedback-alert"]')).toBeVisible();
+      }
+
+      // 2. Justificar inasistencia
+      const justifyBtn = page.locator('[data-testid^="btn-justify-absence-"]').first();
+      if (await justifyBtn.isVisible()) {
+        await justifyBtn.click();
+        await expect(page.locator('[data-testid="justify-absence-modal"]')).toBeVisible();
+        await page.locator('[data-testid="justify-detail-input"]').fill('Reposo médico domiciliario indicado por pediatra');
+        await page.locator('[data-testid="justify-cert-input"]').fill('Cert-Ped-4881');
+        await page.locator('[data-testid="btn-submit-justification"]').click();
+        await expect(page.locator('[data-testid="justify-absence-modal"]')).not.toBeVisible();
+      }
+
+      // 3. Dar el visto a registro de enfermería
+      const ackHealthBtn = page.locator('[data-testid^="btn-ack-health-"]').first();
+      if (await ackHealthBtn.isVisible()) {
+        await ackHealthBtn.click();
         await expect(page.locator('[data-testid="portal-feedback-alert"]')).toBeVisible();
       }
     });
