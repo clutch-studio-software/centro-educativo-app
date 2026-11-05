@@ -1,140 +1,118 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './helpers/auth';
+import { AdminReportsPage } from './pages/AdminReportsPage';
 
 /**
- * Suite E2E: Central de Reportes Directivos (BETA)
+ * Feature: Central de Reportes Directivos Institucionales
  * Ruta: /admin/reportes
  */
-test.describe('Validación de la Central de Reportes Directivos (/admin/reportes)', () => {
+test.describe('Feature: Central de Reportes Directivos (/admin/reportes)', () => {
+  let reportsPage: AdminReportsPage;
+
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
-    // Navegar a la pantalla de reportes a través de la barra lateral
-    const sidebar = page.locator('[data-testid="admin-sidebar"]');
-    await sidebar.getByText(/reportes directivos/i).click();
-    await expect(page).toHaveURL(/\/admin\/reportes/);
-    await expect(page.locator('[data-testid="admin-reports-page"]')).toBeVisible();
+    reportsPage = new AdminReportsPage(page);
+    await reportsPage.goto();
   });
 
-  test('debe cargar la vista general y barra de navegación de 5 reportes', async ({ page }) => {
-    // Encabezado institucional
-    await expect(
-      page.getByText('Central de Reportes Directivos')
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="reports-toolbar-container"]').getByText('BETA')
-    ).toBeVisible();
+  test('Scenario: Visualizar barra de navegación y los 5 reportes disponibles', async ({ page }) => {
+    // Given el usuario administrador en la consola de reportes
+    await expect(page.getByText('Central de Reportes Directivos')).toBeVisible();
+    await expect(reportsPage.toolbarContainer.getByText('BETA')).toBeVisible();
 
-    // Toolbar de navegación con los 5 tabs oficiales
-    await expect(page.locator('[data-testid="reports-tab-navigation"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-reporte-alumno"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-reporte-docente"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-alumnos-por-curso"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-docentes-por-materia"]')).toBeVisible();
-    await expect(page.locator('[data-testid="tab-cursos-por-nivel"]')).toBeVisible();
+    // Then la barra de navegación debe listar los 5 accesos directos oficiales
+    await expect(reportsPage.tabNavigation).toBeVisible();
+    for (const tabId of [
+      'reporte-alumno',
+      'reporte-docente',
+      'alumnos-por-curso',
+      'docentes-por-materia',
+      'cursos-por-nivel',
+    ]) {
+      await expect(page.locator(`[data-testid="tab-${tabId}"]`)).toBeVisible();
+    }
   });
 
-  test('Reporte 1: debe visualizar estado inicial en blanco y cargar alumno tras búsqueda', async ({
-    page,
-  }) => {
-    // Tab por alumno activo por defecto con estado inicial en blanco
-    await expect(page.locator('[data-testid="report-alumno-container"]')).toBeVisible();
-    await expect(page.locator('[data-testid="input-search-student-report"]')).toBeVisible();
-    await expect(page.locator('[data-testid="report-student-empty"]')).toBeVisible();
+  test('Scenario: Reporte 1 - Buscar un alumno y visualizar ficha consolidada', async ({ page }) => {
+    // Given que el reporte de alumno inicia en blanco
+    await expect(reportsPage.studentReportContainer).toBeVisible();
+    await expect(reportsPage.studentEmptyState).toBeVisible();
 
-    // Buscar y seleccionar un estudiante
-    await page.locator('[data-testid="input-search-student-report"]').fill('Gael');
-    const firstResult = page.locator('button[data-testid^="select-student-result-"]').first();
-    await expect(firstResult).toBeVisible();
-    await firstResult.click();
+    // When se busca y selecciona un alumno por su nombre
+    await reportsPage.searchStudent('Gael');
 
-    // Verificación de tarjetas de servicios escolares integrados
-    await expect(page.locator('[data-testid="card-report-cursado"]')).toBeVisible();
-    await expect(page.locator('[data-testid="card-report-transporte"]')).toBeVisible();
-    await expect(page.locator('[data-testid="card-report-comedor"]')).toBeVisible();
-    await expect(page.locator('[data-testid="card-report-deportes"]')).toBeVisible();
-
-    // Tabla de materias del alumno y docentes a cargo
-    await expect(page.locator('[data-testid="table-report-student-subjects"]')).toBeVisible();
-
-    // Acciones de exportación
-    await expect(page.locator('[data-testid="btn-export-csv"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-print-report"]')).toBeVisible();
+    // Then deben mostrarse sus tarjetas de servicios escolares y materias
+    for (const cardId of [
+      'card-report-cursado',
+      'card-report-transporte',
+      'card-report-comedor',
+      'card-report-deportes',
+    ]) {
+      await expect(page.locator(`[data-testid="${cardId}"]`)).toBeVisible();
+    }
+    await expect(reportsPage.subjectsTable).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
+    await expect(reportsPage.printReportBtn).toBeVisible();
   });
 
-  test('Reporte 2: debe conmutar y mostrar estado en blanco hasta seleccionar docente', async ({
-    page,
-  }) => {
-    await page.locator('[data-testid="tab-reporte-docente"]').click();
+  test('Scenario: Reporte 2 - Buscar un docente y conmutar selección', async ({ page }) => {
+    // When el usuario accede a la pestaña de reporte docente
+    await reportsPage.switchTab('reporte-docente');
 
-    await expect(page.locator('[data-testid="report-docente-container"]')).toBeVisible();
-    await expect(page.locator('[data-testid="input-search-teacher-report"]')).toBeVisible();
-    await expect(page.locator('[data-testid="report-teacher-empty"]')).toBeVisible();
+    // Then debe iniciar en blanco
+    await expect(reportsPage.teacherReportContainer).toBeVisible();
+    await expect(reportsPage.teacherEmptyState).toBeVisible();
 
-    // Buscar y seleccionar un docente
-    await page.locator('[data-testid="input-search-teacher-report"]').fill('a');
-    const firstTeacherResult = page.locator('button[data-testid^="select-teacher-result-"]').first();
-    await expect(firstTeacherResult).toBeVisible();
-    await firstTeacherResult.click();
+    // When se busca un docente por nombre o legajo
+    await reportsPage.searchTeacher('a');
 
-    // Verificación de ficha de perfil y secciones de cursos y horarios
-    await expect(page.locator('[data-testid="report-teacher-header-card"]')).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: /cursos a cargo por nivel educativo/i })
-    ).toBeVisible();
-    await expect(
-      page.getByRole('heading', { name: /horarios semanales de dictado/i })
-    ).toBeVisible();
+    // Then se cargan sus cursos asignados y grilla horaria
+    await expect(reportsPage.teacherHeaderCard).toBeVisible();
+    await expect(page.getByRole('heading', { name: /cursos a cargo por nivel educativo/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /horarios semanales de dictado/i })).toBeVisible();
 
-    await expect(page.locator('[data-testid="btn-export-csv"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-print-report"]')).toBeVisible();
+    // When el usuario hace clic en cambiar docente
+    await reportsPage.changeTeacherBtn.click();
 
-    // Validar botón "Cambiar" para resetear la selección y volver al estado en blanco
-    await page.locator('[data-testid="btn-change-teacher-report"]').click();
-    await expect(page.locator('[data-testid="report-teacher-empty"]')).toBeVisible();
+    // Then regresa al estado en blanco
+    await expect(reportsPage.teacherEmptyState).toBeVisible();
   });
 
-  test('Reporte 3: debe conmutar y filtrar el Listado de Alumnos por Curso', async ({
-    page,
-  }) => {
-    await page.locator('[data-testid="tab-alumnos-por-curso"]').click();
+  test('Scenario: Reporte 3 - Listado de alumnos agrupados y ordenados por curso', async () => {
+    // When se navega a alumnos por curso
+    await reportsPage.switchTab('alumnos-por-curso');
 
-    await expect(page.locator('[data-testid="report-alumnos-curso-container"]')).toBeVisible();
-    await expect(page.locator('[data-testid="select-report-nivel"]')).toBeVisible();
-    await expect(page.locator('[data-testid="select-report-curso"]')).toBeVisible();
-    await expect(page.locator('[data-testid="input-search-student-course"]')).toBeVisible();
-
-    // Tabla de alumnos por curso con columnas de servicios
-    await expect(page.locator('[data-testid="table-report-alumnos-curso"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-export-csv"]')).toBeVisible();
+    // Then deben estar disponibles los controles de filtro y la nómina
+    await expect(reportsPage.studentsByCourseContainer).toBeVisible();
+    await expect(reportsPage.nivelSelect).toBeVisible();
+    await expect(reportsPage.courseSelect).toBeVisible();
+    await expect(reportsPage.studentCourseSearchInput).toBeVisible();
+    await expect(reportsPage.studentsByCourseTable).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
   });
 
-  test('Reporte 4: debe conmutar y filtrar el Listado de Docentes por Materia con vacantes', async ({
-    page,
-  }) => {
-    await page.locator('[data-testid="tab-docentes-por-materia"]').click();
+  test('Scenario: Reporte 4 - Directorio de docentes por materia y detección de vacantes', async () => {
+    // When se navega a docentes por materia
+    await reportsPage.switchTab('docentes-por-materia');
 
-    await expect(page.locator('[data-testid="report-docentes-materia-container"]')).toBeVisible();
-    await expect(page.locator('[data-testid="select-materia-nivel"]')).toBeVisible();
-    await expect(page.locator('[data-testid="input-search-materia"]')).toBeVisible();
-
-    // Tabla de asignaciones docentes por materia
-    await expect(page.locator('[data-testid="table-report-docentes-materia"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-export-csv"]')).toBeVisible();
+    // Then debe presentarse el selector de nivel, buscador y grilla de asignaciones
+    await expect(reportsPage.teachersBySubjectContainer).toBeVisible();
+    await expect(reportsPage.subjectNivelSelect).toBeVisible();
+    await expect(reportsPage.subjectSearchInput).toBeVisible();
+    await expect(reportsPage.teachersBySubjectTable).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
   });
 
-  test('Reporte 5: debe conmutar y mostrar el Listado de Cursos por Nivel con ocupación', async ({
-    page,
-  }) => {
-    await page.locator('[data-testid="tab-cursos-por-nivel"]').click();
+  test('Scenario: Reporte 5 - Ocupación de cursos por nivel educativo y turnos', async ({ page }) => {
+    // When se ingresa al reporte de cursos por nivel
+    await reportsPage.switchTab('cursos-por-nivel');
 
-    await expect(page.locator('[data-testid="report-cursos-nivel-container"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-filter-nivel-todos"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-filter-nivel-inicial"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-filter-nivel-primario"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-filter-nivel-secundario"]')).toBeVisible();
-
-    // Tabla de cursos con capacidades, inscriptos y % de ocupación
-    await expect(page.locator('[data-testid="table-report-cursos-nivel"]')).toBeVisible();
-    await expect(page.locator('[data-testid="btn-export-csv"]')).toBeVisible();
+    // Then deben listarse los filtros de nivel y la tabla de ocupación
+    await expect(reportsPage.coursesByLevelContainer).toBeVisible();
+    for (const lvl of ['todos', 'inicial', 'primario', 'secundario']) {
+      await expect(page.locator(`[data-testid="btn-filter-nivel-${lvl}"]`)).toBeVisible();
+    }
+    await expect(reportsPage.coursesByLevelTable).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
   });
 });

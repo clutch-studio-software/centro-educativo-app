@@ -88,6 +88,17 @@ export const formatLastNameFirst = (person) => {
 };
 
 /**
+ * Infiere el nivel educativo a partir de la denominación del curso
+ */
+export const inferNivelFromCourseName = (courseName = '') => {
+  const lower = String(courseName || '').toLowerCase();
+  if (lower.includes('sala') || lower.includes('jardin') || lower.includes('inicial')) return 'Inicial';
+  if (lower.includes('grado') || lower.includes('primari')) return 'Primario';
+  if (lower.includes('año') || lower.includes('secundari')) return 'Secundario';
+  return '';
+};
+
+/**
  * Ponderación numérica de niveles educativos para ordenamiento:
  * Inicial (1) < Primario (2) < Secundario (3)
  */
@@ -113,8 +124,10 @@ export const getCourseGradeNumber = (courseStr = '') => {
  * 3. División (A, B, C...)
  */
 export const compareCoursesHierarchy = (courseA, courseB) => {
-  const nivelA = getNivelWeight(courseA?.nivel || courseA?.nivelId || courseA?.nivelNormalizado);
-  const nivelB = getNivelWeight(courseB?.nivel || courseB?.nivelId || courseB?.nivelNormalizado);
+  const rawNivelA = courseA?.nivel || courseA?.nivelId || courseA?.nivelNormalizado || inferNivelFromCourseName(courseA?.nombre || courseA?.curso);
+  const rawNivelB = courseB?.nivel || courseB?.nivelId || courseB?.nivelNormalizado || inferNivelFromCourseName(courseB?.nombre || courseB?.curso);
+  const nivelA = getNivelWeight(rawNivelA);
+  const nivelB = getNivelWeight(rawNivelB);
   if (nivelA !== nivelB) return nivelA - nivelB;
 
   const gradeA = getCourseGradeNumber(courseA?.nombre || courseA?.curso);
@@ -393,12 +406,13 @@ export const extractTeacherSchedulesByCourse = (teacher) => {
   if (schedules.length === 0 && Array.isArray(teacher.catedras) && teacher.catedras.length > 0) {
     teacher.catedras.forEach((cat) => {
       const { dia, hora } = sortScheduleSlotsAndDays(cat.dia, cat.horario);
+      const nivelInferred = cat.nivel || inferNivelFromCourseName(cat.curso) || teacher.nivel || 'Primario';
       schedules.push({
         dia,
         hora,
         curso: cat.curso || 'División a cargo',
         materia: cat.materia || teacher.especialidad || 'Asignatura',
-        nivel: cat.nivel || teacher.nivel || 'Nivel Primario',
+        nivel: nivelInferred,
       });
     });
   }
@@ -426,9 +440,10 @@ export const buildTeacherFullReport = (teacher) => {
     const courseName = item.curso;
     if (courseName && !cursosSet.has(courseName)) {
       cursosSet.add(courseName);
+      const nivelInferred = item.nivel || inferNivelFromCourseName(courseName) || teacher.nivel || 'Secundario';
       cursosList.push({
         curso: courseName,
-        nivel: item.nivel || teacher.nivel || 'Secundario',
+        nivel: nivelInferred,
         materia: item.materia || teacher.especialidad || 'Cátedra',
       });
     }
