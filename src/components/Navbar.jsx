@@ -245,16 +245,17 @@ const UserMenu = ({ logout, displayName, navigate, isAdmin }) => {
         <div className="absolute right-0 mt-1 w-48 bg-white border border-slate-200 rounded-s shadow-[0px_10px_25px_rgba(0,0,0,0.08)] py-2 space-y-1 z-30 animate-in fade-in slide-in-from-top-2 duration-150 text-left">
           <button
             type="button"
+            data-testid="navbar-mi-portal-link"
             onClick={() => {
-              alert('Esta sección de perfil aún no está disponible.');
+              navigate('/mi-portal');
               setIsUserMenuOpen(false);
             }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-semibold cursor-pointer text-left focus:outline-none"
           >
-            <span className="material-symbols-outlined text-slate-400 text-lg">
-              person
+            <span className="material-symbols-outlined text-orange-600 text-lg">
+              school
             </span>
-            Ver Perfil
+            Mi Portal Escolar
           </button>
           {isAdmin && (
             <button
@@ -420,14 +421,15 @@ const MobileDrawer = ({
             <div className="mobile-user-buttons">
               <button
                 type="button"
+                data-testid="mobile-navbar-mi-portal-link"
                 onClick={() => {
-                  alert('Esta sección de perfil aún no está disponible.');
+                  navigate('/mi-portal');
                   onClose();
                 }}
                 className="mobile-action-btn profile-btn"
               >
-                <span className="material-symbols-outlined text-lg">person</span>
-                Ver Perfil
+                <span className="material-symbols-outlined text-lg">school</span>
+                Mi Portal Escolar
               </button>
               {isAdmin && (
                 <button

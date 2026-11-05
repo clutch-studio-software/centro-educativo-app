@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer';
 import ChangePasswordModal from './components/organisms/ChangePasswordModal';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
+import FamilyPortalProtectedRoute from './components/portal/FamilyPortalProtectedRoute';
 
 // Public Pages (Lazy loaded for optimal initial bundle size)
 const Home = lazy(() => import('./pages/Home'));
@@ -16,6 +17,9 @@ const Levels = lazy(() => import('./pages/Levels'));
 const Login = lazy(() => import('./pages/Login'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Portal de Estudiantes y Familias (Autogestión e Inscripciones)
+const StudentParentPortal = lazy(() => import('./pages/portal/StudentParentPortal'));
 
 // Admin Pages (Lazy loaded for on-demand downloading)
 const AdminPanel = lazy(() => import('./pages/StudentsManagement'));
@@ -58,6 +62,11 @@ function App() {
           <Route path="/wellness" element={<Wellness />} />
           <Route path="/levels" element={<Levels />} />
           <Route path="/login" element={<Login />} />
+
+          {/* Portal de Acceso Escolar para Estudiantes y Padres/Tutores */}
+          <Route element={<FamilyPortalProtectedRoute />}>
+            <Route path="/mi-portal" element={<StudentParentPortal />} />
+          </Route>
 
           {/* Rutas administrativas protegidas: sólo personal institucional autenticado */}
           <Route element={<AdminProtectedRoute />}>
