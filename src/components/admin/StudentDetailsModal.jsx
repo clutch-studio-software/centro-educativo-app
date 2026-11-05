@@ -117,7 +117,19 @@ const resolveTutorInfo = (student, tutors = []) => {
   };
 };
 const StudentDetailsHeader = ({ student, nivelStyle, onClose }) => {
-  const avatarInitials = student.initials || student.nombre?.slice(0, 2).toUpperCase() || 'AL';
+  const displayFullName =
+    student.nombreCompleto ||
+    (student.apellido ? `${student.nombre || ''} ${student.apellido}`.trim() : student.nombre) ||
+    'Sin Nombre';
+  const avatarInitials =
+    student.initials ||
+    displayFullName
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() ||
+    'AL';
   const legajoDisplay = student.legajo || `#LEG-${student.id.slice(0, 6)}`;
   const dniDisplay = formatDni(student.dni) || 'S/D';
 
@@ -136,7 +148,7 @@ const StudentDetailsHeader = ({ student, nivelStyle, onClose }) => {
               data-testid="student-details-name"
               className="text-lg sm:text-xl font-extrabold text-slate-900 truncate"
             >
-              {student.nombre}
+              {displayFullName}
             </h2>
             {getStatusBadge(student.estado)}
           </div>
@@ -1066,7 +1078,7 @@ const StudentDetailsModal = ({
       studentId: student.id,
       studentDni: student.dni,
       studentLegajo: student.studentID_login,
-      studentName: student.nombre,
+      studentName: student.nombreCompleto || student.nombre,
       note: {
         tipo: tipo || 'Observación de Preceptoría',
         titulo: tipo || 'Observación de Preceptoría',
@@ -1096,7 +1108,7 @@ const StudentDetailsModal = ({
       studentId: student.id,
       studentDni: student.dni,
       studentLegajo: student.studentID_login,
-      studentName: student.nombre,
+      studentName: student.nombreCompleto || student.nombre,
       note: {
         tipo: tipo || 'Atención / Primeros Auxilios',
         motivo: motivo.trim(),
@@ -1117,7 +1129,7 @@ const StudentDetailsModal = ({
         studentId: student.id,
         studentDni: student.dni,
         studentLegajo: student.studentID_login,
-        studentName: student.nombre,
+        studentName: student.nombreCompleto || student.nombre,
         noteId: entryToDelete.id,
         noteFecha: entryToDelete.fecha,
       });

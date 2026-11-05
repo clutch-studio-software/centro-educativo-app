@@ -112,8 +112,9 @@ const buildSavePayload = ({
   return {
     studentId: student.id,
     studentData: {
-      nombre: fullName,
+      nombre: baseNombre,
       apellido: cleanApellido,
+      nombreCompleto: fullName,
       dni: studentDni.trim(),
       fechaNacimiento: studentFechaNacimiento,
       domicilio: studentDomicilio.trim(),
@@ -820,7 +821,7 @@ const EditStudentHeader = ({ student, isSubmitting, onClose }) => (
             {student.legajo}
           </span>
           <span>·</span>
-          <span className="truncate">{student.nombre}</span>
+          <span className="truncate">{student.nombreCompleto || student.nombre}</span>
         </div>
       </div>
     </div>

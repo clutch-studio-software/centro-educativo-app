@@ -49,7 +49,7 @@ run_step() {
   fi
 }
 
-echo -e "\n${BLUE}🔍 Ejecutando suite de validación Pre-commit...${RESET}"
+printf "\n${BLUE}🔍 Ejecutando suite de validación Pre-commit...${RESET}\n"
 
 # 1. ESLint
 run_step "Running ESLint" "npm run lint" || exit 1
@@ -60,4 +60,4 @@ run_step "Running React-Doctor" "echo '' | npx --yes react-doctor@latest --block
 # 3. SonarQube / jscpd Duplication Check
 run_step "Running Duplication Check" "npm run check:duplicates" || exit 1
 
-echo "${GREEN}✔ Todas las validaciones de calidad pasaron exitosamente.${RESET}\n"
+printf "\n${GREEN}✔ Todas las validaciones de calidad pasaron exitosamente.${RESET}\n\n"

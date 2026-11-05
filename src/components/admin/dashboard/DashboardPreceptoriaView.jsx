@@ -15,6 +15,14 @@ const PRECEPTORIA_TIPOS = [
   'Observación General',
 ];
 
+const PRECEPTORIA_COLUMNS = [
+  { label: 'Fecha y Hora', alignClass: 'text-left' },
+  { label: 'Alumno', alignClass: 'text-left' },
+  { label: 'Tipo', alignClass: 'text-left' },
+  { label: 'Observaciones / Acta', alignClass: 'text-left' },
+  { label: 'Preceptor / Registrador', alignClass: 'text-right' },
+];
+
 const PreceptoriaRow = ({ entry, onSelectEntry }) => (
   <DashboardBaseEntryRow
     testId={`preceptoria-row-${entry.id || entry.fecha}`}
@@ -140,11 +148,11 @@ const DashboardPreceptoriaView = ({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-2.5 px-4">Fecha y Hora</th>
-                  <th className="py-2.5 px-4">Alumno</th>
-                  <th className="py-2.5 px-4">Tipo</th>
-                  <th className="py-2.5 px-4">Observaciones / Acta</th>
-                  <th className="py-2.5 px-4 text-right">Preceptor / Registrador</th>
+                  {PRECEPTORIA_COLUMNS.map((col) => (
+                    <th key={col.label} className={`py-2.5 px-4 ${col.alignClass}`}>
+                      {col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

@@ -120,6 +120,9 @@ export const cf_createParentAndStudents = onRequest({ cors: true, invoker: 'publ
           mustChangePassword: true,
           nombre: student.nombre || '',
           apellido: student.apellido || '',
+          nombreCompleto:
+            student.nombreCompleto ||
+            `${student.nombre || ''} ${student.apellido || ''}`.trim(),
           dni: student.dni || '',
           genero: student.genero || '',
           fechaNacimiento: student.fechaNacimiento || '',

@@ -235,7 +235,7 @@ const StudentInfoCell = ({ student, isInactive }) => {
                 : 'text-slate-800 group-hover:text-blue-600'
               }`}
           >
-            {student.nombre}
+            {student.nombreCompleto || student.nombre}
           </span>
           <span
             data-testid={`student-tutor-${student.id}`}

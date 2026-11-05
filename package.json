@@ -13,6 +13,7 @@
     "seed:students:cf": "node scripts/seed_parents_and_students_cf.mjs",
     "clean:teachers": "node scripts/clean_teachers.mjs",
     "seed:teachers:cf": "node scripts/seed_teachers_cf.mjs",
+    "fix:student-names": "node scripts/fix_student_names.mjs",
     "prepare": "husky",
     "doctor": "npx react-doctor@latest",
     "check:duplicates": "npx --yes jscpd src/",

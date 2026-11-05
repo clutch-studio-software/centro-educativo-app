@@ -211,11 +211,19 @@ export const createParentAndStudentsApi = async ({
         if (!createdStudent?.id) return null;
 
         const studentUpdates = {};
+        if (originalStudent?.nombre) {
+          studentUpdates.nombre = originalStudent.nombre.trim();
+        }
         if (originalStudent?.domicilio) {
           studentUpdates.domicilio = originalStudent.domicilio.trim();
         }
         if (originalStudent?.apellido) {
           studentUpdates.apellido = originalStudent.apellido.trim();
+        }
+        if (originalStudent?.nombreCompleto) {
+          studentUpdates.nombreCompleto = originalStudent.nombreCompleto.trim();
+        } else if (originalStudent?.nombre || originalStudent?.apellido) {
+          studentUpdates.nombreCompleto = `${originalStudent?.nombre || ''} ${originalStudent?.apellido || ''}`.trim();
         }
         if (Array.isArray(originalStudent?.servicios)) {
           studentUpdates.servicios = originalStudent.servicios;
@@ -449,6 +457,12 @@ export const updateStudentAndTutorApi = async ({
 
   if (studentData.apellido !== undefined) {
     studentUpdates.apellido = studentData.apellido.trim();
+  }
+
+  if (studentData.nombreCompleto !== undefined) {
+    studentUpdates.nombreCompleto = studentData.nombreCompleto.trim();
+  } else if (studentData.nombre || studentData.apellido) {
+    studentUpdates.nombreCompleto = `${studentData.nombre || ''} ${studentData.apellido || ''}`.trim();
   }
 
   // Si se reasignó a otro tutor registrado
