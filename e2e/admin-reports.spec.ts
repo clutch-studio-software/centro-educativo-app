@@ -15,12 +15,12 @@ test.describe('Feature: Central de Reportes Directivos (/admin/reportes)', () =>
     await reportsPage.goto();
   });
 
-  test('Scenario: Visualizar barra de navegación y los 5 reportes disponibles', async ({ page }) => {
+  test('Scenario: Visualizar barra de navegación y los 9 reportes oficiales disponibles', async ({ page }) => {
     // Given el usuario administrador en la consola de reportes
     await expect(page.getByText('Central de Reportes Directivos')).toBeVisible();
     await expect(reportsPage.toolbarContainer.getByText('BETA')).toBeVisible();
 
-    // Then la barra de navegación debe listar los 5 accesos directos oficiales
+    // Then la barra de navegación debe listar los 9 accesos directos oficiales del TPI
     await expect(reportsPage.tabNavigation).toBeVisible();
     for (const tabId of [
       'reporte-alumno',
@@ -28,6 +28,10 @@ test.describe('Feature: Central de Reportes Directivos (/admin/reportes)', () =>
       'alumnos-por-curso',
       'docentes-por-materia',
       'cursos-por-nivel',
+      'alumnos-por-deporte',
+      'deporte-por-nivel',
+      'deportes-horarios-profesor',
+      'transporte-por-recorrido',
     ]) {
       await expect(page.locator(`[data-testid="tab-${tabId}"]`)).toBeVisible();
     }
@@ -113,6 +117,53 @@ test.describe('Feature: Central de Reportes Directivos (/admin/reportes)', () =>
       await expect(page.locator(`[data-testid="btn-filter-nivel-${lvl}"]`)).toBeVisible();
     }
     await expect(reportsPage.coursesByLevelTable).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
+  });
+
+  test('Scenario: Reporte 6 - Nómina de alumnos por disciplina deportiva', async () => {
+    // When se navega a alumnos por deporte
+    await reportsPage.switchTab('alumnos-por-deporte');
+
+    // Then deben mostrarse los selectores, buscador y tabla de inscriptos
+    await expect(reportsPage.sportsStudentsContainer).toBeVisible();
+    await expect(reportsPage.sportFilterSelect).toBeVisible();
+    await expect(reportsPage.sportStudentSearchInput).toBeVisible();
+    await expect(reportsPage.sportsStudentsTable).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
+  });
+
+  test('Scenario: Reporte 7 - Cruce dimensional de deportes por nivel educativo', async () => {
+    // When se navega al reporte de deporte por nivel
+    await reportsPage.switchTab('deporte-por-nivel');
+
+    // Then debe renderizarse el contenedor cruzado y la nómina
+    await expect(reportsPage.sportsByLevelContainer).toBeVisible();
+    await expect(reportsPage.sportsByLevelTable).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
+  });
+
+  test('Scenario: Reporte 8 - Detalle de deportes con horarios, profesores y cupos', async () => {
+    // When se navega al detalle de deportes y profesores
+    await reportsPage.switchTab('deportes-horarios-profesor');
+
+    // Then se listan las tarjetas técnicas con franjas horarias y cupos
+    await expect(reportsPage.sportsProfContainer).toBeVisible();
+    await expect(reportsPage.sportsProfSearchInput).toBeVisible();
+    await expect(reportsPage.exportCsvBtn).toBeVisible();
+  });
+
+  test('Scenario: Reporte 9 - Nómina de alumnos por los 4 recorridos de transporte escolar', async ({ page }) => {
+    // When se navega al reporte de transporte escolar
+    await reportsPage.switchTab('transporte-por-recorrido');
+
+    // Then deben figurar las tarjetas de los 4 recorridos y la tabla oficial
+    await expect(reportsPage.transportContainer).toBeVisible();
+    for (const rKey of ['recorrido-1', 'recorrido-2', 'recorrido-3', 'recorrido-4']) {
+      await expect(page.locator(`[data-testid="card-route-stat-${rKey}"]`)).toBeVisible();
+    }
+    await expect(reportsPage.transportRouteSelect).toBeVisible();
+    await expect(reportsPage.transportSearchInput).toBeVisible();
+    await expect(reportsPage.transportTable).toBeVisible();
     await expect(reportsPage.exportCsvBtn).toBeVisible();
   });
 });

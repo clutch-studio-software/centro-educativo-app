@@ -14,6 +14,10 @@ import ReportePorDocenteView from '../../components/admin/reports/ReportePorDoce
 import ReporteAlumnosPorCursoView from '../../components/admin/reports/ReporteAlumnosPorCursoView';
 import ReporteDocentesPorMateriaView from '../../components/admin/reports/ReporteDocentesPorMateriaView';
 import ReporteCursosPorNivelView from '../../components/admin/reports/ReporteCursosPorNivelView';
+import ReporteAlumnosPorDeporteView from '../../components/admin/reports/ReporteAlumnosPorDeporteView';
+import ReporteDeportesPorNivelView from '../../components/admin/reports/ReporteDeportesPorNivelView';
+import ReporteDeportesHorariosProfesorView from '../../components/admin/reports/ReporteDeportesHorariosProfesorView';
+import ReporteTransportePorRecorridoView from '../../components/admin/reports/ReporteTransportePorRecorridoView';
 
 const AdminReports = () => {
   const { isDirectivo, isAdministrativo, canViewReports } = usePermissions();
@@ -137,6 +141,33 @@ const AdminReports = () => {
             {activeReportId === 'cursos-por-nivel' && (
               <ReporteCursosPorNivelView
                 courses={courses}
+                students={students}
+              />
+            )}
+
+            {activeReportId === 'alumnos-por-deporte' && (
+              <ReporteAlumnosPorDeporteView
+                students={students}
+                allSports={allSports}
+              />
+            )}
+
+            {activeReportId === 'deporte-por-nivel' && (
+              <ReporteDeportesPorNivelView
+                students={students}
+                allSports={allSports}
+              />
+            )}
+
+            {activeReportId === 'deportes-horarios-profesor' && (
+              <ReporteDeportesHorariosProfesorView
+                students={students}
+                allSports={allSports}
+              />
+            )}
+
+            {activeReportId === 'transporte-por-recorrido' && (
+              <ReporteTransportePorRecorridoView
                 students={students}
               />
             )}

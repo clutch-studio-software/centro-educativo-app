@@ -43,6 +43,26 @@ export class AdminReportsPage {
   readonly coursesByLevelContainer: Locator;
   readonly coursesByLevelTable: Locator;
 
+  // Reporte 6: Alumnos por Deporte
+  readonly sportsStudentsContainer: Locator;
+  readonly sportFilterSelect: Locator;
+  readonly sportStudentSearchInput: Locator;
+  readonly sportsStudentsTable: Locator;
+
+  // Reporte 7: Deporte por Nivel
+  readonly sportsByLevelContainer: Locator;
+  readonly sportsByLevelTable: Locator;
+
+  // Reporte 8: Deportes, Horarios y Profesores
+  readonly sportsProfContainer: Locator;
+  readonly sportsProfSearchInput: Locator;
+
+  // Reporte 9: Alumnos por Recorrido de Transporte
+  readonly transportContainer: Locator;
+  readonly transportRouteSelect: Locator;
+  readonly transportSearchInput: Locator;
+  readonly transportTable: Locator;
+
   constructor(page: Page) {
     this.page = page;
     this.sidebar = page.locator('[data-testid="admin-sidebar"]');
@@ -77,6 +97,22 @@ export class AdminReportsPage {
 
     this.coursesByLevelContainer = page.locator('[data-testid="report-cursos-nivel-container"]');
     this.coursesByLevelTable = page.locator('[data-testid="table-report-cursos-nivel"]');
+
+    this.sportsStudentsContainer = page.locator('[data-testid="report-alumnos-deporte-container"]');
+    this.sportFilterSelect = page.locator('[data-testid="select-filter-sport"]');
+    this.sportStudentSearchInput = page.locator('[data-testid="input-search-sport-students"]');
+    this.sportsStudentsTable = page.locator('[data-testid="table-report-sport-students"]');
+
+    this.sportsByLevelContainer = page.locator('[data-testid="report-deportes-nivel-container"]');
+    this.sportsByLevelTable = page.locator('[data-testid="table-report-sports-level"]');
+
+    this.sportsProfContainer = page.locator('[data-testid="report-deportes-horarios-profesor-container"]');
+    this.sportsProfSearchInput = page.locator('[data-testid="input-search-sports-prof"]');
+
+    this.transportContainer = page.locator('[data-testid="report-transporte-recorrido-container"]');
+    this.transportRouteSelect = page.locator('[data-testid="select-filter-transport-route"]');
+    this.transportSearchInput = page.locator('[data-testid="input-search-transport-students"]');
+    this.transportTable = page.locator('[data-testid="table-report-transport-students"]');
   }
 
   async goto() {

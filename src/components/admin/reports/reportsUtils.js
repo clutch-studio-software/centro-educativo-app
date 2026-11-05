@@ -44,6 +44,34 @@ export const REPORT_TYPES = [
     icon: 'domain',
     description: 'Divisiones por nivel (Inicial, Primario, Secundario), turnos y ocupación de cupos.',
   },
+  {
+    id: 'alumnos-por-deporte',
+    label: 'Alumnos por Deporte',
+    shortLabel: 'Alumnos x Deporte',
+    icon: 'sports_soccer',
+    description: 'Nómina oficial de alumnos inscriptos agrupados y filtrados por disciplina deportiva.',
+  },
+  {
+    id: 'deporte-por-nivel',
+    label: 'Deporte por Nivel',
+    shortLabel: 'Deportes x Nivel',
+    icon: 'fitness_center',
+    description: 'Cruce dimensional de participación deportiva por niveles Inicial, Primario y Secundario.',
+  },
+  {
+    id: 'deportes-horarios-profesor',
+    label: 'Deportes, Horarios y Profesores',
+    shortLabel: 'Detalle Deportes',
+    icon: 'schedule',
+    description: 'Directorio de disciplinas deportivas, niveles permitidos, horarios y profesores responsables.',
+  },
+  {
+    id: 'transporte-por-recorrido',
+    label: 'Transporte Escolar',
+    shortLabel: 'Transporte x Recorrido',
+    icon: 'directions_bus',
+    description: 'Nómina de alumnos asignados a los 4 recorridos oficiales del servicio de transporte escolar.',
+  },
 ];
 
 /**
@@ -463,6 +491,181 @@ export const buildTeacherFullReport = (teacher) => {
     cursosACargo: cursosList,
     horarios: schedules,
   };
+};
+
+/**
+ * Recopila y consolida todas las inscripciones deportivas del alumnado
+ */
+export const getAllSportEnrollments = (students = [], allSports = []) => {
+  const enrollments = [];
+  const seen = new Set();
+
+  // 1. Recorrer las disciplinas deportivas registradas
+  (allSports || []).forEach((sport) => {
+    const inscriptos = Array.isArray(sport.inscriptos) ? sport.inscriptos : [];
+    inscriptos.forEach((ins) => {
+      const stId = ins.id || ins.studentId || ins.alumnoId;
+      const key = `${sport.id}-${stId}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        const fullStudent =
+          (students || []).find(
+            (s) =>
+              s.id === stId ||
+              (s.dni && ins.dni && String(s.dni).replace(/\D/g, '') === String(ins.dni).replace(/\D/g, ''))
+          ) || ins;
+
+        enrollments.push({
+          sportId: sport.id,
+          sportName: sport.nombre || 'Deporte',
+          sportEmoji: sport.emoji || '🏅',
+          sportNivel: sport.niveles || 'Todos los niveles',
+          profesorName: sport.profesor?.nombre || 'Docente asignado',
+          horario: sport.horario || 'Días y horarios a confirmar',
+          lugar: sport.lugar || 'Campo de deportes',
+          cupoMax: sport.cupoMax || 30,
+          cupoOcupado: sport.cupoOcupado || inscriptos.length,
+          student: fullStudent,
+          studentId: fullStudent.id || stId,
+          legajo: fullStudent.studentID_login || fullStudent.legajo || 'Sin legajo',
+          nombreCompleto: formatLastNameFirst(fullStudent),
+          dni: fullStudent.dni || 'Sin DNI',
+          curso: fullStudent.curso || 'Sin curso',
+          division: fullStudent.division || 'A',
+          nivel: normalizeNivel(fullStudent.nivel),
+        });
+      }
+    });
+  });
+
+  // 2. Alumnos con deportes indicados en su ficha individual
+  (students || []).forEach((st) => {
+    const studentSports = Array.isArray(st.disciplinas)
+      ? st.disciplinas
+      : Array.isArray(st.deportes)
+      ? st.deportes
+      : [];
+
+    studentSports.forEach((spItem) => {
+      const spName = typeof spItem === 'string' ? spItem : spItem.nombre || spItem.name;
+      if (!spName) return;
+
+      const matchedSport = (allSports || []).find(
+        (s) => s.nombre && s.nombre.toLowerCase() === spName.toLowerCase()
+      );
+
+      const sportId = matchedSport?.id || `ext-${spName.toLowerCase().replace(/\s+/g, '-')}`;
+      const key = `${sportId}-${st.id}`;
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        enrollments.push({
+          sportId,
+          sportName: matchedSport?.nombre || spName,
+          sportEmoji: matchedSport?.emoji || '🏅',
+          sportNivel: matchedSport?.niveles || 'Todos los niveles',
+          profesorName: matchedSport?.profesor?.nombre || 'Docente asignado',
+          horario: matchedSport?.horario || 'Turno tarde (a coordinar)',
+          lugar: matchedSport?.lugar || 'Instalaciones deportivas',
+          cupoMax: matchedSport?.cupoMax || 30,
+          cupoOcupado: matchedSport?.cupoOcupado || 1,
+          student: st,
+          studentId: st.id,
+          legajo: st.studentID_login || st.legajo || 'Sin legajo',
+          nombreCompleto: formatLastNameFirst(st),
+          dni: st.dni || 'Sin DNI',
+          curso: st.curso || 'Sin curso',
+          division: st.division || 'A',
+          nivel: normalizeNivel(st.nivel),
+        });
+      }
+    });
+  });
+
+  // Ordenar por disciplina (A-Z), luego jerarquía de curso y apellido de alumno
+  return enrollments.sort((a, b) => {
+    const spCmp = a.sportName.localeCompare(b.sportName, 'es', { sensitivity: 'base' });
+    if (spCmp !== 0) return spCmp;
+    return compareStudentsForCourseReport(a, b);
+  });
+};
+
+/**
+ * Obtiene el listado único y ordenado de disciplinas deportivas
+ */
+export const getUniqueSportsList = (allEnrollments = []) => {
+  const set = new Set();
+  (allEnrollments || []).forEach((e) => {
+    if (e.sportName) set.add(e.sportName);
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+};
+
+/**
+ * Filtra un registro de inscripción por término de búsqueda (nombre, legajo, DNI, curso, domicilio)
+ */
+export const filterEnrollmentsBySearch = (item, query = '') => {
+  if (!query) return true;
+  const q = String(query).toLowerCase().trim();
+  const name = item.nombreCompleto ? item.nombreCompleto.toLowerCase() : '';
+  const leg = item.legajo ? item.legajo.toLowerCase() : '';
+  const dni = item.dni ? String(item.dni) : '';
+  const cur = item.curso ? item.curso.toLowerCase() : '';
+  const dom = item.domicilio ? item.domicilio.toLowerCase() : '';
+
+  return name.includes(q) || leg.includes(q) || dni.includes(q) || cur.includes(q) || dom.includes(q);
+};
+
+/**
+ * Cabeceras estándar para datos de alumnos en exportaciones CSV
+ */
+export const STUDENT_COMMON_CSV_HEADERS = [
+  { label: 'Alumno', key: 'alumno' },
+  { label: 'Legajo', key: 'legajo' },
+  { label: 'DNI', key: 'dni' },
+  { label: 'Curso', key: 'curso' },
+  { label: 'División', key: 'division' },
+  { label: 'Nivel Educativo', key: 'nivel' },
+];
+
+/**
+ * Recopila y consolida la nómina oficial de alumnos inscriptos al Servicio de Transporte Escolar
+ */
+export const getAllTransportEnrollments = (students = []) => {
+  const list = [];
+  (students || []).forEach((st) => {
+    const routeObj = getStudentTransportRoute(st);
+    const servicios = Array.isArray(st.servicios) ? st.servicios : [];
+    const hasTransport =
+      Boolean(routeObj) ||
+      servicios.some((s) => String(s).toLowerCase().includes('transporte'));
+
+    if (hasTransport) {
+      list.push({
+        studentId: st.id,
+        student: st,
+        legajo: st.studentID_login || st.legajo || 'Sin legajo',
+        nombreCompleto: formatLastNameFirst(st),
+        dni: st.dni || 'Sin DNI',
+        curso: st.curso || 'Sin curso',
+        division: st.division || 'A',
+        nivel: normalizeNivel(st.nivel),
+        domicilio:
+          st.domicilio || st.direccion || 'Domicilio registrado escolar',
+        recorridoId: routeObj?.id || 'Recorrido 1',
+        recorridoNombre: routeObj?.nombre || 'Recorrido 1 - Zona Norte',
+        zona: routeObj?.zona || 'Zona Norte / Av. Sarmiento',
+        horarioIda: routeObj?.horarioIda || '07:00 hs',
+        horarioRegreso: routeObj?.horarioRegreso || '16:30 hs',
+      });
+    }
+  });
+
+  return list.sort((a, b) => {
+    const rCmp = a.recorridoId.localeCompare(b.recorridoId, 'es', { numeric: true });
+    if (rCmp !== 0) return rCmp;
+    return compareStudentsForCourseReport(a, b);
+  });
 };
 
 /**

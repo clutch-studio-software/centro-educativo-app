@@ -4,6 +4,7 @@ import ReportHeaderActions from './ReportHeaderActions';
 import StudentReportCards from './StudentReportCards';
 import ReportTableHeader from './ReportTableHeader';
 import ReportProfileCard from './ReportProfileCard';
+import ReportEmptyState from './ReportEmptyState';
 
 const EMPTY_STUDENTS = [];
 const EMPTY_COURSES = [];
@@ -137,20 +138,12 @@ const ReportePorAlumnoView = ({
       </div>
 
       {!reportData ? (
-        <div
-          data-testid="report-student-empty"
-          className="bg-white rounded-md border border-dashed border-slate-300 p-12 text-center flex flex-col items-center justify-center gap-3 shadow-2xs"
-        >
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-2xl">person_search</span>
-          </div>
-          <div className="max-w-md">
-            <h3 className="text-sm font-bold text-slate-800">Ningún alumno seleccionado</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Ingrese el nombre, apellido, DNI o número de legajo en el buscador superior para seleccionar un alumno y consultar su reporte consolidado institucional.
-            </p>
-          </div>
-        </div>
+        <ReportEmptyState
+          testId="report-student-empty"
+          icon="person_search"
+          title="Ningún alumno seleccionado"
+          description="Ingrese el nombre, apellido, DNI o número de legajo en el buscador superior para seleccionar un alumno y consultar su reporte consolidado institucional."
+        />
       ) : (
         <>
           {/* Ficha Principal del Alumno */}
