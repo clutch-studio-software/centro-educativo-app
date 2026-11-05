@@ -6,6 +6,11 @@ import {
   toggleStudentDiningApi,
   enrollStudentInSportService,
   withdrawStudentFromSportService,
+  acknowledgeHealthRecordApi,
+  acknowledgePreceptoriaRecordApi,
+  acknowledgeAttendanceRecordApi,
+  justifyStudentAbsenceApi,
+  uploadTransferVoucherApi,
 } from '../../services/familyPortalService.js';
 import {
   getStudentSubjectsWithTeachers,
@@ -23,7 +28,7 @@ export const useFamilyPortalState = (user) => {
   const [allSports, setAllSports] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
-  const [portalMode, setPortalMode] = useState('inscripciones');
+  const [portalMode, setPortalMode] = useState('perfil');
 
   const roleNorm = String(user?.role || '').toLowerCase();
   const isStudentUser =
@@ -225,6 +230,121 @@ export const useFamilyPortalState = (user) => {
     }
   };
 
+  const handleAcknowledgeHealth = async (entryId) => {
+    if (!currentStudent || isProcessing) return;
+    setIsProcessing(true);
+    setFeedback(null);
+    try {
+      const updated = await acknowledgeHealthRecordApi({
+        student: currentStudent,
+        entryId,
+        tutorUser: user,
+      });
+      updateLocalStudent(updated);
+      setFeedback({
+        type: 'success',
+        message: 'Constancia de visto registrada en la atención de enfermería.',
+      });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAcknowledgePreceptoria = async (entryId) => {
+    if (!currentStudent || isProcessing) return;
+    setIsProcessing(true);
+    setFeedback(null);
+    try {
+      const updated = await acknowledgePreceptoriaRecordApi({
+        student: currentStudent,
+        entryId,
+        tutorUser: user,
+      });
+      updateLocalStudent(updated);
+      setFeedback({
+        type: 'success',
+        message: 'Constancia de visto registrada en la notificación de preceptoría.',
+      });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAcknowledgeAttendance = async (attendanceId) => {
+    if (!currentStudent || isProcessing) return;
+    setIsProcessing(true);
+    setFeedback(null);
+    try {
+      const updated = await acknowledgeAttendanceRecordApi({
+        student: currentStudent,
+        attendanceId,
+        tutorUser: user,
+      });
+      updateLocalStudent(updated);
+      setFeedback({
+        type: 'success',
+        message: 'Constancia de visto registrada en el parte de inasistencia.',
+      });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleJustifyAbsence = async (justificationData) => {
+    if (!currentStudent || isProcessing) return;
+    setIsProcessing(true);
+    setFeedback(null);
+    try {
+      const updated = await justifyStudentAbsenceApi({
+        student: currentStudent,
+        absenceId: justificationData.absenceId,
+        motivo: justificationData.motivo,
+        detalle: justificationData.detalle,
+        certificadoRef: justificationData.certificadoRef,
+        file: justificationData.file,
+        tutorUser: user,
+      });
+      updateLocalStudent(updated);
+      setFeedback({
+        type: 'success',
+        message: 'Justificación enviada a revisión de preceptoría con éxito.',
+      });
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUploadTransferVoucher = async (voucherData) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    setFeedback(null);
+    try {
+      const receipt = await uploadTransferVoucherApi({
+        tutorUser: user,
+        voucherData,
+        linkedStudents,
+      });
+      setFeedback({
+        type: 'success',
+        message: `Comprobante de transferencia #${receipt.id} enviado exitosamente. Administración revisará la acreditación a la brevedad.`,
+      });
+      return receipt;
+    } catch (err) {
+      setFeedback({ type: 'error', message: err.message });
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return {
     loading,
     isProcessing,
@@ -250,5 +370,10 @@ export const useFamilyPortalState = (user) => {
     handleEnrollSport,
     handleWithdrawSport,
     handleToggleDining,
+    handleAcknowledgeHealth,
+    handleAcknowledgePreceptoria,
+    handleAcknowledgeAttendance,
+    handleJustifyAbsence,
+    handleUploadTransferVoucher,
   };
 };
