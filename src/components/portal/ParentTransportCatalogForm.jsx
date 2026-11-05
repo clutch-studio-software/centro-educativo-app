@@ -43,13 +43,12 @@ const ParentTransportCatalogForm = ({
                 data-testid={`transport-route-option-${route.id}`}
                 disabled={isFull}
                 onClick={() => setSelectedRouteId(route.id)}
-                className={`p-3.5 rounded-lg border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
-                  isFull
-                    ? 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed'
-                    : isSelected
-                      ? 'bg-purple-50 border-purple-500 shadow-sm ring-2 ring-purple-300/30'
-                      : 'bg-white hover:bg-slate-50 border-slate-200'
-                }`}
+                className={`p-3.5 rounded-lg border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${isFull
+                  ? 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed'
+                  : isSelected
+                    ? 'bg-purple-50 border-purple-500 shadow-sm ring-2 ring-purple-300/30'
+                    : 'bg-white hover:bg-slate-50 border-slate-200'
+                  }`}
               >
                 <div>
                   <div className="flex items-center justify-between">
@@ -96,7 +95,9 @@ const ParentTransportCatalogForm = ({
           disabled={isProcessing || !selectedRouteId}
           className="px-5 py-2.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-colors cursor-pointer shadow-sm shrink-0"
         >
-          {isProcessing ? 'Procesando...' : 'Inscribirme al Transporte'}
+          {isProcessing
+            ? <span className="animate-pulse"> Procesando... </span>
+            : 'Inscribirme al Transporte'}
         </button>
       </div>
     </form>

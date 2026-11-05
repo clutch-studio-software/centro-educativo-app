@@ -50,43 +50,46 @@ const ActiveRouteDetails = ({
 
   return (
     <div className="space-y-3.5">
-      <div className="p-3.5 rounded-lg bg-purple-50/50 border border-purple-100 space-y-2">
+      <div className="p-3.5 flex flex-col rounded-md text-center bg-purple-50/50 border border-purple-100 space-y-2">
+        <span className="material-symbols-outlined text-purple-600 text-base text-[24px]">
+          alt_route
+        </span>
+        <span
+          data-testid="transport-route-title"
+          className="text-sm font-bold text-purple-950 items-center gap-1.5"
+        >
+          {routeName}
+        </span>
         <div className="flex items-center justify-between">
-          <h3
-            data-testid="transport-route-title"
-            className="text-sm font-bold text-purple-950 flex items-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-purple-600 text-base">
-              alt_route
-            </span>
-            {routeName}
-          </h3>
-          <span className="text-[11px] font-semibold text-purple-700 bg-purple-100/70 px-2 py-0.5 rounded">
-            Capacidad: 15 plazas Sprinter
-          </span>
+          <p className="text-xs text-slate-600">
+            <strong className="text-slate-700">Zona de cobertura:</strong>{' '}
+            {zona}
+          </p>
         </div>
-        <p className="text-xs text-slate-600">
-          <strong className="text-slate-700">Zona de cobertura:</strong> {zona}
-        </p>
+
         <div className="grid grid-cols-2 gap-2 pt-1 text-xs text-slate-700 font-medium">
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-purple-500">
               login
             </span>
-            <span>Ida al colegio: <strong>{horarioIda}</strong></span>
+            <span>
+              Ida al colegio: <strong>{horarioIda}</strong>
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px] text-purple-500">
               logout
             </span>
-            <span>Regreso al hogar: <strong>{horarioRegreso}</strong></span>
+            <span>
+              Regreso al hogar: <strong>{horarioRegreso}</strong>
+            </span>
           </div>
         </div>
       </div>
 
       <div
         data-testid="transport-billing-details"
-        className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1.5"
+        className="p-3 rounded-md bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1.5"
       >
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1 font-semibold text-slate-700">
@@ -102,8 +105,14 @@ const ActiveRouteDetails = ({
 
         {proportionalInfo && (
           <div className="pt-1.5 border-t border-slate-200/70 flex items-center justify-between text-slate-600">
-            <span>Facturación del 1er mes (Proporcional {proportionalInfo.activeDays} días):</span>
-            <span data-testid="transport-proportional-fee" className="font-bold text-slate-800">
+            <span>
+              Facturación del 1er mes (Proporcional{' '}
+              {proportionalInfo.activeDays} días):
+            </span>
+            <span
+              data-testid="transport-proportional-fee"
+              className="font-bold text-slate-800"
+            >
               {proportionalInfo.formattedProportional}
             </span>
           </div>
@@ -121,7 +130,10 @@ const ActiveRouteDetails = ({
           <div>
             <p className="font-bold">Solicitud de baja en trámite</p>
             <p className="mt-0.5 text-amber-800">
-              La baja tendrá efecto a partir del <strong>{formatDateDisplay(bajaProgramada)}</strong>. Para cancelaciones inmediatas extraordinarias dentro del mes, consultar a la Administración Escolar.
+              La baja tendrá efecto a partir del{' '}
+              <strong>{formatDateDisplay(bajaProgramada)}</strong>. Para
+              cancelaciones inmediatas extraordinarias dentro del mes, consultar
+              a la Administración Escolar.
             </p>
           </div>
         </div>
@@ -152,10 +164,14 @@ const StudentTransportCard = ({ student, transportDetails }) => {
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-lg">directions_bus</span>
+            <span className="material-symbols-outlined text-lg">
+              directions_bus
+            </span>
           </div>
           <div className="text-left">
-            <h2 className="text-base font-bold text-slate-800">Transporte Escolar</h2>
+            <p className="text-base font-bold text-slate-800">
+              Transporte Escolar
+            </p>
             <p className="text-xs text-slate-500">
               Vehículo oficial: Mercedes-Benz Sprinter
             </p>

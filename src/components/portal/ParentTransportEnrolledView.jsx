@@ -87,7 +87,7 @@ const ParentTransportEnrolledView = ({
             onClick={onCancelClick}
             className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer shrink-0"
           >
-            {isCancelableToday ? 'Dar de baja inmediata' : 'Solicitar baja de servicio'}
+            {isProcessing ? <span className='animate-pulse'>Procesando baja...</span> : isCancelableToday ? 'Dar de baja inmediata' : 'Solicitar baja de servicio'}
           </button>
         </div>
       )}

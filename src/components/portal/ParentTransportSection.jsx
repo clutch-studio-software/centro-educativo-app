@@ -6,6 +6,7 @@ import {
 import ConfirmCancelTransportModal from './ConfirmCancelTransportModal.jsx';
 import ParentTransportEnrolledView from './ParentTransportEnrolledView.jsx';
 import ParentTransportCatalogForm from './ParentTransportCatalogForm.jsx';
+import PortalSectionHeader from './PortalSectionHeader.jsx';
 
 const EMPTY_ROUTES = [];
 const EMPTY_STUDENTS = [];
@@ -21,10 +22,13 @@ const ParentTransportSection = ({
   onCancelTransport,
   isProcessing = false,
 }) => {
-  const [selectedRouteId, setSelectedRouteId] = useState(
-    routes[0]?.id || 'Recorrido 1'
-  );
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
   const [showConfirmCancelModal, setShowConfirmCancelModal] = useState(false);
+
+  const effectiveRouteId =
+    selectedRouteId && routes.some((r) => r.id === selectedRouteId)
+      ? selectedRouteId
+      : routes[0]?.id || 'Recorrido 1';
 
   const servicios = Array.isArray(student?.servicios) ? student.servicios : [];
   const isEnrolled =
@@ -39,8 +43,8 @@ const ParentTransportSection = ({
 
   const handleEnrollSubmit = (e) => {
     e.preventDefault();
-    if (!selectedRouteId || isProcessing) return;
-    onEnrollTransport(selectedRouteId);
+    if (!effectiveRouteId || isProcessing) return;
+    onEnrollTransport(effectiveRouteId);
   };
 
   const confirmCancel = () => {
@@ -51,39 +55,33 @@ const ParentTransportSection = ({
   return (
     <div
       data-testid="parent-transport-section"
-      className="bg-white rounded-xl border border-slate-200 p-5 md:p-6 space-y-5 shadow-sm"
+      className="bg-white rounded-xl border border-slate-200 p-5 md:p-6 space-y-5 shadow-sm text-left"
     >
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-            <span className="material-symbols-outlined text-lg">directions_bus</span>
-          </div>
-          <div className='text-left'>
-            <p className="text-base font-bold text-slate-800">
-              Autogestión de Transporte Escolar
-            </p>
-            <p className="text-xs text-slate-500">
-              Vehículo: Mercedes-Benz Sprinter (15 plazas estándar)
-            </p>
-          </div>
-        </div>
-        <span
-          data-testid="transport-status-tag"
-          className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
-            isEnrolled
+      <PortalSectionHeader
+        icon="directions_bus"
+        iconBgClass="bg-purple-50"
+        iconColorClass="text-purple-600"
+        title="Autogestión de Transporte Escolar"
+        subtitle="Vehículo: Mercedes-Benz Sprinter"
+        statusBadge={
+          <span
+            data-testid="transport-status-tag"
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+              isEnrolled
+                ? bajaSolicitada
+                  ? 'bg-amber-50 text-amber-800 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-slate-100 text-slate-600 border-slate-200'
+            }`}
+          >
+            {isEnrolled
               ? bajaSolicitada
-                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-slate-100 text-slate-600 border-slate-200'
-          }`}
-        >
-          {isEnrolled
-            ? bajaSolicitada
-              ? 'Baja Programada (Mes prox.)'
-              : 'Inscripto'
-            : 'Sin suscripción'}
-        </span>
-      </div>
+                ? 'Baja Programada (Mes prox.)'
+                : 'Inscripto'
+              : 'Sin suscripción'}
+          </span>
+        }
+      />
 
       {isEnrolled ? (
         <ParentTransportEnrolledView
@@ -99,7 +97,7 @@ const ParentTransportSection = ({
         <ParentTransportCatalogForm
           routes={routes}
           allStudents={allStudents}
-          selectedRouteId={selectedRouteId}
+          selectedRouteId={effectiveRouteId}
           setSelectedRouteId={setSelectedRouteId}
           isProcessing={isProcessing}
           onSubmit={handleEnrollSubmit}
