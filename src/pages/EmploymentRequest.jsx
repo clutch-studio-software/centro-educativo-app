@@ -6,6 +6,7 @@ import SuccessModal from '../components/molecules/SuccessModal';
 import EmploymentHero from '../components/organisms/EmploymentHero';
 import EmploymentBento from '../components/organisms/EmploymentBento';
 import { isValidEmail } from '../utils/validators';
+import LoadingSpinner from '../components/admin/common/LoadingSpinner';
 
 const EmploymentRequest = () => {
     // Form and UI refs for smooth scroll
@@ -45,7 +46,7 @@ const EmploymentRequest = () => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-        
+
         // Clean error as the user types
         if (errors[name]) {
             setErrors(prev => {
@@ -96,11 +97,11 @@ const EmploymentRequest = () => {
         setIsSubmitting(true);
         setErrors({});
         setCvError('');
-        
+
         setTimeout(() => {
             setIsSubmitting(false);
             setSubmitSuccess(true);
-            
+
             // Reset form
             setFormData({ name: '', email: '', area: '', privacy: false });
             setCvFile(null);
@@ -113,11 +114,11 @@ const EmploymentRequest = () => {
 
             {/* Main Content */}
             <main className="pt-10 pb-24 px-6 max-w-7xl mx-auto flex flex-col gap-16">
-                
+
                 {/* Hero Section (Organism) */}
-                <EmploymentHero 
-                    onVerVacantesClick={() => scrollToSection(bentoSectionRef)} 
-                    onCargarCvClick={() => scrollToSection(formSectionRef)} 
+                <EmploymentHero
+                    onVerVacantesClick={() => scrollToSection(bentoSectionRef)}
+                    onCargarCvClick={() => scrollToSection(formSectionRef)}
                 />
 
                 {/* Áreas de Interés Bento Grid (Organism) */}
@@ -128,7 +129,7 @@ const EmploymentRequest = () => {
                 {/* Formulario de Postulación Rápida */}
                 <section ref={formSectionRef} className="bg-surface-container-low rounded-[3rem] p-8 md:p-12 border border-surface-container-highest relative overflow-hidden scroll-mt-24 text-left">
                     <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none"></div>
-                    
+
                     <div className="max-w-3xl mx-auto flex flex-col gap-8 relative z-10">
                         <div className="text-center flex flex-col gap-3">
                             <h2 className="font-headline text-[2rem] font-bold text-on-surface">Postulación Espontánea</h2>
@@ -136,33 +137,33 @@ const EmploymentRequest = () => {
                         </div>
 
                         <form onSubmit={handleSubmit} className="bg-surface-container-lowest/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl shadow-primary/5 border border-primary/10 flex flex-col gap-6">
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Nombre */}
                                 <div className="flex flex-col gap-2">
                                     <label htmlFor="employment-name" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Nombre Completo <span className="text-red-500">*</span></label>
-                                    <input 
+                                    <input
                                         id="employment-name"
-                                        type="text" 
+                                        type="text"
                                         name="name"
                                         value={formData.name}
                                         onChange={handleInputChange}
-                                        className={`w-full bg-surface-container-high focus:bg-surface-container-lowest border border-transparent ${errors.name ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface transition-all outline-none ring-0 focus:ring-0`} 
+                                        className={`w-full bg-surface-container-high focus:bg-surface-container-lowest border border-transparent ${errors.name ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface transition-all outline-none ring-0 focus:ring-0`}
                                         placeholder="Ej. Ana Pérez"
                                     />
                                     {errors.name && <span className="text-xs text-red-500 font-semibold">{errors.name}</span>}
                                 </div>
-                                
+
                                 {/* Email */}
                                 <div className="flex flex-col gap-2">
                                     <label htmlFor="employment-email" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Correo Electrónico <span className="text-red-500">*</span></label>
-                                    <input 
+                                    <input
                                         id="employment-email"
-                                        type="email" 
+                                        type="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
-                                        className={`w-full bg-surface-container-high focus:bg-surface-container-lowest border border-transparent ${errors.email ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface transition-all outline-none ring-0 focus:ring-0`} 
+                                        className={`w-full bg-surface-container-high focus:bg-surface-container-lowest border border-transparent ${errors.email ? 'border-red-500 focus:border-red-500' : 'focus:border-primary/30'} rounded-xl px-4 py-3 font-body text-on-surface transition-all outline-none ring-0 focus:ring-0`}
                                         placeholder="ana@ejemplo.com"
                                     />
                                     {errors.email && <span className="text-xs text-red-500 font-semibold">{errors.email}</span>}
@@ -173,7 +174,7 @@ const EmploymentRequest = () => {
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="employment-area" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Área de Interés Principal <span className="text-red-500">*</span></label>
                                 <div className="relative">
-                                    <select 
+                                    <select
                                         id="employment-area"
                                         name="area"
                                         value={formData.area}
@@ -195,7 +196,7 @@ const EmploymentRequest = () => {
                             {/* Reusable File Drag and Drop Zone (Molecule) */}
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="employment-cv-input" className="font-label text-xs uppercase tracking-widest font-bold text-on-surface-variant">Sube tu CV (PDF) <span className="text-red-500">*</span></label>
-                                <FileUploadZone 
+                                <FileUploadZone
                                     inputId="employment-cv-input"
                                     file={cvFile}
                                     onFileChange={(file) => {
@@ -215,8 +216,8 @@ const EmploymentRequest = () => {
                             {/* Checkbox de Privacidad */}
                             <div className="flex flex-col gap-2 mt-2">
                                 <div className="flex items-center gap-3">
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         id="privacy"
                                         name="privacy"
                                         checked={formData.privacy}
@@ -231,8 +232,8 @@ const EmploymentRequest = () => {
                             </div>
 
                             {/* Botón Submit */}
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={isSubmitting}
                                 className="mt-4 bg-gradient-to-br from-tertiary to-tertiary-container text-white w-full py-4 rounded-full font-bold text-lg hover:shadow-xl hover:shadow-tertiary/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
                             >
@@ -242,7 +243,7 @@ const EmploymentRequest = () => {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span>Procesando...</span>
+                                        <span className="animate-pulse"> Procesando </span>
                                     </>
                                 ) : (
                                     <>
@@ -257,7 +258,7 @@ const EmploymentRequest = () => {
             </main>
 
             {/* Success Modal / Banner */}
-            <SuccessModal 
+            <SuccessModal
                 isOpen={submitSuccess}
                 onClose={() => setSubmitSuccess(false)}
                 title="¡Postulación Enviada!"

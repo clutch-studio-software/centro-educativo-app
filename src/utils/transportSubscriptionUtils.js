@@ -53,14 +53,23 @@ export const getNextMonthFirstDay = (referenceDate = new Date()) => {
 };
 
 /**
+ * Evalúa si una suscripción a cualquier servicio fue iniciada hoy y por ende se puede dar de baja en el día
+ */
+export const canCancelServiceToday = (startDateStr, today = new Date()) => {
+  if (!startDateStr) return true;
+  const todayStr = getTodayDateString(today);
+  return String(startDateStr).trim().slice(0, 10) === todayStr;
+};
+
+export const UNIVERSAL_CANCELLATION_POLICY_MESSAGE =
+  'Solo un administrador podrá gestionar la baja inmediata dentro del mes en curso si se requiere. La solicitud actual surtirá efecto a partir del 1º del mes siguiente.';
+
+/**
  * Evalúa si la suscripción de transporte fue realizada hoy y por ende se puede dar de baja en el día
  */
 export const canCancelTransportToday = (student, today = new Date()) => {
   if (!student) return true;
-  const startDateStr = student.transporteFechaInicio;
-  if (!startDateStr) return true; // Si no hay fecha previa, se asume reciente
-  const todayStr = getTodayDateString(today);
-  return String(startDateStr).trim().slice(0, 10) === todayStr;
+  return canCancelServiceToday(student.transporteFechaInicio, today);
 };
 
 /**

@@ -172,7 +172,7 @@ export const useFamilyPortalState = (user) => {
       updateLocalStudent(updated);
       setFeedback({
         type: 'success',
-        message: 'Inscripción a la actividad deportiva registrada con éxito.',
+        message: 'Inscripción a la actividad deportiva registrada con éxito. Facturación inicial con proporcional del mes.',
       });
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
@@ -186,14 +186,14 @@ export const useFamilyPortalState = (user) => {
     setIsProcessing(true);
     setFeedback(null);
     try {
-      const updated = await withdrawStudentFromSportService({
+      const res = await withdrawStudentFromSportService({
         student: currentStudent,
         sportId,
       });
-      updateLocalStudent(updated);
+      updateLocalStudent(res.student || res);
       setFeedback({
         type: 'success',
-        message: 'Se dio de baja la actividad deportiva correctamente.',
+        message: res.message || 'Se dio de baja la actividad deportiva correctamente.',
       });
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
@@ -207,16 +207,16 @@ export const useFamilyPortalState = (user) => {
     setIsProcessing(true);
     setFeedback(null);
     try {
-      const updated = await toggleStudentDiningApi({
+      const res = await toggleStudentDiningApi({
         student: currentStudent,
         active,
       });
-      updateLocalStudent(updated);
+      updateLocalStudent(res.student || res);
       setFeedback({
         type: 'success',
-        message: active
-          ? 'Servicio de comedor escolar habilitado exitosamente.'
-          : 'Se dio de baja el servicio de comedor escolar.',
+        message: res.message || (active
+          ? 'Servicio de comedor escolar habilitado exitosamente. Facturación inicial con proporcional del mes.'
+          : 'Se dio de baja el servicio de comedor escolar.'),
       });
     } catch (err) {
       setFeedback({ type: 'error', message: err.message });
