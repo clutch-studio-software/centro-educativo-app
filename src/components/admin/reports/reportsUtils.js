@@ -3,7 +3,8 @@ import {
   getStudentTransportRoute,
   getStudentSubjectsWithTeachers,
   normalizeNivel,
-} from '../../../utils/academicUtils';
+} from '../../../utils/academicUtils.js';
+import { INITIAL_DISCIPLINES } from '../../../data/mockSportsActivities.js';
 
 /**
  * Reportes Oficiales disponibles en la Central Directiva
@@ -316,7 +317,6 @@ export const compareSubjectsByNivelAndName = (subA, subB) => {
  */
 export const getStudentSportsDetails = (student, allSports = []) => {
   if (!student) return [];
-  const studentSports = [];
   const disciplines = Array.isArray(student.disciplinas)
     ? student.disciplinas
     : Array.isArray(student.deportes)
@@ -325,44 +325,81 @@ export const getStudentSportsDetails = (student, allSports = []) => {
 
   const studentId = student.id || student.studentId;
   const studentDni = student.dni ? String(student.dni).replace(/\D/g, '') : '';
+  const pool = Array.isArray(allSports) && allSports.length > 0 ? allSports : INITIAL_DISCIPLINES;
 
-  for (const sport of allSports) {
+  const studentSports = [];
+  const matchedIds = new Set();
+
+  for (const sport of pool) {
+    const sId = String(sport.id || '').toLowerCase();
+    const sCode = String(sport.code || '').toLowerCase();
+    const sNombre = String(sport.nombre || '').toLowerCase();
+
     const inscriptos = Array.isArray(sport.inscriptos) ? sport.inscriptos : [];
     const isEnrolledInSport = inscriptos.some((s) => {
-      const sId = s.id || s.studentId || s.alumnoId;
-      const sDni = s.dni ? String(s.dni).replace(/\D/g, '') : '';
-      return (studentId && sId === studentId) || (studentDni && sDni === studentDni);
+      const sSubId = s.id || s.studentId || s.alumnoId;
+      const sSubDni = s.dni ? String(s.dni).replace(/\D/g, '') : '';
+      return (studentId && sSubId === studentId) || (studentDni && sSubDni === studentDni);
     });
 
     const isNamedInStudent = disciplines.some((d) => {
-      const dName = typeof d === 'string' ? d : d.nombre || d.name;
-      return dName && sport.nombre && dName.toLowerCase().includes(sport.nombre.toLowerCase());
+      const dClean = String(typeof d === 'string' ? d : d.id || d.nombre || d.name || '').trim().toLowerCase();
+      if (!dClean) return false;
+      return (
+        dClean === sId ||
+        dClean === sCode ||
+        dClean === sNombre ||
+        sNombre.includes(dClean) ||
+        dClean.includes(sNombre)
+      );
     });
 
     if (isEnrolledInSport || isNamedInStudent) {
+      matchedIds.add(sId);
+      matchedIds.add(sNombre);
       studentSports.push({
         id: sport.id,
         nombre: sport.nombre,
-        categoria: sport.categoria || 'Deportes',
-        horarios: sport.horarios || sport.diasHorarios || 'Días y horarios a confirmar',
-        profesor: sport.profesor?.nombre || 'Docente asignado',
+        emoji: sport.emoji || '🏅',
+        categoria: sport.categoria || 'Extracurricular',
+        horarios: sport.horarios || sport.diasHorarios || (Array.isArray(sport.dias) ? `${sport.dias.join(', ')} (${sport.horarioInicio || '16:00'} a ${sport.horarioFin || '17:30'} hs)` : 'Turno tarde'),
+        profesor: sport.profesor?.nombre || (typeof sport.profesor === 'string' ? sport.profesor : 'Docente a cargo'),
       });
     }
   }
 
-  // Fallback si solo tiene nombres en string
-  if (studentSports.length === 0 && disciplines.length > 0) {
-    disciplines.forEach((d, idx) => {
-      const name = typeof d === 'string' ? d : d.nombre || `Deporte ${idx + 1}`;
-      studentSports.push({
-        id: `sport-fallback-${idx}`,
-        nombre: name,
-        categoria: 'Extracurricular',
-        horarios: 'Turno tarde (días a convenir)',
-        profesor: 'Coordinación deportiva',
+  // Si alguna disciplina no se resolvió, buscar en INITIAL_DISCIPLINES por id o nombre
+  disciplines.forEach((d, idx) => {
+    const dClean = String(typeof d === 'string' ? d : d.id || d.nombre || '').trim().toLowerCase();
+    if (dClean && !matchedIds.has(dClean)) {
+      const fallbackSport = INITIAL_DISCIPLINES.find((init) => {
+        const initId = String(init.id || '').toLowerCase();
+        const initNombre = String(init.nombre || '').toLowerCase();
+        return initId === dClean || initNombre === dClean || initNombre.includes(dClean);
       });
-    });
-  }
+
+      if (fallbackSport) {
+        matchedIds.add(String(fallbackSport.id).toLowerCase());
+        matchedIds.add(String(fallbackSport.nombre).toLowerCase());
+        studentSports.push({
+          id: fallbackSport.id,
+          nombre: fallbackSport.nombre,
+          emoji: fallbackSport.emoji || '🏅',
+          categoria: fallbackSport.categoria || 'Extracurricular',
+          horarios: fallbackSport.horarios || fallbackSport.diasHorarios || `${(fallbackSport.dias || []).join(', ')} (${fallbackSport.horarioInicio || '16:00'} a ${fallbackSport.horarioFin || '17:30'} hs)`,
+          profesor: fallbackSport.profesor?.nombre || (typeof fallbackSport.profesor === 'string' ? fallbackSport.profesor : 'Docente a cargo'),
+        });
+      } else {
+        studentSports.push({
+          id: `sport-fallback-${idx}`,
+          nombre: typeof d === 'string' ? d : d.nombre || `Deporte ${idx + 1}`,
+          categoria: 'Extracurricular',
+          horarios: 'Turno tarde (días a convenir)',
+          profesor: 'Coordinación deportiva',
+        });
+      }
+    }
+  });
 
   return studentSports;
 };
