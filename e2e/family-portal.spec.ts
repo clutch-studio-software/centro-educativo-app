@@ -55,7 +55,7 @@ test.describe('Feature: Portal del Estudiante y de la Familia (/mi-portal)', () 
       }
     });
 
-    test('Scenario: Ficha Académica - Materias con profesores, Deportes, Transporte y Comedor', async ({ page }) => {
+    test('Scenario: Ficha Académica - Asistencias, Faltas Injustificadas, Enfermería y Preceptoría', async ({ page }) => {
       // When se conmuta a la vista de Ficha Académica
       if (await portalPage.togglePerfilBtn.isVisible()) {
         await portalPage.switchToAcademicProfile();
@@ -65,9 +65,21 @@ test.describe('Feature: Portal del Estudiante y de la Familia (/mi-portal)', () 
       await expect(portalPage.subjectsCard).toBeVisible();
       await expect(page.getByText('Materias & Profesores Asignados')).toBeVisible();
 
+      // Control de Asistencias y Faltas Injustificadas
+      await expect(portalPage.attendanceCard).toBeVisible();
+      await expect(portalPage.metricFaltasInjustificadas).toBeVisible();
+      await expect(page.getByText('Control de Asistencias e Inasistencias')).toBeVisible();
+
+      // Entradas de Enfermería y Preceptoría
+      await expect(portalPage.healthRecordsCard).toBeVisible();
+      await expect(page.getByText('Entradas de Enfermería (Gabinete de Salud)')).toBeVisible();
+
+      await expect(portalPage.preceptoriaRecordsCard).toBeVisible();
+      await expect(page.getByText('Entradas de Preceptoría (Convivencia y Seguimiento)')).toBeVisible();
+
+      // Servicios asignados
       await expect(portalPage.transportCard).toBeVisible();
       await expect(page.getByText('Mercedes-Benz Sprinter (15 plazas estándar)')).toBeVisible();
-
       await expect(portalPage.diningCard).toBeVisible();
       await expect(portalPage.sportsCard).toBeVisible();
     });
@@ -124,6 +136,30 @@ test.describe('Feature: Portal del Estudiante y de la Familia (/mi-portal)', () 
       // Then se muestra el botón interactivo para habilitar o dar de baja el servicio
       await expect(portalPage.btnToggleDining).toBeVisible();
       await expect(page.locator('[data-testid="dining-status-tag"]')).toBeVisible();
+    });
+
+    test('Scenario: Autogestión Integral - Inscripción interactiva a servicios y feedback proporcional', async ({ page }) => {
+      // When en la pestaña de gestión de servicios
+      if (await portalPage.toggleInscripcionesBtn.isVisible()) {
+        await portalPage.switchToServicesManagement();
+      }
+
+      // 1. Probar inscripción al comedor escolar
+      await portalPage.diningTab.click();
+      const diningBtn = portalPage.btnToggleDining;
+      const initialText = await diningBtn.textContent();
+      if (initialText?.includes('Inscribir')) {
+        await diningBtn.click();
+        await expect(page.locator('[data-testid="dining-status-tag"]')).toContainText(/Servicio Contratado/i);
+      }
+
+      // 2. Probar inscripción a deportes
+      await portalPage.sportsTab.click();
+      const enrollSportBtn = page.locator('[data-testid^="btn-enroll-sport-"]').first();
+      if (await enrollSportBtn.isVisible()) {
+        await enrollSportBtn.click();
+        await expect(page.locator('[data-testid="portal-feedback-alert"]')).toBeVisible();
+      }
     });
   });
 });

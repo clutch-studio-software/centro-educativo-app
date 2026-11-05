@@ -13,6 +13,11 @@ export class FamilyPortalPage {
   readonly sportsCard: Locator;
   readonly transportCard: Locator;
   readonly diningCard: Locator;
+  readonly attendanceCard: Locator;
+  readonly healthRecordsCard: Locator;
+  readonly preceptoriaRecordsCard: Locator;
+  readonly unjustifiedAbsencesBadge: Locator;
+  readonly metricFaltasInjustificadas: Locator;
   readonly multiChildSelector: Locator;
   readonly toggleInscripcionesBtn: Locator;
   readonly togglePerfilBtn: Locator;
@@ -38,6 +43,11 @@ export class FamilyPortalPage {
     this.sportsCard = page.locator('[data-testid="student-sports-card"]');
     this.transportCard = page.locator('[data-testid="student-transport-card"]');
     this.diningCard = page.locator('[data-testid="student-dining-card"]');
+    this.attendanceCard = page.locator('[data-testid="student-attendance-card"]');
+    this.healthRecordsCard = page.locator('[data-testid="student-health-records-card"]');
+    this.preceptoriaRecordsCard = page.locator('[data-testid="student-preceptoria-records-card"]');
+    this.unjustifiedAbsencesBadge = page.locator('[data-testid="student-header-absences-badge"]');
+    this.metricFaltasInjustificadas = page.locator('[data-testid="metric-faltas-injustificadas"]');
     this.multiChildSelector = page.locator('[data-testid="multi-child-selector"]');
     this.toggleInscripcionesBtn = page.locator('[data-testid="toggle-view-inscripciones"]');
     this.togglePerfilBtn = page.locator('[data-testid="toggle-view-perfil"]');

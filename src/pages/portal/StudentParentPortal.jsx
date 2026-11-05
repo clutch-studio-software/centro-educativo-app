@@ -6,6 +6,9 @@ import { useFamilyPortalState } from './useFamilyPortalState.js';
 import StudentProfileHeader from '../../components/portal/StudentProfileHeader.jsx';
 import ChildSelector from '../../components/portal/ChildSelector.jsx';
 import StudentAcademicSubjectsCard from '../../components/portal/StudentAcademicSubjectsCard.jsx';
+import StudentAttendanceCard from '../../components/portal/StudentAttendanceCard.jsx';
+import StudentHealthRecordsCard from '../../components/portal/StudentHealthRecordsCard.jsx';
+import StudentPreceptoriaRecordsCard from '../../components/portal/StudentPreceptoriaRecordsCard.jsx';
 import StudentSportsCard from '../../components/portal/StudentSportsCard.jsx';
 import StudentTransportCard from '../../components/portal/StudentTransportCard.jsx';
 import StudentDiningCard from '../../components/portal/StudentDiningCard.jsx';
@@ -135,6 +138,11 @@ const StudentParentPortal = () => {
         {(isStudentUser || portalMode === 'perfil') && (
           <div className="space-y-6">
             <StudentAcademicSubjectsCard subjects={subjects} />
+            <StudentAttendanceCard student={currentStudent} />
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+              <StudentHealthRecordsCard student={currentStudent} />
+              <StudentPreceptoriaRecordsCard student={currentStudent} />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <StudentTransportCard
                 student={currentStudent}
