@@ -14,7 +14,7 @@ const StudentDiningCard = ({ diningDetails }) => {
   return (
     <div
       data-testid="student-dining-card"
-      className="bg-white rounded-xl border border-slate-200/80 p-5 md:p-6 shadow-sm space-y-4"
+      className="bg-white rounded-md border border-slate-200/80 p-5 md:p-6 shadow-sm space-y-4"
     >
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">

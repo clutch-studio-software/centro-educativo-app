@@ -165,7 +165,7 @@ const ParentSportsSection = ({
                           : 'Inscripto'
                         : isFull
                           ? 'Sin cupo'
-                          : `${inscriptosCount}/${maxCupo} vacantes`}
+                          : `${maxCupo-inscriptosCount}/${maxCupo} vacantes`}
                     </span>
                   </div>
 

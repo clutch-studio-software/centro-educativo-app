@@ -122,7 +122,7 @@ const ActiveRouteDetails = ({
       {bajaSolicitada && (
         <div
           data-testid="transport-scheduled-withdrawal-alert"
-          className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2"
+          className="p-3 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2"
         >
           <span className="material-symbols-outlined text-amber-600 text-base shrink-0">
             info
@@ -159,11 +159,11 @@ const StudentTransportCard = ({ student, transportDetails }) => {
   return (
     <div
       data-testid="student-transport-card"
-      className="bg-white rounded-xl border border-slate-200/80 p-5 md:p-6 shadow-sm space-y-4"
+      className="bg-white rounded-md border border-slate-200/80 p-5 md:p-6 shadow-sm space-y-4"
     >
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
             <span className="material-symbols-outlined text-lg">
               directions_bus
             </span>
@@ -173,7 +173,7 @@ const StudentTransportCard = ({ student, transportDetails }) => {
               Transporte Escolar
             </p>
             <p className="text-xs text-slate-500">
-              Vehículo oficial: Mercedes-Benz Sprinter
+              Vehículo oficial: Mercedes-Benz Sprinter (15 plazas estándar)
             </p>
           </div>
         </div>
@@ -186,7 +186,7 @@ const StudentTransportCard = ({ student, transportDetails }) => {
       {!isEnrolled ? (
         <div
           data-testid="no-transport-message"
-          className="p-4 rounded-lg bg-slate-50 border border-dashed border-slate-250 text-center text-xs text-slate-500"
+          className="p-4 rounded-md bg-slate-50 border border-dashed border-slate-250 text-center text-xs text-slate-500"
         >
           El estudiante no cuenta con suscripción activa al transporte escolar.
         </div>

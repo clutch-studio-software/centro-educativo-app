@@ -42,16 +42,14 @@ const StudentSportsCard = ({ sports = [] }) => {
               <div
                 key={spKey}
                 data-testid={`enrolled-sport-item-${spKey}`}
-                className="p-3.5 rounded-lg border border-emerald-100 bg-emerald-50/40 flex flex-col justify-between gap-2"
+                className="p-3.5 rounded-b-lg border border-emerald-100 bg-emerald-50/40 flex flex-col justify-between gap-2"
               >
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-emerald-600 text-base">
-                      fitness_center
-                    </span>
-                    {sp.nombre}
-                  </h3>
+                <div className='text-left'>
+                  <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+
+                    {sp.emoji + sp.nombre}
+                  </p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {sp.categoria || 'Deportes Institucionales'}
                   </p>

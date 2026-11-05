@@ -22,7 +22,7 @@ const ParentTransportEnrolledView = ({
 
   return (
     <div className="space-y-4">
-      <div className="p-4 rounded-lg bg-purple-50/60 border border-purple-200/80 space-y-2.5">
+      <div className="p-4 rounded-md bg-purple-50/60 border border-purple-200/80 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h4 className="text-sm font-bold text-purple-950 flex items-center gap-1.5">
@@ -32,7 +32,7 @@ const ParentTransportEnrolledView = ({
               Recorrido Asignado: {assignedRoute || 'Ruta Escolar'}
             </h4>
             <p className="text-xs text-purple-800 mt-0.5">
-              Unidad: Mercedes-Benz Sprinter (15 plazas de pasajeros)
+              Unidad: Mercedes-Benz Sprinter (15 plazas estándar)
             </p>
           </div>
           <span className="text-xs font-bold text-purple-700 bg-purple-100 px-2.5 py-1 rounded-md">
@@ -75,7 +75,7 @@ const ParentTransportEnrolledView = ({
 
       {!bajaSolicitada && (
         <div className="flex items-center justify-between pt-1">
-          <p className="text-xs text-slate-500 max-w-md">
+          <p className="text-xs text-slate-500">
             {isCancelableToday
               ? 'Como la inscripción fue realizada hoy, puede dar de baja el servicio inmediatamente.'
               : `La inscripción rige este mes. La baja solicitada quedará en efecto a partir del ${nextMonthDisplay}.`}

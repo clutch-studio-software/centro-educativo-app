@@ -43,7 +43,7 @@ const StudentProfileHeader = ({ student, isParentView = false }) => {
   return (
     <div
       data-testid="student-profile-header"
-      className="bg-white rounded-xl border border-slate-200/80 p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6"
+      className="bg-white rounded-md border border-slate-200/80 p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center md:items-start gap-6"
     >
       <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white text-2xl md:text-3xl font-extrabold shadow-md shrink-0">
         {data.initials}
@@ -61,10 +61,14 @@ const StudentProfileHeader = ({ student, isParentView = false }) => {
             data-testid="student-header-status-badge"
             className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"
           >
-            {data.status}
+            {data.status == 'active' ? 'Activo' : 'Suspendido'}
           </span>
+
           {isParentView && (
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200">
+            <span
+              data-testid="student-header-parent-view-badge"
+              className="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-700 border border-orange-200"
+            >
               Hijo/a a cargo
             </span>
           )}

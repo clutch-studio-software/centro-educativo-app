@@ -5,9 +5,13 @@ import { formatDateDisplay } from '../../utils/transportSubscriptionUtils.js';
 
 /**
  * Tarjeta de Entradas de Enfermería para el Portal del Estudiante / Tutor
- * Muestra el historial inmutable de atenciones médicas, primeros auxilios y medicación autorizada.
+ * Muestra el historial inmutable de atenciones médicas y permite al tutor dar el visto a las notificaciones.
  */
-const StudentHealthRecordsCard = ({ student }) => {
+const StudentHealthRecordsCard = ({
+  student,
+  onAcknowledgeHealthEntry,
+  isProcessing = false,
+}) => {
   const records = useMemo(() => {
     return getStudentHealthRecords(student);
   }, [student]);
@@ -48,10 +52,12 @@ const StudentHealthRecordsCard = ({ student }) => {
         <div className="space-y-3">
           {records.map((entry) => {
             const dateStr = entry.fecha ? formatDateDisplay(entry.fecha) : 'Fecha reciente';
+            const isAcknowledged = Boolean(entry.vistoPorTutor || entry.visto);
+            const entryKey = entry.id || entry.fecha || entry.motivo;
 
             return (
               <div
-                key={entry.id || entry.fecha || entry.motivo}
+                key={entryKey}
                 data-testid={`health-record-item-${entry.id || 'entry'}`}
                 className="p-3.5 rounded-md border border-rose-100 bg-rose-50/30 space-y-2 text-left"
               >
@@ -70,35 +76,61 @@ const StudentHealthRecordsCard = ({ student }) => {
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px] text-slate-400">
-                      calendar_today
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px] text-slate-400">
+                        calendar_today
+                      </span>
+                      {dateStr}
                     </span>
-                    {dateStr}
-                  </span>
+                    {isAcknowledged ? (
+                      <span
+                        data-testid={`ack-badge-health-${entry.id || 'entry'}`}
+                        className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-0.5"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">done_all</span>
+                        Visto
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
-                <span className="text-xs text-slate-700 leading-relaxed font-medium">
+                <p className="text-xs text-slate-700 leading-relaxed font-medium">
                   {entry.motivo || entry.detalle || 'Atención registrada en gabinete.'}
-                </span>
+                </p>
 
-                <div className="pt-1.5 flex items-center justify-between text-[11px] text-slate-500">
+                <div className="pt-1.5 flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2">
                   <span className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-rose-500 text-[13px]">
                       health_and_safety
                     </span>
                     Atendido por: <strong className="text-slate-700">{entry.autor || 'Enfermería Escolar'}</strong>
                   </span>
-                  <span className="text-[10px] font-semibold text-rose-700">
-                    Gabinete Médico
-                  </span>
+
+                  <div className="flex items-center gap-2">
+                    {!isAcknowledged && onAcknowledgeHealthEntry && (
+                      <button
+                        type="button"
+                        data-testid={`btn-ack-health-${entry.id || 'entry'}`}
+                        disabled={isProcessing}
+                        onClick={() => onAcknowledgeHealthEntry(entry.id || entryKey)}
+                        className="px-2.5 py-1 rounded-md text-[11px] font-bold text-rose-700 bg-white hover:bg-rose-50 border border-rose-200 cursor-pointer transition-colors flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-[13px]">visibility</span>
+                        <span>Dar el Visto</span>
+                      </button>
+                    )}
+                    <span className="text-[10px] font-semibold text-rose-700">
+                      Gabinete Médico
+                    </span>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="p-5 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-1">
+        <div className="p-5 bg-slate-50 border border-dashed border-slate-200 rounded-md text-center space-y-1">
           <p className="text-xs font-semibold text-slate-600">
             Sin atenciones médicas o registros de enfermería por el momento.
           </p>

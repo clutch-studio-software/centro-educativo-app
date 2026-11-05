@@ -13,6 +13,7 @@ import StudentSportsCard from '../../components/portal/StudentSportsCard.jsx';
 import StudentTransportCard from '../../components/portal/StudentTransportCard.jsx';
 import StudentDiningCard from '../../components/portal/StudentDiningCard.jsx';
 import ParentServicesManager from '../../components/portal/ParentServicesManager.jsx';
+import ParentBillingPanel from '../../components/portal/ParentBillingPanel.jsx';
 import FamilyPortalBanner from '../../components/portal/FamilyPortalBanner.jsx';
 
 /**
@@ -45,6 +46,11 @@ const StudentParentPortal = () => {
     handleEnrollSport,
     handleWithdrawSport,
     handleToggleDining,
+    handleAcknowledgeHealth,
+    handleAcknowledgePreceptoria,
+    handleAcknowledgeAttendance,
+    handleJustifyAbsence,
+    handleUploadTransferVoucher,
   } = useFamilyPortalState(user);
 
   if (loading) {
@@ -84,7 +90,7 @@ const StudentParentPortal = () => {
         {feedback && (
           <div
             data-testid="portal-feedback-alert"
-            className={`p-4 rounded-xl text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200 ${
+            className={`p-4 rounded-md text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200 ${
               feedback.type === 'error'
                 ? 'bg-rose-50 text-rose-800 border border-rose-200'
                 : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
@@ -115,43 +121,85 @@ const StudentParentPortal = () => {
           />
         )}
 
-        <StudentProfileHeader
-          student={currentStudent}
-          isParentView={isParentUser}
-        />
-
-        {isParentUser && portalMode === 'inscripciones' && (
-          <ParentServicesManager
-            student={currentStudent}
-            routes={routes}
-            allStudents={allStudents}
-            allSports={allSports}
-            onEnrollTransport={handleEnrollTransport}
-            onCancelTransport={handleCancelTransport}
-            onEnrollSport={handleEnrollSport}
-            onWithdrawSport={handleWithdrawSport}
-            onToggleDining={handleToggleDining}
-            isProcessing={isProcessing}
-          />
-        )}
-
-        {(isStudentUser || portalMode === 'perfil') && (
-          <div className="space-y-6">
-            <StudentAcademicSubjectsCard subjects={subjects} />
-            <StudentAttendanceCard student={currentStudent} />
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-              <StudentHealthRecordsCard student={currentStudent} />
-              <StudentPreceptoriaRecordsCard student={currentStudent} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StudentTransportCard
-                student={currentStudent}
-                transportDetails={transportDetails}
-              />
-              <StudentDiningCard diningDetails={diningDetails} />
-            </div>
-            <StudentSportsCard sports={sports} />
+        {isParentUser && linkedStudents.length === 0 ? (
+          <div
+            data-testid="no-linked-students-banner"
+            className="p-8 rounded-md bg-white border border-slate-200 text-center space-y-3"
+          >
+            <span className="material-symbols-outlined text-slate-400 text-4xl">
+              family_restroom
+            </span>
+            <h3 className="text-base font-bold text-slate-800">
+              No hay alumnos asociados a su cuenta de tutor
+            </h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Para vincular el legajo escolar de su hijo/a y acceder a los servicios, asistencias y facturación, por favor comuníquese con la administración escolar.
+            </p>
           </div>
+        ) : (
+          <>
+            <StudentProfileHeader
+              student={currentStudent}
+              isParentView={isParentUser}
+            />
+
+            {isParentUser && portalMode === 'inscripciones' && (
+              <ParentServicesManager
+                student={currentStudent}
+                routes={routes}
+                allStudents={allStudents}
+                allSports={allSports}
+                onEnrollTransport={handleEnrollTransport}
+                onCancelTransport={handleCancelTransport}
+                onEnrollSport={handleEnrollSport}
+                onWithdrawSport={handleWithdrawSport}
+                onToggleDining={handleToggleDining}
+                isProcessing={isProcessing}
+              />
+            )}
+
+            {isParentUser && portalMode === 'facturacion' && (
+              <ParentBillingPanel
+                linkedStudents={linkedStudents}
+                student={currentStudent}
+                user={user}
+                onUploadVoucher={handleUploadTransferVoucher}
+                isProcessing={isProcessing}
+              />
+            )}
+
+            {(isStudentUser || portalMode === 'perfil') && (
+              <div className="space-y-6">
+                <StudentAcademicSubjectsCard subjects={subjects} />
+                <StudentAttendanceCard
+                  student={currentStudent}
+                  onAcknowledgeAttendance={handleAcknowledgeAttendance}
+                  onJustifyAbsence={handleJustifyAbsence}
+                  isProcessing={isProcessing}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                  <StudentHealthRecordsCard
+                    student={currentStudent}
+                    onAcknowledgeHealthEntry={handleAcknowledgeHealth}
+                    isProcessing={isProcessing}
+                  />
+                  <StudentPreceptoriaRecordsCard
+                    student={currentStudent}
+                    onAcknowledgePreceptoriaEntry={handleAcknowledgePreceptoria}
+                    isProcessing={isProcessing}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <StudentTransportCard
+                    student={currentStudent}
+                    transportDetails={transportDetails}
+                  />
+                  <StudentDiningCard diningDetails={diningDetails} />
+                </div>
+                <StudentSportsCard sports={sports} />
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

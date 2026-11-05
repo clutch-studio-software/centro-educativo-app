@@ -55,14 +55,14 @@ const ParentTransportSection = ({
   return (
     <div
       data-testid="parent-transport-section"
-      className="bg-white rounded-xl border border-slate-200 p-5 md:p-6 space-y-5 shadow-sm text-left"
+      className="bg-white rounded-md border border-slate-200 p-5 md:p-6 space-y-5 shadow-sm text-left"
     >
       <PortalSectionHeader
         icon="directions_bus"
         iconBgClass="bg-purple-50"
         iconColorClass="text-purple-600"
         title="Autogestión de Transporte Escolar"
-        subtitle="Vehículo: Mercedes-Benz Sprinter"
+        subtitle="Vehículo: Mercedes-Benz Sprinter (15 plazas estándar)"
         statusBadge={
           <span
             data-testid="transport-status-tag"
