@@ -81,9 +81,23 @@ const AttendanceHistoryList = ({
               </p>
 
               {item.justificacion?.detalle && (
-                <p className="text-[11px] text-blue-800 font-medium">
-                  Justificativo cargado: {item.justificacion.detalle}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  <p className="text-[11px] text-blue-800 font-medium">
+                    Justificativo cargado: {item.justificacion.detalle}
+                  </p>
+                  {item.justificacion.comprobanteUrl && (
+                    <a
+                      href={item.justificacion.comprobanteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid={`link-justification-file-${itemKey}`}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:text-blue-900 underline bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">attach_file</span>
+                      <span>{item.justificacion.comprobanteNombre || 'Ver comprobante'}</span>
+                    </a>
+                  )}
+                </div>
               )}
             </div>
 
