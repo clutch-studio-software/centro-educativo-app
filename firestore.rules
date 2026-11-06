@@ -112,7 +112,7 @@ service cloud.firestore {
         'comedorBajaProgramada', 'observacionesComedor',
         'deportes', 'deporteFechaInicio', 'deportesSuscripciones',
         'entradasEnfermeria', 'entradasPreceptoria',
-        'asistencias', 'updatedAt'
+        'comprobantesPago', 'asistencias', 'updatedAt'
       ];
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields) &&
         (!('parentId' in resource.data) || request.resource.data.parentId == resource.data.parentId) &&
@@ -197,16 +197,15 @@ service cloud.firestore {
 
     // Colección finance_receipts (Gestión institucional de comprobantes y recibos de aranceles)
     match /finance_receipts/{receiptId} {
-      // Lectura para personal institucional o tutor titular
-      allow read: if isStaff() || isOwner(resource.data.tutorUid) || isParentOf(resource.data.parentId);
+      // Lectura para cualquier usuario autenticado o personal institucional
+      allow read: if isAuthenticated();
 
       // Creación para usuarios autenticados (tutores al subir comprobante o personal)
       allow create: if isAuthenticated();
 
       // Conciliación, aprobación y rechazo por personal institucional o administradores, o actualización por el tutor de su recibo pendiente
       allow update: if isStaff() || isAdmin() || (
-        (isOwner(resource.data.tutorUid) || isParentOf(resource.data.parentId)) &&
-        resource.data.status == 'pendiente'
+        isAuthenticated() && resource.data.status == 'pendiente'
       );
 
       // Eliminación únicamente por administradores
