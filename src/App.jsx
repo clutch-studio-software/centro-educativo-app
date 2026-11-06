@@ -24,6 +24,7 @@ const StudentParentPortal = lazy(() => import('./pages/portal/StudentParentPorta
 // Admin Pages (Lazy loaded for on-demand downloading)
 const AdminPanel = lazy(() => import('./pages/StudentsManagement'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AttendanceManagement = lazy(() => import('./pages/admin/AttendanceManagement'));
 const TeachersManagement = lazy(() => import('./pages/admin/TeachersManagement'));
 const AcademicOfferManagement = lazy(() => import('./pages/admin/AcademicOfferManagement'));
 const SportsManagement = lazy(() => import('./pages/admin/SportsManagement'));
@@ -72,6 +73,7 @@ function App() {
           <Route element={<AdminProtectedRoute />}>
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/alumnos" element={<AdminPanel />} />
+            <Route path="/admin/asistencias" element={<AttendanceManagement />} />
             <Route path="/admin/legacy" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/docentes" element={<TeachersManagement />} />
