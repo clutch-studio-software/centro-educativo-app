@@ -332,6 +332,34 @@ export const useFamilyPortalState = (user) => {
         voucherData,
         linkedStudents,
       });
+      if (receipt) {
+        const linkedIds = new Set(linkedStudents.map((s) => String(s.id)));
+        setAllStudents((prev) =>
+          prev.map((st) => {
+            if (!linkedIds.has(String(st.id))) return st;
+            const prevVouchers = Array.isArray(st.comprobantesPago) ? st.comprobantesPago : [];
+            const newVoucherEntry = {
+              id: receipt.id,
+              invoicePeriod: receipt.invoicePeriod || receipt.month,
+              uploadDate: receipt.uploadDate,
+              declaredAmount: receipt.declaredAmount,
+              operationCode: receipt.bankingVoucher?.operationCode || '',
+              originBank: receipt.bankingVoucher?.originBank || '',
+              fileName: receipt.bankingVoucher?.attachmentName || '',
+              fileSize: receipt.bankingVoucher?.attachmentSize || '',
+              fileUrl: receipt.bankingVoucher?.fileUrl || '',
+              status: receipt.status || 'pendiente',
+            };
+            return {
+              ...st,
+              comprobantesPago: [
+                newVoucherEntry,
+                ...prevVouchers.filter((v) => v.invoicePeriod !== newVoucherEntry.invoicePeriod),
+              ],
+            };
+          })
+        );
+      }
       setFeedback({
         type: 'success',
         message: `Comprobante de transferencia #${receipt.id} enviado exitosamente. Administración revisará la acreditación a la brevedad.`,

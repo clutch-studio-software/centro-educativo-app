@@ -1,5 +1,5 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from './firebase.js';
+import { auth, storage } from './firebase.js';
 
 export const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 export const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg'];
@@ -65,13 +65,15 @@ export const uploadFileToStorage = async ({
   folder = 'vouchers',
   userId = 'general',
   recordId = 'doc',
+  extraMetadata = {},
 }) => {
   const validation = validateUploadedFile(file);
   if (!validation.valid) {
     throw new Error(validation.error);
   }
 
-  const cleanUserId = String(userId || 'general').trim().replace(/[^a-zA-Z0-9_-]/g, '');
+  const effectiveUid = auth.currentUser?.uid || userId || 'general';
+  const cleanUserId = String(effectiveUid).trim().replace(/[^a-zA-Z0-9_-]/g, '');
   const cleanRecordId = String(recordId || 'doc').trim().replace(/[^a-zA-Z0-9_-]/g, '');
   const safeOriginalName = String(file.name || 'archivo')
     .replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -89,6 +91,7 @@ export const uploadFileToStorage = async ({
         uploadedBy: cleanUserId,
         recordId: cleanRecordId,
         uploadedAt: new Date().toISOString(),
+        ...extraMetadata,
       },
     };
 

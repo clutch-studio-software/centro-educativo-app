@@ -1,12 +1,12 @@
 import {
   doc,
+  setDoc,
   updateDoc,
   getDoc,
   getDocs,
   collection,
   query,
   where,
-  addDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db } from './firebase.js';
@@ -800,7 +800,7 @@ export const acknowledgeAttendanceRecordApi = async ({ student, attendanceId, tu
 };
 
 /**
- * Justifica formalmente una falta injustificada
+ * Justifica formalmente una falta injustificada y asocia el comprobante en Firebase Storage al alumno y la falta
  */
 export const justifyStudentAbsenceApi = async ({
   student,
@@ -813,6 +813,7 @@ export const justifyStudentAbsenceApi = async ({
 }) => {
   if (!student || !absenceId) return student;
 
+  const effectiveUid = auth.currentUser?.uid || tutorUser?.uid || tutorUser?.id || 'tutor';
   const tutorName = tutorUser?.nombreCompleto || tutorUser?.nombre || 'Tutor Titular';
   const nowIso = new Date().toISOString();
 
@@ -822,8 +823,15 @@ export const justifyStudentAbsenceApi = async ({
       storageInfo = await uploadFileToStorage({
         file,
         folder: 'justifications',
-        userId: tutorUser?.uid || tutorUser?.id || 'tutor',
+        userId: effectiveUid,
         recordId: `${student.id}_${absenceId}`,
+        extraMetadata: {
+          studentId: String(student.id),
+          studentName: String(student.nombreCompleto || student.nombre || ''),
+          absenceId: String(absenceId),
+          tutorUid: String(effectiveUid),
+          type: 'absence_justification',
+        },
       });
     } catch (err) {
       console.warn('Aviso subiendo justificativo a Firebase Storage:', err.message);
@@ -841,25 +849,27 @@ export const justifyStudentAbsenceApi = async ({
       ? rawAsistencias.detalle
       : [];
 
-  let wasUnjustified = false;
-
   const updatedHistorial = historial.map((h) => {
     if (String(h.id) === String(absenceId) || h.fecha === absenceId) {
-      wasUnjustified =
-        h.tipo?.toLowerCase().includes('injustificada') || h.estado === 'injustificada';
       return {
         ...h,
         tipo: 'Falta Justificada (En revisión)',
         estado: 'justificacion_pendiente',
         justificada: true,
         justificacion: {
+          id: `just-${Date.now()}`,
+          studentId: student.id,
+          absenceId: String(absenceId),
+          fechaInasistencia: h.fecha,
           motivo,
           detalle,
-          certificadoRef,
+          certificadoRef: storageInfo?.fileName || certificadoRef || file?.name || '',
           fechaSolicitud: nowIso,
           solicitadoPor: tutorName,
+          tutorUid: effectiveUid,
           estado: 'En revisión de preceptoría',
           comprobanteUrl: storageInfo?.downloadUrl || '',
+          comprobanteStoragePath: storageInfo?.storagePath || '',
           comprobanteNombre: storageInfo?.fileName || file?.name || '',
           comprobanteTamanio: storageInfo?.fileSize || '',
         },
@@ -868,19 +878,24 @@ export const justifyStudentAbsenceApi = async ({
     return h;
   });
 
-  const prevInj =
-    typeof rawAsistencias.faltasInjustificadas === 'number'
-      ? rawAsistencias.faltasInjustificadas
-      : 2;
-  const prevJust =
-    typeof rawAsistencias.faltasJustificadas === 'number'
-      ? rawAsistencias.faltasJustificadas
-      : 1;
+  const faltasInjustificadas = updatedHistorial.filter(
+    (h) =>
+      h.estado === 'injustificada' ||
+      String(h.tipo || '').toLowerCase().includes('injustificada')
+  ).length;
+
+  const faltasJustificadas = updatedHistorial.filter(
+    (h) =>
+      h.estado === 'justificada' ||
+      h.estado === 'justificacion_pendiente' ||
+      (String(h.tipo || '').toLowerCase().includes('justificada') &&
+        !String(h.tipo || '').toLowerCase().includes('injustificada'))
+  ).length;
 
   const updatedAsistencias = {
     ...rawAsistencias,
-    faltasInjustificadas: wasUnjustified ? Math.max(0, prevInj - 1) : prevInj,
-    faltasJustificadas: wasUnjustified ? prevJust + 1 : prevJust,
+    faltasInjustificadas,
+    faltasJustificadas,
     historial: updatedHistorial,
   };
 
@@ -904,15 +919,28 @@ export const justifyStudentAbsenceApi = async ({
   return updatedStudent;
 };
 
+const slugifyReceiptKey = (text) =>
+  String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
 /**
- * Carga un comprobante de transferencia bancaria para el mes en curso
+ * Carga un comprobante de transferencia bancaria, lo sube a Firebase Storage
+ * y lo asocia a la factura correspondiente en finance_receipts y a los alumnos vinculados
  */
 export const uploadTransferVoucherApi = async ({ tutorUser, voucherData, linkedStudents = [] }) => {
-  const familyCode = `FAM-${String(tutorUser?.dni || '0492').replace(/\D/g, '').slice(-4)}`;
+  const effectiveUid = auth.currentUser?.uid || tutorUser?.uid || tutorUser?.id || '';
+  const cleanTutorDni = cleanDni(voucherData.tutorDni || tutorUser?.dni || '');
+  const familySuffix = (effectiveUid || cleanTutorDni || '0492').slice(-4).toUpperCase();
+  const familyCode = `#FAM-${familySuffix}`;
   const now = new Date();
   const day = String(now.getDate()).padStart(2, '0');
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const year = now.getFullYear();
+
+  const invoiceMonth = voucherData.invoicePeriod || 'Octubre 2026';
+  const studentIdsList = linkedStudents.map((c) => c.id).filter(Boolean);
 
   let storageInfo = null;
   if (voucherData.file) {
@@ -920,58 +948,155 @@ export const uploadTransferVoucherApi = async ({ tutorUser, voucherData, linkedS
       storageInfo = await uploadFileToStorage({
         file: voucherData.file,
         folder: 'vouchers',
-        userId: tutorUser?.uid || tutorUser?.id || 'tutor',
-        recordId: voucherData.invoicePeriod || 'general',
+        userId: effectiveUid || 'tutor',
+        recordId: `${slugifyReceiptKey(familyCode)}_${slugifyReceiptKey(invoiceMonth)}`,
+        extraMetadata: {
+          tutorUid: String(effectiveUid),
+          studentIds: studentIdsList.join(','),
+          invoicePeriod: invoiceMonth,
+          declaredAmount: String(voucherData.declaredAmount || 0),
+          type: 'payment_voucher',
+        },
       });
     } catch (err) {
       console.warn('Aviso subiendo comprobante a Firebase Storage:', err.message);
     }
   }
 
-  const invoiceMonth = voucherData.invoicePeriod || 'Noviembre 2026';
+  const tutorDisplayName =
+    voucherData.tutorName || tutorUser?.nombreCompleto || tutorUser?.nombre || 'Tutor Familiar';
+  const initials = tutorDisplayName
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'TF';
+
+  const deterministicDocId = `rec-${slugifyReceiptKey(familyCode)}-${slugifyReceiptKey(invoiceMonth)}`;
+  let targetReceiptId = deterministicDocId;
+  let existingData = null;
+  const studentIdsSet = new Set(studentIdsList.map(String));
+
+  try {
+    const qMonth = query(collection(db, 'finance_receipts'), where('month', '==', invoiceMonth));
+    const snap = await getDocs(qMonth);
+    snap.forEach((docSnap) => {
+      const d = docSnap.data();
+      const matchesUid = effectiveUid && (d.tutorUid === effectiveUid || d.parentId === effectiveUid);
+      const matchesDni = cleanTutorDni && cleanDni(d.tutorDni) === cleanTutorDni;
+      const docChildrenIds = Array.isArray(d.children) ? d.children.map((ch) => String(ch.id)) : [];
+      const matchesChild = docChildrenIds.some((cid) => studentIdsSet.has(cid));
+
+      if (matchesUid || matchesDni || matchesChild) {
+        targetReceiptId = docSnap.id;
+        existingData = d;
+      }
+    });
+  } catch (err) {
+    console.warn('Aviso buscando factura existente para asociar comprobante:', err.message);
+  }
+
+  const bankingVoucher = {
+    attachmentName: storageInfo?.fileName || voucherData.fileName || 'comprobante-transferencia.pdf',
+    attachmentSize: storageInfo?.fileSize || voucherData.fileSize || '1.2 MB',
+    fileUrl: storageInfo?.downloadUrl || '',
+    downloadUrl: storageInfo?.downloadUrl || '',
+    storagePath: storageInfo?.storagePath || '',
+    payerName: tutorDisplayName,
+    payerCuil: voucherData.tutorDni || tutorUser?.dni || '',
+    operationDate: voucherData.transferDate || `${year}-${month}-${day}`,
+    transferredAmount: Number(voucherData.declaredAmount) || existingData?.declaredAmount || 0,
+    paymentType: 'Transferencia Bancaria',
+    voucherStatus: 'Pendiente de conciliación',
+    isUploadedByTutor: true,
+    operationCode: voucherData.operationCode,
+    originBank: voucherData.originBank,
+    studentIds: studentIdsList,
+    invoicePeriod: invoiceMonth,
+  };
 
   const receiptPayload = {
-    id: `receipt-${Date.now()}`,
-    familyCode,
-    tutor: tutorUser?.nombreCompleto || tutorUser?.nombre || 'Tutor',
-    tutorDni: tutorUser?.dni || '',
-    tutorUid: tutorUser?.uid || null,
-    parentId: tutorUser?.uid || null,
+    ...(existingData || {}),
+    id: targetReceiptId,
+    familyCode: existingData?.familyCode || familyCode,
+    tutor: existingData?.tutor || tutorDisplayName,
+    tutorDni: existingData?.tutorDni || voucherData.tutorDni || tutorUser?.dni || '',
+    tutorUid: effectiveUid || existingData?.tutorUid || null,
+    parentId: effectiveUid || existingData?.parentId || null,
+    studentIds: studentIdsList,
+    initials: existingData?.initials || initials,
+    avatarBg: existingData?.avatarBg || 'bg-surface-container-high text-on-surface-variant',
     status: 'pendiente',
     uploadDate: `${day}/${month}/${year}`,
     uploadTime: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} hs`,
-    declaredAmount: voucherData.declaredAmount,
+    declaredAmount: Number(voucherData.declaredAmount) || existingData?.declaredAmount || 0,
     month: invoiceMonth,
     invoicePeriod: invoiceMonth,
-    bankingVoucher: {
-      attachmentName: storageInfo?.fileName || voucherData.fileName || 'comprobante-transferencia.pdf',
-      attachmentSize: storageInfo?.fileSize || voucherData.fileSize || '1.2 MB',
-      fileUrl: storageInfo?.downloadUrl || '',
-      downloadUrl: storageInfo?.downloadUrl || '',
-      payerName: voucherData.tutorName || tutorUser?.nombre || 'Tutor',
-      payerCuil: voucherData.tutorDni || tutorUser?.dni || '',
-      operationDate: voucherData.transferDate || `${year}-${month}-${day}`,
-      paymentType: 'Transferencia Bancaria',
-      voucherStatus: 'Pendiente de conciliación',
-      isUploadedByTutor: true,
-      operationCode: voucherData.operationCode,
-      originBank: voucherData.originBank,
-    },
+    conceptSummary: existingData?.conceptSummary || 'Cuota + Servicios Contratados',
+    bankingVoucher,
+    enrolledChildrenCount: linkedStudents.length || existingData?.enrolledChildrenCount || 1,
     childrenCount: linkedStudents.length,
-    children: linkedStudents.map((child) => ({
-      id: child.id,
-      name: child.nombreCompleto || `${child.nombre || ''} ${child.apellido || ''}`.trim(),
-      legajo: child.legajo || child.studentID_login || child.id,
-      academicInfo: `${child.curso || 'Grado no asignado'} - ${child.division || 'U'}`,
-    })),
-    createdAt: serverTimestamp(),
+    children:
+      Array.isArray(existingData?.children) && existingData.children.length > 0
+        ? existingData.children
+        : linkedStudents.map((child) => ({
+            id: child.id,
+            name: child.nombreCompleto || `${child.nombre || ''} ${child.apellido || ''}`.trim(),
+            legajo: child.legajo || child.studentID_login || child.id,
+            academicInfo: `${child.curso || 'Grado no asignado'} - ${child.division || 'U'}`,
+            totalAmount: Number(voucherData.declaredAmount) || 0,
+            feeBreakdown: [
+              {
+                id: `fee-base-${child.id}`,
+                label: `Cuota Nivel ${child.nivel || 'Primario'}`,
+                amount: Number(voucherData.declaredAmount) || 0,
+                dotClass: 'bg-primary',
+              },
+            ],
+          })),
+    updatedAt: serverTimestamp(),
   };
 
   try {
-    await addDoc(collection(db, 'finance_receipts'), receiptPayload);
+    await setDoc(doc(db, 'finance_receipts', targetReceiptId), receiptPayload, { merge: true });
   } catch (err) {
     console.warn('Aviso persistiendo recibo en Firestore:', err.message);
   }
+
+  // Asociar también el comprobante de pago directamente en el documento de cada alumno vinculado
+  await Promise.all(
+    linkedStudents
+      .filter((child) => Boolean(child?.id))
+      .map(async (child) => {
+        try {
+          const prevVouchers = Array.isArray(child.comprobantesPago) ? child.comprobantesPago : [];
+          const childVoucherRecord = {
+            id: targetReceiptId,
+            invoicePeriod: invoiceMonth,
+            uploadDate: receiptPayload.uploadDate,
+            declaredAmount: receiptPayload.declaredAmount,
+            operationCode: voucherData.operationCode,
+            originBank: voucherData.originBank,
+            fileName: bankingVoucher.attachmentName,
+            fileSize: bankingVoucher.attachmentSize,
+            fileUrl: bankingVoucher.fileUrl,
+            storagePath: bankingVoucher.storagePath,
+            status: 'pendiente',
+          };
+          const updatedVouchers = [
+            childVoucherRecord,
+            ...prevVouchers.filter((v) => v.invoicePeriod !== invoiceMonth),
+          ];
+          await updateDoc(doc(db, 'students', child.id), {
+            comprobantesPago: updatedVouchers,
+            updatedAt: serverTimestamp(),
+          });
+        } catch (errChild) {
+          console.warn('Aviso asociando comprobante al legajo del alumno:', errChild.message);
+        }
+      })
+  );
 
   try {
     const cachedReceipts = JSON.parse(localStorage.getItem('portal_finance_receipts') || '[]');

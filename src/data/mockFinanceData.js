@@ -6,6 +6,7 @@ export const FINANCE_STATUSES = {
 };
 
 export const FINANCE_MONTHS = [
+  'Noviembre 2026',
   'Octubre 2026',
   'Septiembre 2026',
   'Agosto 2026',

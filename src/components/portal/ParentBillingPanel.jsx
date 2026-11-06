@@ -143,6 +143,33 @@ const ParentBillingPanel = ({
 
   const grandTotal = familyBreakdown.reduce((acc, curr) => acc + curr.total, 0);
 
+  // Combinar comprobantes reales asociados a los alumnos con los recibos históricos
+  const studentVouchers = linkedStudents.flatMap((ch) =>
+    Array.isArray(ch.comprobantesPago) ? ch.comprobantesPago : []
+  );
+  const uniqueVoucherPeriods = new Map();
+  studentVouchers.forEach((v) => {
+    const key = v.invoicePeriod || v.id;
+    if (key && !uniqueVoucherPeriods.has(key)) {
+      uniqueVoucherPeriods.set(key, {
+        id: v.id || `v-${key}`,
+        period: v.invoicePeriod || 'Noviembre 2026',
+        receiptNumber: v.operationCode ? `OP-${v.operationCode}` : 'EN REVISIÓN',
+        amount: Number(v.declaredAmount) || grandTotal,
+        date: v.uploadDate || 'Reciente',
+        status: v.status || 'pendiente',
+        paymentMethod: `Transferencia Bancaria (${v.originBank || 'Banco'})`,
+        items: ['Cuota Escolar', 'Servicios Contratados'],
+        fileUrl: v.fileUrl || '',
+        fileName: v.fileName || '',
+      });
+    }
+  });
+  const combinedInvoices = [
+    ...Array.from(uniqueVoucherPeriods.values()),
+    ...PAST_INVOICES.filter((p) => !uniqueVoucherPeriods.has(p.period)),
+  ];
+
   return (
     <div
       data-testid="parent-billing-panel"
@@ -235,7 +262,7 @@ const ParentBillingPanel = ({
       {/* PESTAÑA 3: HISTORIAL DE RECIBOS ANTERIORES */}
       {activeTab === 'history' && (
         <BillingHistoricalReceiptsView
-          invoices={PAST_INVOICES}
+          invoices={combinedInvoices}
           arsFormatter={ARS_FORMATTER}
         />
       )}
