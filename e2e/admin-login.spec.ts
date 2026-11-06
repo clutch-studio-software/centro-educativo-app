@@ -47,7 +47,7 @@ test.describe('Autenticación y Dashboard de Administrador', () => {
     await passwordInput.fill(adminPassword);
 
     // 4. Enviar el formulario de autenticación
-    const submitButton = page.getByRole('button', { name: /acceso seguro/i });
+    const submitButton = page.getByRole('button', { name: /iniciar sesion|acceso seguro/i });
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
 

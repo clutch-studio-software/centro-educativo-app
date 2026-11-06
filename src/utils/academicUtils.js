@@ -5,7 +5,13 @@ import {
 } from '../data/mockAcademicOffer.js';
 
 /**
- * Catálogo oficial de los 4 recorridos del Servicio de Transporte Escolar (Regla de Negocio TPI)
+ * Capacidad estándar de la Mercedes-Benz Sprinter escolar (15 plazas de pasajeros)
+ */
+export const SPRINTER_CAPACITY = 15;
+
+/**
+ * Catálogo oficial de recorridos del Servicio de Transporte Escolar (Regla de Negocio TPI)
+ * Vehículo oficial: Mercedes-Benz Sprinter (15 plazas)
  */
 export const TRANSPORT_ROUTES = [
   {
@@ -14,6 +20,8 @@ export const TRANSPORT_ROUTES = [
     zona: 'Av. Sarmiento, Villa Río Negro y Parque Autódromo',
     horarioIda: '07:00 hs',
     horarioRegreso: '16:30 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
   },
   {
     id: 'Recorrido 2',
@@ -21,6 +29,8 @@ export const TRANSPORT_ROUTES = [
     zona: 'Av. Castelli, Soberanía Nacional y Campus UNNE',
     horarioIda: '07:05 hs',
     horarioRegreso: '16:30 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
   },
   {
     id: 'Recorrido 3',
@@ -28,6 +38,8 @@ export const TRANSPORT_ROUTES = [
     zona: 'Av. 9 de Julio, Las Palmas y Diagonal Eva Perón',
     horarioIda: '06:55 hs',
     horarioRegreso: '16:35 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
   },
   {
     id: 'Recorrido 4',
@@ -35,14 +47,17 @@ export const TRANSPORT_ROUTES = [
     zona: 'Av. 25 de Mayo, Plaza 25 de Mayo y Fontana',
     horarioIda: '07:10 hs',
     horarioRegreso: '16:25 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
   },
 ];
 
 /**
  * Obtiene el objeto de recorrido de transporte a partir de su ID o nombre, o del perfil del estudiante
  */
-export const getStudentTransportRoute = (student) => {
+export const getStudentTransportRoute = (student, routes = TRANSPORT_ROUTES) => {
   if (!student) return null;
+  const activeRoutes = Array.isArray(routes) && routes.length > 0 ? routes : TRANSPORT_ROUTES;
   const servicios = Array.isArray(student.servicios) ? student.servicios : [];
   const hasTransport = servicios.some((s) =>
     String(s).toLowerCase().includes('transporte')
@@ -50,15 +65,27 @@ export const getStudentTransportRoute = (student) => {
   if (!hasTransport && !student.recorridoTransporte) return null;
 
   const rawRoute = String(student.recorridoTransporte || '').trim();
-  const found = TRANSPORT_ROUTES.find(
+  const found = activeRoutes.find(
     (r) =>
       r.id.toLowerCase() === rawRoute.toLowerCase() ||
       r.nombre.toLowerCase() === rawRoute.toLowerCase()
   );
   if (found) return found;
 
+  if (rawRoute) {
+    return {
+      id: rawRoute,
+      nombre: rawRoute,
+      zona: 'Zona asignada',
+      horarioIda: '07:00 hs',
+      horarioRegreso: '16:30 hs',
+      capacidadMaxima: SPRINTER_CAPACITY,
+      vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
+    };
+  }
+
   if (hasTransport) {
-    return TRANSPORT_ROUTES[0];
+    return activeRoutes[0] || null;
   }
   return null;
 };

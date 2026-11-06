@@ -21,6 +21,12 @@ const NAV_ITEMS = [
     allowedRoles: ['Directivo', 'Administrativo', 'Docente', 'Enfermeria', 'Preceptoria'],
   },
   {
+    name: 'Registro de Asistencia',
+    icon: 'fact_check',
+    path: '/admin/asistencias',
+    allowedRoles: ['Directivo', 'Administrativo', 'Docente', 'Preceptoria'],
+  },
+  {
     name: 'Cuerpo Docente',
     icon: 'badge',
     path: '/admin/docentes',
