@@ -1,4 +1,225 @@
-import { parseCourseDivision } from '../data/mockAcademicOffer.js';
+import {
+  parseCourseDivision,
+  INITIAL_COURSES,
+  INITIAL_SUBJECTS,
+} from '../data/mockAcademicOffer.js';
+
+/**
+ * Capacidad estándar de la Mercedes-Benz Sprinter escolar (15 plazas de pasajeros)
+ */
+export const SPRINTER_CAPACITY = 15;
+
+/**
+ * Catálogo oficial de recorridos del Servicio de Transporte Escolar (Regla de Negocio TPI)
+ * Vehículo oficial: Mercedes-Benz Sprinter (15 plazas)
+ */
+export const TRANSPORT_ROUTES = [
+  {
+    id: 'Recorrido 1',
+    nombre: 'Recorrido 1 - Zona Norte',
+    zona: 'Av. Sarmiento, Villa Río Negro y Parque Autódromo',
+    horarioIda: '07:00 hs',
+    horarioRegreso: '16:30 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
+  },
+  {
+    id: 'Recorrido 2',
+    nombre: 'Recorrido 2 - Zona Sur',
+    zona: 'Av. Castelli, Soberanía Nacional y Campus UNNE',
+    horarioIda: '07:05 hs',
+    horarioRegreso: '16:30 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
+  },
+  {
+    id: 'Recorrido 3',
+    nombre: 'Recorrido 3 - Zona Este / Barranqueras',
+    zona: 'Av. 9 de Julio, Las Palmas y Diagonal Eva Perón',
+    horarioIda: '06:55 hs',
+    horarioRegreso: '16:35 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
+  },
+  {
+    id: 'Recorrido 4',
+    nombre: 'Recorrido 4 - Zona Oeste / Microcentro',
+    zona: 'Av. 25 de Mayo, Plaza 25 de Mayo y Fontana',
+    horarioIda: '07:10 hs',
+    horarioRegreso: '16:25 hs',
+    capacidadMaxima: SPRINTER_CAPACITY,
+    vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
+  },
+];
+
+/**
+ * Obtiene el objeto de recorrido de transporte a partir de su ID o nombre, o del perfil del estudiante
+ */
+export const getStudentTransportRoute = (student, routes = TRANSPORT_ROUTES) => {
+  if (!student) return null;
+  const activeRoutes = Array.isArray(routes) && routes.length > 0 ? routes : TRANSPORT_ROUTES;
+  const servicios = Array.isArray(student.servicios) ? student.servicios : [];
+  const hasTransport = servicios.some((s) =>
+    String(s).toLowerCase().includes('transporte')
+  );
+  if (!hasTransport && !student.recorridoTransporte) return null;
+
+  const rawRoute = String(student.recorridoTransporte || '').trim();
+  const found = activeRoutes.find(
+    (r) =>
+      r.id.toLowerCase() === rawRoute.toLowerCase() ||
+      r.nombre.toLowerCase() === rawRoute.toLowerCase()
+  );
+  if (found) return found;
+
+  if (rawRoute) {
+    return {
+      id: rawRoute,
+      nombre: rawRoute,
+      zona: 'Zona asignada',
+      horarioIda: '07:00 hs',
+      horarioRegreso: '16:30 hs',
+      capacidadMaxima: SPRINTER_CAPACITY,
+      vehiculo: 'Mercedes-Benz Sprinter (15 plazas)',
+    };
+  }
+
+  if (hasTransport) {
+    return activeRoutes[0] || null;
+  }
+  return null;
+};
+
+const DEFAULT_SUBJECTS_BY_LEVEL = {
+  inicial: [
+    {
+      id: 'sub-ini-1',
+      nombre: 'Iniciación a las Ciencias y Exploración',
+      cargaHoraria: '4 hs / semana',
+      profesor: { nombre: 'Prof. Carina Benítez', legajo: '#DOC-1018', initials: 'CB' },
+    },
+    {
+      id: 'sub-ini-2',
+      nombre: 'Expresión Artística, Música y Ritmo',
+      cargaHoraria: '4 hs / semana',
+      profesor: { nombre: 'Prof. Sofía Navarro', legajo: '#DOC-1025', initials: 'SN' },
+    },
+    {
+      id: 'sub-ini-3',
+      nombre: 'Educación Física Infantil y Juegos',
+      cargaHoraria: '3 hs / semana',
+      profesor: { nombre: 'Prof. Diego Arzamendia', legajo: '#DOC-1077', initials: 'DA' },
+    },
+    {
+      id: 'sub-ini-4',
+      nombre: 'Taller de Inglés Inicial',
+      cargaHoraria: '3 hs / semana',
+      profesor: { nombre: 'Lic. Laura Paoli', legajo: '#DOC-1054', initials: 'LP' },
+    },
+  ],
+  primario: [
+    {
+      id: 'sub-pri-1',
+      nombre: 'Prácticas del Lenguaje y Literatura',
+      cargaHoraria: '6 hs / semana',
+      profesor: { nombre: 'Prof. Laura Gómez', legajo: '#DOC-1011', initials: 'LG' },
+    },
+    {
+      id: 'sub-pri-2',
+      nombre: 'Matemática y Geometría',
+      cargaHoraria: '6 hs / semana',
+      profesor: { nombre: 'Prof. Mariana Valenzuela', legajo: '#DOC-1092', initials: 'MV' },
+    },
+    {
+      id: 'sub-pri-3',
+      nombre: 'Ciencias Naturales y Laboratorio',
+      cargaHoraria: '4 hs / semana',
+      profesor: { nombre: 'Dra. Marcela Quiroga', legajo: '#DOC-1021', initials: 'MQ' },
+    },
+    {
+      id: 'sub-pri-4',
+      nombre: 'Ciencias Sociales y Formación Ética',
+      cargaHoraria: '4 hs / semana',
+      profesor: { nombre: 'Prof. Roberto Gómez', legajo: '#DOC-1049', initials: 'RG' },
+    },
+    {
+      id: 'sub-pri-5',
+      nombre: 'Lengua Extranjera: Inglés',
+      cargaHoraria: '3 hs / semana',
+      profesor: { nombre: 'Lic. Laura Paoli', legajo: '#DOC-1054', initials: 'LP' },
+    },
+    {
+      id: 'sub-pri-6',
+      nombre: 'Educación Física y Deportes',
+      cargaHoraria: '3 hs / semana',
+      profesor: { nombre: 'Prof. Diego Arzamendia', legajo: '#DOC-1077', initials: 'DA' },
+    },
+  ],
+  secundario: [
+    {
+      id: 'sub-sec-1',
+      nombre: 'Matemática Aplicada & Algoritmos',
+      cargaHoraria: '5 hs / semana',
+      profesor: { nombre: 'Prof. Mariana Valenzuela', legajo: '#DOC-1092', initials: 'MV' },
+    },
+    {
+      id: 'sub-sec-2',
+      nombre: 'Lengua y Literatura',
+      cargaHoraria: '4 hs / semana',
+      profesor: { nombre: 'Lic. Laura Paoli', legajo: '#DOC-1054', initials: 'LP' },
+    },
+    {
+      id: 'sub-sec-3',
+      nombre: 'Biología Celular, Física & Química',
+      cargaHoraria: '4 hs / semana',
+      profesor: { nombre: 'Dra. Marcela Quiroga', legajo: '#DOC-1021', initials: 'MQ' },
+    },
+    {
+      id: 'sub-sec-4',
+      nombre: 'Tecnología, Robótica & Lógica',
+      cargaHoraria: '4 hs / semana',
+      profesor: { nombre: 'Ing. Carlos Méndez', legajo: '#DOC-1088', initials: 'CM' },
+    },
+    {
+      id: 'sub-sec-5',
+      nombre: 'Historia & Formación Ciudadana',
+      cargaHoraria: '3 hs / semana',
+      profesor: { nombre: 'Prof. Roberto Gómez', legajo: '#DOC-1049', initials: 'RG' },
+    },
+    {
+      id: 'sub-sec-6',
+      nombre: 'Educación Física & Hábitos Saludables',
+      cargaHoraria: '3 hs / semana',
+      profesor: { nombre: 'Prof. Diego Arzamendia', legajo: '#DOC-1077', initials: 'DA' },
+    },
+  ],
+};
+
+/**
+ * Resuelve las materias que cursa un alumno y el profesor a cargo de cada una según su curso/nivel.
+ */
+export const getStudentSubjectsWithTeachers = (
+  student,
+  courses = INITIAL_COURSES,
+  subjects = INITIAL_SUBJECTS
+) => {
+  if (!student) return [];
+  const sCurso = String(student.curso || '').trim().toLowerCase();
+  if (!sCurso || sCurso === 'sin asignar') return [];
+
+  const matchedCourse = (courses || []).find((c) => matchesStudentToDivision(student, c));
+  if (matchedCourse) {
+    const exactSubjects = (subjects || []).filter(
+      (sub) => sub.cursoId === matchedCourse.id && sub.dictadoActivo !== false
+    );
+    if (exactSubjects.length > 0) {
+      return exactSubjects;
+    }
+  }
+
+  const nivelKey = normalizeNivel(student.nivel);
+  return DEFAULT_SUBJECTS_BY_LEVEL[nivelKey] || DEFAULT_SUBJECTS_BY_LEVEL.primario;
+};
 
 /**
  * Cursos canónicos estandarizados por nivel educativo
@@ -52,6 +273,57 @@ export const normalizeNivel = (nivel = '') => {
   if (norm.includes('ini')) return 'inicial';
   if (norm.includes('sec')) return 'secundario';
   return 'primario';
+};
+
+/**
+ * Determina si un alumno pertenece a una división/curso determinado.
+ */
+export const LEGACY_COURSE_MAP = {
+  'curso-ns-1': { nombre: '1° Año', division: 'A' },
+  'curso-ns-2': { nombre: '2° Año', division: 'A' },
+  'curso-np-1': { nombre: '1° Grado', division: 'A' },
+  'curso-ni-3': { nombre: 'Sala 4 Años', division: 'Verde' },
+};
+
+/**
+ * Determina si una materia pertenece a un curso/división (por ID exacto, mapeo legado o coincidencia de curso y división).
+ */
+export const matchesSubjectToCourse = (subject, course) => {
+  if (!subject || !course) return false;
+
+  if (subject.cursoId && subject.cursoId === course.id) {
+    return true;
+  }
+
+  const legacyTarget = LEGACY_COURSE_MAP[subject.cursoId];
+  if (legacyTarget) {
+    const cNom = String(course.nombre || '').toLowerCase();
+    const cDiv = String(course.division || 'A').toLowerCase();
+    if (
+      cNom.includes(legacyTarget.nombre.toLowerCase()) &&
+      cDiv.includes(legacyTarget.division.toLowerCase())
+    ) {
+      return true;
+    }
+  }
+
+  const cNombre = String(course.nombre || '').trim().toLowerCase();
+  const cDivision = String(course.division || 'A').trim().toLowerCase();
+  const sCurso = String(subject.curso || subject.cursoNombre || '').trim().toLowerCase();
+
+  if (sCurso) {
+    const isNameMatch = sCurso.includes(cNombre) || cNombre.includes(sCurso);
+    const isDivMatch =
+      !subject.division ||
+      sCurso.includes(cDivision) ||
+      String(subject.division).trim().toLowerCase() === cDivision;
+
+    if (isNameMatch && isDivMatch) {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 /**

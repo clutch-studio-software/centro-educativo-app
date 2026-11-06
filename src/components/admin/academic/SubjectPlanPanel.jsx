@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { sortCourseObjects } from '../../../utils/academicUtils';
+import {
+  sortCourseObjects,
+  matchesSubjectToCourse,
+} from '../../../utils/academicUtils';
 
 const PAGE_SIZE = 5;
 
@@ -11,13 +14,19 @@ const SubjectPlanPanel = ({
   onToggleDictado,
   onReassignTeacher,
   onAddNewSubject,
+  canManageSubjects = true,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
+  const selectedCourse = useMemo(() => {
+    return courses.find((c) => c.id === selectedCourseId) || courses[0];
+  }, [courses, selectedCourseId]);
+
   // Filter subjects for the selected course
   const currentCourseSubjects = useMemo(() => {
-    return subjects.filter((s) => s.cursoId === selectedCourseId);
-  }, [subjects, selectedCourseId]);
+    if (!selectedCourse) return [];
+    return subjects.filter((s) => matchesSubjectToCourse(s, selectedCourse));
+  }, [subjects, selectedCourse]);
 
   // Pagination
   const totalItems = currentCourseSubjects.length;
@@ -30,8 +39,6 @@ const SubjectPlanPanel = ({
       setCurrentPage(page);
     }
   };
-
-  const selectedCourse = courses.find((c) => c.id === selectedCourseId);
 
   const sortedCourses = useMemo(() => {
     return sortCourseObjects(courses);
@@ -70,7 +77,7 @@ const SubjectPlanPanel = ({
               onCourseChange(e.target.value);
               setCurrentPage(1);
             }}
-            className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
+            className="text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
           >
             {sortedCourses.map((c) => (
               <option key={c.id} value={c.id}>
@@ -114,13 +121,15 @@ const SubjectPlanPanel = ({
                     <p className="font-medium text-slate-600 text-sm">
                       No hay materias asignadas en este curso todavía.
                     </p>
-                    <button
-                      type="button"
-                      onClick={onAddNewSubject}
-                      className="mt-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3.5 py-1.5 rounded-xl transition-colors cursor-pointer"
-                    >
-                      + Asignar primera materia
-                    </button>
+                    {canManageSubjects && (
+                      <button
+                        type="button"
+                        onClick={onAddNewSubject}
+                        className="mt-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3.5 py-1.5 rounded-xl transition-colors cursor-pointer"
+                      >
+                        + Asignar primera materia
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -136,9 +145,17 @@ const SubjectPlanPanel = ({
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 whitespace-nowrap">
-                        {cargaHoraria}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 whitespace-nowrap">
+                          {cargaHoraria}
+                        </span>
+                        {subject.horario && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 whitespace-nowrap">
+                            <span className="material-symbols-outlined text-[13px]">schedule</span>
+                            <span>{subject.horario}</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2.5">
@@ -160,37 +177,53 @@ const SubjectPlanPanel = ({
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <label
-                        className="relative inline-flex items-center cursor-pointer"
-                        title={dictadoActivo ? 'Pausar dictado' : 'Activar dictado'}
-                      >
-                        <span className="sr-only">{dictadoActivo ? 'Pausar dictado' : 'Activar dictado'}</span>
-                        <input
-                          type="checkbox"
-                          checked={dictadoActivo}
-                          onChange={() => onToggleDictado(subject)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-7 h-3.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-emerald-500"></div>
-                      </label>
+                      {canManageSubjects ? (
+                        <label
+                          className="relative inline-flex items-center cursor-pointer"
+                          title={dictadoActivo ? 'Pausar dictado' : 'Activar dictado'}
+                        >
+                          <span className="sr-only">{dictadoActivo ? 'Pausar dictado' : 'Activar dictado'}</span>
+                          <input
+                            type="checkbox"
+                            checked={dictadoActivo}
+                            onChange={() => onToggleDictado(subject)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-7 h-3.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                      ) : (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            dictadoActivo
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {dictadoActivo ? 'Activo' : 'Pausado'}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3.5 pr-6 pl-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => onReassignTeacher(subject)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50/50 hover:bg-blue-50 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-                        title="Reasignar docente a cargo"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                          ></path>
-                        </svg>
-                        Reasignar
-                      </button>
+                      {canManageSubjects ? (
+                        <button
+                          type="button"
+                          onClick={() => onReassignTeacher(subject)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50/50 hover:bg-blue-50 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                          title="Reasignar docente a cargo"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                            ></path>
+                          </svg>
+                          Reasignar
+                        </button>
+                      ) : (
+                        <span className="text-slate-300 text-xs px-2">—</span>
+                      )}
                     </td>
                   </tr>
                 );

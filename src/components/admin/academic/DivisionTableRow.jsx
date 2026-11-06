@@ -20,6 +20,70 @@ const getProgressBg = (isFull, percentage) => {
   return 'bg-emerald-500';
 };
 
+const DivisionOccupancyCell = ({ enrolledCount, cupoMax, percentage, isFull, vacantes }) => {
+  const badgeStyle = getBadgeStyle(isFull, percentage);
+  const progressBg = getProgressBg(isFull, percentage);
+  const badgeText = isFull ? 'Lleno' : `${vacantes} vac.`;
+
+  return (
+    <td className="py-4 px-6">
+      <div className="flex flex-col gap-1.5 min-w-[140px] max-w-[200px]">
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <span className="text-slate-800">
+            <span className="font-bold">{enrolledCount}</span>
+            <span className="text-slate-400 font-normal"> / {cupoMax}</span>
+          </span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${badgeStyle}`}>
+            {badgeText}
+          </span>
+        </div>
+        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${progressBg}`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      </div>
+    </td>
+  );
+};
+
+const DivisionStatusCell = ({ course, canManageAcademic, onToggleStatus, courseLabel }) => {
+  return (
+    <td className="py-4 px-6 text-center">
+      <div className="flex items-center justify-center gap-2">
+        {canManageAcademic ? (
+          <label
+            className="relative inline-flex items-center cursor-pointer select-none"
+            title={course.activo ? 'Desactivar división' : 'Activar división'}
+          >
+            <input
+              type="checkbox"
+              checked={course.activo}
+              onChange={() => onToggleStatus(course)}
+              className="sr-only peer"
+              aria-label={`Estado de ${courseLabel}`}
+            />
+            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors" />
+          </label>
+        ) : (
+          <span
+            className={`w-2.5 h-2.5 rounded-full ${course.activo ? 'bg-emerald-500' : 'bg-slate-300'}`}
+            title={course.activo ? 'División activa' : 'División pausada'}
+          />
+        )}
+        <span
+          className={`text-[11px] font-semibold hidden lg:inline-block ${
+            course.activo ? 'text-emerald-600' : 'text-slate-400'
+          }`}
+        >
+          {course.activo ? 'Activa' : 'Pausada'}
+        </span>
+      </div>
+    </td>
+  );
+};
+
 export const DivisionTableRow = ({
   course,
   level,
@@ -27,6 +91,7 @@ export const DivisionTableRow = ({
   activeMenuCourseId,
   onToggleStatus,
   onOpenMenu,
+  canManageAcademic = true,
 }) => {
   const { nombre, division } = parseCourseDivision(course);
   const enrolledStudents = getEnrolledStudentsForCourse(students, course);
@@ -38,9 +103,6 @@ export const DivisionTableRow = ({
   const isTurnoTarde = course.turno?.toLowerCase().includes('tarde');
 
   const levelIcon = getLevelIcon(level?.id);
-  const badgeStyle = getBadgeStyle(isFull, percentage);
-  const progressBg = getProgressBg(isFull, percentage);
-  const badgeText = isFull ? 'Lleno' : `${vacantes} vac.`;
   const shiftText = isTurnoTarde ? 'Tarde' : 'Mañana';
   const shiftIcon = isTurnoTarde ? 'wb_twilight' : 'wb_sunny';
   const shiftColor = isTurnoTarde ? 'text-amber-500' : 'text-blue-500';
@@ -94,52 +156,21 @@ export const DivisionTableRow = ({
       </td>
 
       {/* 4. Ocupación */}
-      <td className="py-4 px-6">
-        <div className="flex flex-col gap-1.5 min-w-[140px] max-w-[200px]">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-slate-800">
-              <span className="font-bold">{cupoOcupado}</span>
-              <span className="text-slate-400 font-normal"> / {cupoMax}</span>
-            </span>
-            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${badgeStyle}`}>
-              {badgeText}
-            </span>
-          </div>
-          {/* Progress bar */}
-          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${progressBg}`}
-              style={{ width: `${percentage}%` }}
-            ></div>
-          </div>
-        </div>
-      </td>
+      <DivisionOccupancyCell
+        enrolledCount={cupoOcupado}
+        cupoMax={cupoMax}
+        percentage={percentage}
+        isFull={isFull}
+        vacantes={vacantes}
+      />
 
       {/* 5. Switch para activar/desactivar división */}
-      <td className="py-4 px-6 text-center">
-        <div className="flex items-center justify-center gap-2">
-          <label
-            className="relative inline-flex items-center cursor-pointer select-none"
-            title={course.activo ? 'Desactivar división' : 'Activar división'}
-          >
-            <input
-              type="checkbox"
-              checked={course.activo}
-              onChange={() => onToggleStatus(course)}
-              className="sr-only peer"
-              aria-label={`Estado de ${nombre} división ${division}`}
-            />
-            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
-          </label>
-          <span
-            className={`text-[11px] font-semibold hidden lg:inline-block ${
-              course.activo ? 'text-emerald-600' : 'text-slate-400'
-            }`}
-          >
-            {course.activo ? 'Activa' : 'Pausada'}
-          </span>
-        </div>
-      </td>
+      <DivisionStatusCell
+        course={course}
+        canManageAcademic={canManageAcademic}
+        onToggleStatus={onToggleStatus}
+        courseLabel={`${nombre} división ${division}`}
+      />
 
       {/* 6. Botón de más acciones */}
       <td className="py-4 px-6 text-right">

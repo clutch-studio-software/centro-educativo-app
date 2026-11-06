@@ -3,8 +3,6 @@ import {
   INITIAL_COURSES,
   INITIAL_SUBJECTS,
 } from '../data/mockAcademicOffer';
-import { MOCK_TEACHERS } from '../data/mockTeachers';
-import { MOCK_STUDENTS } from '../data/mockStudents';
 import {
   getEnrolledStudentsForCourse,
   matchesStudentToDivision,
@@ -20,6 +18,8 @@ import {
   toggleAcademicCourseStatus,
   deleteAcademicCourse,
   syncAcademicCatalog,
+  fetchAcademicSubjects,
+  saveAcademicSubjects,
 } from '../services/academicService';
 
 export const useAcademicOfferData = (showToast) => {
@@ -30,7 +30,7 @@ export const useAcademicOfferData = (showToast) => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCourseId, setSelectedCourseId] = useState('curso-ns-1');
 
-  // Sync with Firestore courses, teachers and students
+  // Sync with Firestore courses, teachers, students and subjects catalog
   useEffect(() => {
     let isMounted = true;
 
@@ -47,7 +47,8 @@ export const useAcademicOfferData = (showToast) => {
         console.warn('Error al cargar docentes desde Firestore:', err);
         return [];
       }),
-    ]).then(([firestoreCourses, adminData, teacherList]) => {
+      fetchAcademicSubjects().catch(() => null),
+    ]).then(([firestoreCourses, adminData, teacherList, firestoreSubjects]) => {
       if (!isMounted) return;
 
       const realTeachers = Array.isArray(teacherList) ? teacherList : [];
@@ -61,6 +62,7 @@ export const useAcademicOfferData = (showToast) => {
       );
       const activeTeacherIds = new Set(realTeachers.map((t) => t.id));
 
+      let activeCourses = INITIAL_COURSES;
       if (firestoreCourses && firestoreCourses.length > 0) {
         const sanitizedCourses = firestoreCourses.map((c) => {
           const hasDocenteId = c.docenteId && activeTeacherIds.has(c.docenteId);
@@ -73,6 +75,7 @@ export const useAcademicOfferData = (showToast) => {
           return c;
         });
 
+        activeCourses = sanitizedCourses;
         setCourses(sanitizedCourses);
         setSelectedCourseId((prev) => {
           const exists = sanitizedCourses.some((c) => c.id === prev);
@@ -83,6 +86,80 @@ export const useAcademicOfferData = (showToast) => {
       if (adminData) {
         setStudents(Array.isArray(adminData.students) ? adminData.students : []);
       }
+
+      const baseSubjects =
+        Array.isArray(firestoreSubjects) && firestoreSubjects.length > 0
+          ? [...firestoreSubjects]
+          : [...INITIAL_SUBJECTS];
+
+      const mergedSubjects = [...baseSubjects];
+
+      for (const t of realTeachers) {
+        if (!Array.isArray(t.catedras)) continue;
+        const tName =
+          t.nombreCompleto ||
+          (t.apellido ? `${t.nombre} ${t.apellido}` : t.nombre) ||
+          'Docente a cargo';
+        const tLegajo = t.legajo || '#DOC';
+        const tInitials =
+          t.iniciales ||
+          (t.nombre ? `${t.nombre[0]}${t.apellido?.[0] || 'D'}`.toUpperCase() : 'DC');
+
+        for (const cat of t.catedras) {
+          const cleanNombre = (cat.nombre || '').trim();
+          const cleanCurso = (cat.curso || '').trim();
+          if (!cleanNombre || !cleanCurso) continue;
+
+          const matchedCourse = activeCourses.find((c) => {
+            const cFullName = `${c.nombre} ${c.division || 'A'}`.toLowerCase();
+            return (
+              c.id === cat.cursoId ||
+              cFullName === cleanCurso.toLowerCase() ||
+              cleanCurso.toLowerCase().includes(String(c.nombre || '').toLowerCase())
+            );
+          });
+
+          const targetCourseId = matchedCourse?.id || cat.cursoId || null;
+
+          const idx = mergedSubjects.findIndex((s) => {
+            const isSameName = String(s.nombre || '').trim().toLowerCase() === cleanNombre.toLowerCase();
+            const isSameCourseId = targetCourseId && s.cursoId === targetCourseId;
+            const isSameCursoName = String(s.curso || '').trim().toLowerCase() === cleanCurso.toLowerCase();
+            return isSameName && (isSameCourseId || isSameCursoName);
+          });
+
+          const entry = {
+            id: idx >= 0 ? mergedSubjects[idx].id : `sub-cat-${cat.id || Date.now()}`,
+            cursoId: targetCourseId || (idx >= 0 ? mergedSubjects[idx].cursoId : null),
+            curso: cleanCurso,
+            division: cat.division || (cleanCurso.includes('B') ? 'B' : 'A'),
+            nombre: cleanNombre,
+            cargaHoraria: `${cat.horasSemanales || 4} hs / semana`,
+            horario: cat.horario || '',
+            profesor: {
+              id: t.id,
+              nombre: tName,
+              legajo: tLegajo,
+              initials: tInitials,
+              avatarBg: 'bg-indigo-100 text-indigo-700',
+              online: true,
+            },
+            dictadoActivo: true,
+          };
+
+          if (idx >= 0) {
+            mergedSubjects[idx] = { ...mergedSubjects[idx], ...entry };
+          } else {
+            mergedSubjects.push(entry);
+          }
+        }
+      }
+
+      setSubjects(mergedSubjects);
+      if (firestoreSubjects === null) {
+        void saveAcademicSubjects(mergedSubjects);
+      }
+
       setIsLoading(false);
     });
 
@@ -98,7 +175,8 @@ export const useAcademicOfferData = (showToast) => {
       prev.map((c) => (c.id === course.id ? { ...c, activo: updatedStatus } : c))
     );
     showToast(
-      `La división "${course.nombre} (${course.division || 'A'})" ha sido ${updatedStatus ? 'activada' : 'pausada'
+      `La división "${course.nombre} (${course.division || 'A'})" ha sido ${
+        updatedStatus ? 'activada' : 'pausada'
       }.`,
       updatedStatus ? 'success' : 'info'
     );
@@ -118,7 +196,6 @@ export const useAcademicOfferData = (showToast) => {
     const cleanNombre = (newCourseData.nombre || '').trim();
     const cleanDivision = (newCourseData.division || 'A').toUpperCase().trim();
 
-    // Validar duplicado exacto en el mismo nivel
     const isDuplicate = courses.some((c) => {
       if (c.nivelId !== newCourseData.nivelId) return false;
       const isSameCourse =
@@ -170,7 +247,6 @@ export const useAcademicOfferData = (showToast) => {
       const cleanDivision = (updatedCourseData.division || 'A').toUpperCase().trim();
       const targetNivel = updatedCourseData.nivelId || previousCourse?.nivelId;
 
-      // Validar si la nueva división ya existe en otro curso del mismo nivel
       const isDuplicate = courses.some((c) => {
         if (c.id === courseId) return false;
         if (c.nivelId !== targetNivel) return false;
@@ -197,7 +273,6 @@ export const useAcademicOfferData = (showToast) => {
           cleanDivision !== prevDivision ||
           updatedCourseData.nivelId !== previousCourse.nivelId);
 
-      // Obtener alumnos que pertenecían a este curso antes de la edición
       const affectedStudents = previousCourse
         ? getEnrolledStudentsForCourse(students, previousCourse)
         : [];
@@ -205,21 +280,20 @@ export const useAcademicOfferData = (showToast) => {
       const nextCourses = courses.map((c) =>
         c.id === courseId
           ? {
-            ...c,
-            ...updatedCourseData,
-            nombre: cleanNombre,
-            division: cleanDivision,
-          }
+              ...c,
+              ...updatedCourseData,
+              nombre: cleanNombre,
+              division: cleanDivision,
+            }
           : c
       );
       setCourses(nextCourses);
 
-      // Actualizar inmediatamente a los alumnos en el estado local
       if (hasNameOrDivisionChanged && affectedStudents.length > 0) {
         const affectedIds = new Set(affectedStudents.map((s) => s.id));
         const nivelCap = updatedCourseData.nivelId
           ? updatedCourseData.nivelId.charAt(0).toUpperCase() +
-          updatedCourseData.nivelId.slice(1)
+            updatedCourseData.nivelId.slice(1)
           : '';
         const newCursoDisplay = nivelCap
           ? `${nivelCap} - ${cleanNombre} ${cleanDivision}`
@@ -245,9 +319,10 @@ export const useAcademicOfferData = (showToast) => {
       }
 
       showToast(
-        `División "${cleanNombre} (${cleanDivision})" actualizada.${hasNameOrDivisionChanged && affectedStudents.length > 0
-          ? ` ${affectedStudents.length} alumno(s) reasociados a la nueva división.`
-          : ''
+        `División "${cleanNombre} (${cleanDivision})" actualizada.${
+          hasNameOrDivisionChanged && affectedStudents.length > 0
+            ? ` ${affectedStudents.length} alumno(s) reasociados a la nueva división.`
+            : ''
         }`,
         'success'
       );
@@ -304,9 +379,11 @@ export const useAcademicOfferData = (showToast) => {
     }
   }, [courses, students, showToast]);
 
-  // Handlers for Subject actions
+  // Handlers for Subject actions with Firestore persistence
   const handleCreateSubject = useCallback((newSubject) => {
-    setSubjects((prev) => [newSubject, ...prev]);
+    const nextSubjects = [newSubject, ...subjects];
+    setSubjects(nextSubjects);
+    void saveAcademicSubjects(nextSubjects);
     setCourses((prev) =>
       prev.map((c) =>
         c.id === newSubject.cursoId
@@ -316,29 +393,30 @@ export const useAcademicOfferData = (showToast) => {
     );
     setSelectedCourseId(newSubject.cursoId);
     showToast(`Materia "${newSubject.nombre}" agregada al plan.`, 'success');
-  }, [showToast]);
+  }, [subjects, showToast]);
 
   const handleToggleSubjectDictado = useCallback((subject) => {
     const updatedDictado = !subject.dictadoActivo;
-    setSubjects((prev) =>
-      prev.map((s) =>
-        s.id === subject.id ? { ...s, dictadoActivo: updatedDictado } : s
-      )
+    const nextSubjects = subjects.map((s) =>
+      s.id === subject.id ? { ...s, dictadoActivo: updatedDictado } : s
     );
+    setSubjects(nextSubjects);
+    void saveAcademicSubjects(nextSubjects);
     showToast(
       `Dictado de "${subject.nombre}" ${updatedDictado ? 'reanudado' : 'pausado'}.`,
       'info'
     );
-  }, [showToast]);
+  }, [subjects, showToast]);
 
   const handleSaveReassignedTeacher = useCallback((subjectId, newProfesor) => {
-    setSubjects((prev) =>
-      prev.map((s) => (s.id === subjectId ? { ...s, profesor: newProfesor } : s))
+    const nextSubjects = subjects.map((s) =>
+      s.id === subjectId ? { ...s, profesor: newProfesor } : s
     );
+    setSubjects(nextSubjects);
+    void saveAcademicSubjects(nextSubjects);
     showToast(`Docente ${newProfesor.nombre} reasignado a la materia.`, 'success');
-  }, [showToast]);
+  }, [subjects, showToast]);
 
-  // Group courses by level (ordenados por curso y luego por división)
   const coursesByLevel = useMemo(() => {
     return {
       inicial: sortCourseObjects(courses.filter((c) => c.nivelId === 'inicial')),

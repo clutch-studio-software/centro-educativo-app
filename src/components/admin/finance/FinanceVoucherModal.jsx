@@ -143,9 +143,22 @@ const FinanceVoucherModal = ({ receipt, onClose }) => {
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
-                Verificado
-              </span>
+              <div className="flex items-center gap-2">
+                {(receipt.bankingVoucher.fileUrl || receipt.bankingVoucher.downloadUrl) && (
+                  <a
+                    href={receipt.bankingVoucher.fileUrl || receipt.bankingVoucher.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1 text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 flex items-center gap-1 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                    <span>Ver Archivo</span>
+                  </a>
+                )}
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
+                  Verificado
+                </span>
+              </div>
             </div>
 
             {/* Conceptos imputados */}

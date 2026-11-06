@@ -107,18 +107,30 @@ const LoggedInView = ({ user, onLogout }) => {
           </div>
 
           <div className="flex items-center justify-center gap-3 flex-wrap mt-4">
-            {isStaffUser && (
+            {isStaffUser ? (
               <button
                 type="button"
+                data-testid="go-to-admin-btn"
                 onClick={() => navigate('/admin/dashboard')}
                 className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold font-label rounded-full transition-all duration-200 border-none shadow-sm cursor-pointer flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-lg">dashboard</span>
                 <span>Ir al Panel de Administración</span>
               </button>
+            ) : (
+              <button
+                type="button"
+                data-testid="go-to-portal-btn"
+                onClick={() => navigate('/mi-portal')}
+                className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold font-label rounded-full transition-all duration-200 border-none shadow-sm cursor-pointer flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">school</span>
+                <span>Ir a Mi Portal Escolar</span>
+              </button>
             )}
             <button
               type="button"
+              data-testid="logout-btn"
               onClick={onLogout}
               className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold font-label rounded-full transition-all duration-200 border border-slate-200 shadow-sm cursor-pointer"
             >
@@ -197,20 +209,18 @@ const LoginRoleSelector = ({ selectedRole, setSelectedRole }) => (
             key={roleKey}
             type="button"
             onClick={() => setSelectedRole(roleKey)}
-            className={`p-3.5 rounded-xl border-2 text-left transition-all duration-150 cursor-pointer flex flex-col justify-between gap-1.5 ${
-              isSelected
-                ? 'border-orange-500 bg-orange-50/80 shadow-xs'
-                : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70 text-slate-700'
-            }`}
+            className={`p-3.5 rounded-xl border-2 text-left transition-all duration-150 cursor-pointer flex flex-col justify-between gap-1.5 ${isSelected
+              ? 'border-orange-500 bg-orange-50/80 shadow-xs'
+              : 'border-slate-200 bg-slate-50 hover:bg-slate-100/70 text-slate-700'
+              }`}
           >
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
                 <span
-                  className={`material-symbols-outlined rounded-lg p-1.5 text-lg flex items-center justify-center transition-colors ${
-                    isSelected
-                      ? 'text-orange-600 bg-orange-100'
-                      : 'text-slate-500 bg-slate-200/70'
-                  }`}
+                  className={`material-symbols-outlined rounded-lg p-1.5 text-lg flex items-center justify-center transition-colors ${isSelected
+                    ? 'text-orange-600 bg-orange-100'
+                    : 'text-slate-500 bg-slate-200/70'
+                    }`}
                   style={{
                     fontVariationSettings: isSelected ? "'FILL' 1" : "'FILL' 0",
                   }}
@@ -218,9 +228,8 @@ const LoginRoleSelector = ({ selectedRole, setSelectedRole }) => (
                   {role.icon}
                 </span>
                 <span
-                  className={`font-label text-sm font-bold ${
-                    isSelected ? 'text-orange-950' : 'text-slate-800'
-                  }`}
+                  className={`font-label text-sm font-bold ${isSelected ? 'text-orange-950' : 'text-slate-800'
+                    }`}
                 >
                   {role.label}
                 </span>
@@ -309,75 +318,80 @@ const LoginForm = ({
             ¿Olvidaste tu contraseña?
           </button>
         </div>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="material-symbols-outlined text-slate-400">
-            lock
-          </span>
-        </div>
-        <input
-          className="w-full pl-12 pr-12 py-3 bg-slate-50 text-slate-800 placeholder-slate-400 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-0 transition-colors font-body text-base"
-          id="password"
-          name="password"
-          placeholder="••••••••"
-          type={showPassword ? 'text' : 'password'}
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-          <button
-            className="text-slate-400 hover:text-slate-600 focus:outline-none"
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            <span className="material-symbols-outlined">
-              {showPassword ? 'visibility' : 'visibility_off'}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <span className="material-symbols-outlined text-slate-400">
+              lock
             </span>
-          </button>
+          </div>
+          <input
+            className="w-full pl-12 pr-12 py-3 bg-slate-50 text-slate-800 placeholder-slate-400 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-orange-500 focus:ring-0 transition-colors font-body text-base"
+            id="password"
+            name="password"
+            placeholder="••••••••"
+            type={showPassword ? 'text' : 'password'}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+            <button
+              className="text-slate-400 hover:text-slate-600 focus:outline-none"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              <span className="material-symbols-outlined">
+                {showPassword ? 'visibility' : 'visibility_off'}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Remember Me */}
-    <div className="flex items-center">
-      <input
-        className="h-5 w-5 rounded-md bg-slate-50 border-slate-300 text-orange-600 focus:ring-orange-500 focus:ring-offset-0 cursor-pointer"
-        id="remember-me"
-        name="remember-me"
-        type="checkbox"
-        checked={rememberMe}
-        onChange={(e) => setRememberMe(e.target.checked)}
-      />
-      <label
-        className="ml-3 block font-body text-sm text-slate-600 cursor-pointer select-none"
-        htmlFor="remember-me"
-      >
-        Mantener sesión iniciada
-      </label>
-    </div>
+      {/* Remember Me */}
+      <div className="flex items-center">
+        <input
+          className="h-5 w-5 rounded-md bg-slate-50 border-slate-300 text-orange-600 focus:ring-orange-500 focus:ring-offset-0 cursor-pointer"
+          id="remember-me"
+          name="remember-me"
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+        />
+        <label
+          className="ml-3 block font-body text-sm text-slate-600 cursor-pointer select-none"
+          htmlFor="remember-me"
+        >
+          Mantener sesión iniciada
+        </label>
+      </div>
 
-    {/* Submit Button */}
-    <button
-      className="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-full shadow-md text-base font-bold font-label text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-600 transition-all active:scale-95 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
-      type="submit"
-      disabled={isSubmitting}
-    >
-      {isSubmitting ? 'Verificando...' : 'Acceso Seguro'}
-      <span className="material-symbols-outlined ml-2">
-        arrow_forward
-      </span>
-    </button>
-    {loginError && (
-      <p
-        test-dataid="login-error-text"
-        className="text-red-500 text-sm font-bold text-center mt-4 bg-red-50 p-2.5 rounded-xl border border-red-200"
+      {/* Submit Button */}
+      <button
+        className="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-full shadow-md text-base font-bold font-label text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-600 transition-all active:scale-95 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+        type="submit"
+        disabled={isSubmitting}
       >
-        {loginError}
-      </p>
-    )}
-  </form>
-);
+        {isSubmitting
+          ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          : <div className='items-center flex'>
+            <span>Iniciar Sesion</span>
+              <span className="material-symbols-outlined ml-2">
+                arrow_forward
+              </span>
+            </div>}
+
+      </button>
+      {loginError && (
+        <p
+          test-dataid="login-error-text"
+          className="text-red-500 text-sm font-bold text-center mt-4 bg-red-50 p-2.5 rounded-xl border border-red-200"
+        >
+          {loginError}
+        </p>
+      )}
+    </form>
+  );
 };
 
 const Login = () => {
@@ -393,7 +407,7 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
-  // Redirigir automáticamente a los usuarios administradores / staff con privilegios
+  // Redirigir automáticamente a los usuarios administradores o al portal de familias
   useEffect(() => {
     if (isLoggedIn && user) {
       const staffRoles = [
@@ -409,6 +423,8 @@ const Login = () => {
       const userRole = String(user.role || '').toLowerCase();
       if (staffRoles.includes(userRole)) {
         void navigate('/admin/dashboard');
+      } else {
+        void navigate('/mi-portal');
       }
     }
   }, [isLoggedIn, user, navigate]);

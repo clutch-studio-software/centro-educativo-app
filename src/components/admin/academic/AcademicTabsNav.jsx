@@ -23,28 +23,26 @@ export const AcademicTabsNav = ({
               id={`tabBtn-${level.id}`}
               data-testid={`tab-${level.id}`}
               onClick={() => onSelectTab(level.id)}
-              className={`pb-3 px-3 border-b-2 flex items-center gap-2 transition-all font-semibold text-sm cursor-pointer whitespace-nowrap bg-transparent ${
-                isActive
+              className={`pb-3 px-3 border-b-2 flex items-center gap-2 transition-all font-semibold text-sm cursor-pointer whitespace-nowrap bg-transparent ${isActive
                   ? 'border-blue-600 text-blue-600 font-bold'
                   : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[18px]">
                 {level.id === 'inicial'
                   ? 'toys'
                   : level.id === 'primario'
-                  ? 'school'
-                  : 'history_edu'}
+                    ? 'school'
+                    : 'history_edu'}
               </span>
               <span>{level.name}</span>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
-                  isActive
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${isActive
                     ? 'bg-blue-50 text-blue-700 border-blue-200'
                     : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}
+                  }`}
               >
-                {count} {level.id === 'inicial' ? 'Salas' : 'Divisiones'}
+                {count} {level.id === 'inicial' ? 'Salas' : (count > 1 ? 'Divisiones' : 'División')}
               </span>
             </button>
           );
@@ -55,11 +53,10 @@ export const AcademicTabsNav = ({
           id="tabBtnPlanes"
           data-testid="tab-planes-materias"
           onClick={() => onSelectTab('planes')}
-          className={`pb-3 px-3 border-b-2 flex items-center gap-2 transition-all font-semibold text-sm cursor-pointer whitespace-nowrap bg-transparent ${
-            activeTab === 'planes'
+          className={`pb-3 px-3 border-b-2 flex items-center gap-2 transition-all font-semibold text-sm cursor-pointer whitespace-nowrap bg-transparent ${activeTab === 'planes'
               ? 'border-blue-600 text-blue-600 font-bold'
               : 'border-transparent text-slate-400 hover:text-slate-700 hover:border-slate-300'
-          }`}
+            }`}
         >
           <span className="material-symbols-outlined text-[18px]">menu_book</span>
           <span>Planes de Materias</span>

@@ -29,7 +29,7 @@ export async function loginAsAdmin(page: Page) {
   await page.locator('#password').fill(adminPassword);
 
   // Enviar formulario
-  const submitButton = page.getByRole('button', { name: /acceso seguro/i });
+  const submitButton = page.getByRole('button', { name: /iniciar sesion|acceso seguro/i });
   await submitButton.click();
 
   // Esperar redirección al panel

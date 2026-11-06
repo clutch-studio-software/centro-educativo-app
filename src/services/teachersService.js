@@ -157,6 +157,8 @@ const normalizeFirestoreTeacher = (docId, data = {}) => {
         ? `${tratamiento} ${nombreFinal} ${apellidoFinal}`.trim()
         : `${nombreFinal} ${apellidoFinal}`.trim()),
     dni: String(data.dni || '').trim(),
+    direccion: (data.direccion || data.domicilio || '').trim(),
+    domicilio: (data.domicilio || data.direccion || '').trim(),
     titulacion: (data.titulacion || '').trim(),
     especialidad: (data.especialidad || '').trim(),
     email: (data.email || '').trim().toLowerCase(),
@@ -584,11 +586,12 @@ export const deleteTeacherApi = async (teacherId, teacherEmail = null) => {
 /**
  * Actualiza las cátedras y carga horaria asignadas a un docente.
  */
-export const updateTeacherAssignmentsApi = async (teacherId, { catedras, grillaHoraria }) => {
+export const updateTeacherAssignmentsApi = async (teacherId, { catedras, cargaHoras, grillaHoraria }) => {
   await ensureAdminAuth();
 
   const currentList = getStoredTeachers();
-  const totalHoras = (catedras || []).reduce((acc, cat) => acc + (Number(cat.horasSemanales) || 0), 0);
+  const computedHoras = (catedras || []).reduce((acc, cat) => acc + (Number(cat.horasSemanales) || 0), 0);
+  const totalHoras = typeof cargaHoras === 'number' && !Number.isNaN(cargaHoras) ? cargaHoras : computedHoras;
 
   try {
     await updateDoc(doc(db, 'users', teacherId), {
@@ -634,6 +637,7 @@ export const exportTeachersPayrollCsv = (teachers = []) => {
     'Teléfono',
     'Estado',
     'Horas Asignadas',
+    'Cátedras y Cursos',
   ];
   const rows = teachers.map((t) => [
     t.legajo,
@@ -648,6 +652,7 @@ export const exportTeachersPayrollCsv = (teachers = []) => {
     t.telefono,
     t.condicion || t.estado,
     t.cargaHoras || 0,
+    `"${((t.catedras || []).map((c) => `${c.nombre} (${c.curso})`).join(' | ') || 'Sin asignar').replace(/"/g, '""')}"`,
   ]);
 
   const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\r\n');

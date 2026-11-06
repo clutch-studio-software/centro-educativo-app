@@ -70,13 +70,23 @@ const normalizeStudent = (s, parents) => {
   const tutorEmail = parent?.email || s.tutorEmail || s.emailPadre || '';
   const tutorDomicilio = parent?.domicilio || s.tutorDomicilio || '';
 
+  const nombre = (s.nombre || '').trim() || 'Sin Nombre';
+  const apellido = (s.apellido || '').trim();
+  const nombreCompleto =
+    (s.nombreCompleto || '').trim() ||
+    (apellido && !nombre.toLowerCase().endsWith(apellido.toLowerCase())
+      ? `${nombre} ${apellido}`.trim()
+      : nombre);
+
   const initials =
-    (s.nombre || '')
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase() || 'AL';
+    (apellido
+      ? `${nombre[0] || ''}${apellido[0] || ''}`
+      : nombreCompleto
+          .split(' ')
+          .map((n) => n[0])
+          .slice(0, 2)
+          .join('')
+    ).toUpperCase() || 'AL';
 
   const curso = s.curso || 'sin asignar';
   const division = s.division || 'sin asignar';
@@ -95,8 +105,9 @@ const normalizeStudent = (s, parents) => {
     parentId: s.parentId || parent?.id || null,
     legajo: s.studentID_login || s.legajo || `#LEG-${s.id.slice(0, 6)}`,
     dni: formatDni(s.dni || ''),
-    nombre: s.nombre || 'Sin Nombre',
-    apellido: s.apellido || '',
+    nombre,
+    apellido,
+    nombreCompleto,
     tutorNombre,
     tutorDni,
     tutorTelefono,
@@ -109,6 +120,7 @@ const normalizeStudent = (s, parents) => {
     cursoDisplay,
     estado: s.status === 'active' ? 'Activo - Regular' : s.status || 'Activo - Regular',
     servicios: s.servicios || ['Comedor Escolar'],
+    recorridoTransporte: s.recorridoTransporte || null,
     initials,
     avatarGradient,
     badgeVariant,
@@ -151,7 +163,10 @@ const filterStudentsList = (students, { searchQuery, levelFilter, courseFilter, 
       const query = normalize(searchQuery);
       const cleanDigitsQuery = searchQuery.replace(/\D/g, '');
 
-      const matchesName = normalize(student.nombre).includes(query);
+      const matchesName =
+        normalize(student.nombreCompleto).includes(query) ||
+        normalize(student.nombre).includes(query) ||
+        normalize(student.apellido).includes(query);
       const matchesLegajo = normalize(student.legajo).includes(query);
       const matchesDni =
         cleanDigitsQuery.length >= 3 &&
@@ -589,6 +604,9 @@ const useStudentActions = ({
           {
             nombre: newStudent.nombre,
             apellido: newStudent.apellido || '',
+            nombreCompleto:
+              newStudent.nombreCompleto ||
+              `${newStudent.nombre || ''} ${newStudent.apellido || ''}`.trim(),
             dni: newStudent.dni.replace(/\./g, ''),
             fechaNacimiento: newStudent.fechaNacimiento || '',
             nivel: newStudent.nivel.toLowerCase(),
@@ -596,6 +614,8 @@ const useStudentActions = ({
             division: newStudent.division || 'sin asignar',
             genero: 'No especificado',
             domicilio: newStudent.domicilio || '',
+            servicios: newStudent.servicios || ['Comedor Escolar'],
+            recorridoTransporte: newStudent.recorridoTransporte || null,
           },
         ],
       });
@@ -604,7 +624,7 @@ const useStudentActions = ({
       setCurrentPage(1);
       setNotification({
         type: 'success',
-        message: `¡Alumno ${newStudent.nombre} matriculado y persistido en Firebase correctamente!`,
+        message: `¡Alumno ${newStudent.nombreCompleto || newStudent.nombre} matriculado y persistido en Firebase correctamente!`,
       });
     } catch (err) {
       console.error('Error persistiendo alumno en Firebase:', err);
@@ -642,7 +662,7 @@ const useStudentActions = ({
 
       setNotification({
         type: 'info',
-        message: `El alumno ${student.nombre} fue ${actionLabel}.`,
+        message: `El alumno ${student.nombreCompleto || student.nombre} fue ${actionLabel}.`,
       });
     } catch (err) {
       console.error('Error al actualizar estado del alumno en backend:', err);
@@ -655,8 +675,9 @@ const useStudentActions = ({
   };
 
   const handleDeleteStudent = async (student) => {
+    const studentFullName = student.nombreCompleto || student.nombre;
     const confirmed = window.confirm(
-      `¿Confirmas la baja y eliminación definitiva del legajo de ${student.nombre} (#${student.legajo})?\n\nEsta acción eliminará el legajo digital del sistema.`
+      `¿Confirmas la baja y eliminación definitiva del legajo de ${studentFullName} (#${student.legajo})?\n\nEsta acción eliminará el legajo digital del sistema.`
     );
     if (!confirmed) return;
 
@@ -668,7 +689,7 @@ const useStudentActions = ({
 
       setNotification({
         type: 'success',
-        message: `Legajo de ${student.nombre} eliminado definitivamente.`,
+        message: `Legajo de ${studentFullName} eliminado definitivamente.`,
       });
     } catch (err) {
       console.error('Error al eliminar alumno en backend:', err);
@@ -681,9 +702,10 @@ const useStudentActions = ({
   };
 
   const handleResetStudentPassword = async (student) => {
+    const studentFullName = student.nombreCompleto || student.nombre;
     const rawDni = String(student.dni || '').replace(/\D/g, '');
     const confirmed = window.confirm(
-      `¿Deseas restablecer la contraseña del alumno ${student.nombre}?\n\nLa contraseña se establecerá a su número de DNI (${rawDni || 'DNI registrado'}) y se le solicitará cambiarla en su próximo inicio de sesión.`
+      `¿Deseas restablecer la contraseña del alumno ${studentFullName}?\n\nLa contraseña se establecerá a su número de DNI (${rawDni || 'DNI registrado'}) y se le solicitará cambiarla en su próximo inicio de sesión.`
     );
     if (!confirmed) return;
 
@@ -691,12 +713,12 @@ const useStudentActions = ({
       await resetStudentPasswordToDniApi({
         studentId: student.id,
         studentDni: rawDni,
-        studentNombre: student.nombre,
+        studentNombre: studentFullName,
       });
 
       setNotification({
         type: 'success',
-        message: `Contraseña del alumno ${student.nombre} restablecida a su DNI (${rawDni}).`,
+        message: `Contraseña del alumno ${studentFullName} restablecida a su DNI (${rawDni}).`,
       });
     } catch (err) {
       console.error('Error al restablecer contraseña del alumno:', err);
@@ -709,9 +731,10 @@ const useStudentActions = ({
 
   const handleResetTutorPassword = async (student) => {
     const tutorName = student.tutorNombre || 'Tutor';
+    const studentFullName = student.nombreCompleto || student.nombre;
     const rawDni = String(student.tutorDni || '').replace(/\D/g, '');
     const confirmed = window.confirm(
-      `¿Deseas restablecer la contraseña del tutor ${tutorName} (asociado a ${student.nombre})?\n\nLa contraseña se establecerá a su número de DNI (${rawDni || 'DNI registrado'}) y se le solicitará cambiarla en su próximo inicio de sesión.`
+      `¿Deseas restablecer la contraseña del tutor ${tutorName} (asociado a ${studentFullName})?\n\nLa contraseña se establecerá a su número de DNI (${rawDni || 'DNI registrado'}) y se le solicitará cambiarla en su próximo inicio de sesión.`
     );
     if (!confirmed) return;
 
@@ -743,7 +766,7 @@ const useStudentActions = ({
       await loadStudentsData();
       setNotification({
         type: 'success',
-        message: `¡Legajo de ${payload.studentData.nombre} actualizado correctamente!`,
+        message: `¡Legajo de ${payload.studentData.nombreCompleto || payload.studentData.nombre} actualizado correctamente!`,
       });
     } catch (err) {
       console.error('Error al editar alumno en backend:', err);
@@ -885,7 +908,7 @@ const StudentsManagement = () => {
   const handleGenerateCertificate = (student) => {
     setNotification({
       type: 'info',
-      message: `Generando constancia de alumno regular para ${student.nombre}...`,
+      message: `Generando constancia de alumno regular para ${student.nombreCompleto || student.nombre}...`,
     });
   };
 

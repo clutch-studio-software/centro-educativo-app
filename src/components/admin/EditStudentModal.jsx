@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { formatDni, validarEdadPorNivel, isValidPhone, sanitizePhoneNumber } from '../../utils/validators';
-import { sortCourseNames, sortDivisions } from '../../utils/academicUtils';
+import {
+  sortCourseNames,
+  sortDivisions,
+  TRANSPORT_ROUTES,
+} from '../../utils/academicUtils';
 import { CURSOS_POR_NIVEL } from '../../data/mockStudents';
 import { DEFAULT_ACADEMIC_OFFER } from '../../services/adminService';
 
@@ -79,6 +83,7 @@ const buildSavePayload = ({
   studentDivision,
   studentEstado,
   studentServicios,
+  recorridoTransporte,
   currentTutorId,
   tutorMode,
   selectedReassignedTutor,
@@ -107,8 +112,9 @@ const buildSavePayload = ({
   return {
     studentId: student.id,
     studentData: {
-      nombre: fullName,
+      nombre: baseNombre,
       apellido: cleanApellido,
+      nombreCompleto: fullName,
       dni: studentDni.trim(),
       fechaNacimiento: studentFechaNacimiento,
       domicilio: studentDomicilio.trim(),
@@ -117,6 +123,9 @@ const buildSavePayload = ({
       division: studentDivision,
       estado: studentEstado,
       servicios: studentServicios,
+      recorridoTransporte: studentServicios.includes('Transporte Escolar')
+        ? recorridoTransporte || 'Recorrido 1'
+        : null,
       initials: initials || 'AL',
     },
     tutorId: currentTutorId,
@@ -151,7 +160,7 @@ const getAvailableDivisiones = (academicOffer, nivel, curso) => {
   return ['A'];
 };
 
-const StudentFieldsTab = ({
+const EditStudentPersonalBlock = ({
   studentNombre,
   setStudentNombre,
   studentApellido,
@@ -163,20 +172,12 @@ const StudentFieldsTab = ({
   studentDomicilio,
   setStudentDomicilio,
   studentNivel,
-  handleNivelChange,
-  studentCurso,
-  handleCursoChange,
-  availableCursos,
-  studentDivision,
-  setStudentDivision,
-  availableDivisiones,
-  studentEstado,
-  setStudentEstado,
-  studentServicios,
-  handleToggleServicio,
-}) => (
-  <div data-testid="section-student-fields" className="flex flex-col gap-5">
-    {/* Información Personal */}
+}) => {
+  const ageCheck = studentFechaNacimiento
+    ? validarEdadPorNivel(studentFechaNacimiento, studentNivel)
+    : null;
+
+  return (
     <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3.5">
       <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
         <span className="material-symbols-outlined text-[16px] text-slate-400">person</span>
@@ -254,24 +255,19 @@ const StudentFieldsTab = ({
               onChange={(e) => setStudentFechaNacimiento(e.target.value)}
             />
           </div>
-          {studentFechaNacimiento && (
-            (() => {
-              const check = validarEdadPorNivel(studentFechaNacimiento, studentNivel);
-              return (
-                <p
-                  className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
-                    check.esValido ? 'text-emerald-600' : 'text-red-600'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[13px]">
-                    {check.esValido ? 'check_circle' : 'warning'}
-                  </span>
-                  {check.esValido
-                    ? `Edad: ${check.edad} años (válida para ${studentNivel})`
-                    : check.error}
-                </p>
-              );
-            })()
+          {ageCheck && (
+            <p
+              className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
+                ageCheck.esValido ? 'text-emerald-600' : 'text-red-600'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[13px]">
+                {ageCheck.esValido ? 'check_circle' : 'warning'}
+              </span>
+              {ageCheck.esValido
+                ? `Edad: ${ageCheck.edad} años (válida para ${studentNivel})`
+                : ageCheck.error}
+            </p>
           )}
         </div>
 
@@ -296,137 +292,184 @@ const StudentFieldsTab = ({
         </div>
       </div>
     </div>
+  );
+};
 
-    {/* Asignación Académica */}
-    <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3.5">
-      <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-        <span className="material-symbols-outlined text-[16px] text-slate-400">school</span>
-        Asignación Académica
-      </h3>
+const EditStudentAcademicBlock = ({
+  studentNivel,
+  handleNivelChange,
+  studentCurso,
+  handleCursoChange,
+  availableCursos,
+  studentDivision,
+  setStudentDivision,
+  availableDivisiones,
+  studentEstado,
+  setStudentEstado,
+}) => (
+  <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-3.5">
+    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+      <span className="material-symbols-outlined text-[16px] text-slate-400">school</span>
+      Asignación Académica
+    </h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        {/* Selector de Nivel */}
-        <div>
-          <label htmlFor="edit-student-nivel-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
-            Nivel Educativo *
-          </label>
-          <select
-            id="edit-student-nivel-select"
-            data-testid="edit-student-level-select"
-            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold"
-            value={studentNivel}
-            onChange={(e) => handleNivelChange(e.target.value)}
-          >
-            <option value="Inicial">Inicial</option>
-            <option value="Primario">Primario</option>
-            <option value="Secundario">Secundario</option>
-          </select>
-        </div>
-
-        {/* Selector de Curso */}
-        <div>
-          <label htmlFor="edit-student-curso-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
-            Curso *
-          </label>
-          <select
-            id="edit-student-curso-select"
-            data-testid="edit-student-course-select"
-            className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
-            value={studentCurso}
-            onChange={(e) => handleCursoChange(e.target.value)}
-          >
-            <option value="sin asignar">Sin asignar</option>
-            {availableCursos.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Selector de División */}
-        <div>
-          <label htmlFor="edit-student-division-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
-            División / Sala *
-          </label>
-          <select
-            id="edit-student-division-select"
-            data-testid="edit-student-division-select"
-            disabled={studentCurso === 'sin asignar'}
-            className={`w-full h-9 px-3 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              studentCurso === 'sin asignar'
-                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                : 'bg-white text-slate-800 border border-slate-200 cursor-pointer'
-            }`}
-            value={studentDivision}
-            onChange={(e) => setStudentDivision(e.target.value)}
-          >
-            {availableDivisiones.map((d) => (
-              <option key={d} value={d}>
-                {d.toLowerCase().includes('sala') || d.toLowerCase().includes('div')
-                  ? d
-                  : `División "${d}"`}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Estado Administrativo */}
-      <div className="mt-1">
-        <label htmlFor="edit-student-estado-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
-          Estado Administrativo
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+      <div>
+        <label htmlFor="edit-student-nivel-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+          Nivel Educativo *
         </label>
         <select
-          id="edit-student-estado-select"
-          data-testid="edit-student-status-select"
-          className="w-full sm:w-1/2 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={studentEstado}
-          onChange={(e) => setStudentEstado(e.target.value)}
+          id="edit-student-nivel-select"
+          data-testid="edit-student-level-select"
+          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold"
+          value={studentNivel}
+          onChange={(e) => handleNivelChange(e.target.value)}
         >
-          <option value="Activo - Regular">Activo - Regular</option>
-          <option value="Documentación Pendiente">Documentación Pendiente</option>
-          <option value="Con Deuda Arancelaria">Con Deuda Arancelaria</option>
-          <option value="Baja Administrativa">Baja Administrativa</option>
+          <option value="Inicial">Inicial</option>
+          <option value="Primario">Primario</option>
+          <option value="Secundario">Secundario</option>
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="edit-student-curso-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+          Curso *
+        </label>
+        <select
+          id="edit-student-curso-select"
+          data-testid="edit-student-course-select"
+          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
+          value={studentCurso}
+          onChange={(e) => handleCursoChange(e.target.value)}
+        >
+          <option value="sin asignar">Sin asignar</option>
+          {availableCursos.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="edit-student-division-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+          División / Sala *
+        </label>
+        <select
+          id="edit-student-division-select"
+          data-testid="edit-student-division-select"
+          disabled={studentCurso === 'sin asignar'}
+          className={`w-full h-9 px-3 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            studentCurso === 'sin asignar'
+              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+              : 'bg-white text-slate-800 border border-slate-200 cursor-pointer'
+          }`}
+          value={studentDivision}
+          onChange={(e) => setStudentDivision(e.target.value)}
+        >
+          {availableDivisiones.map((d) => (
+            <option key={d} value={d}>
+              {d.toLowerCase().includes('sala') || d.toLowerCase().includes('div')
+                ? d
+                : `División "${d}"`}
+            </option>
+          ))}
         </select>
       </div>
     </div>
 
-    {/* Servicios Institucionales */}
-    <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-2.5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px] text-slate-400">room_service</span>
-          Servicios Institucionales
-        </h3>
-        <span className="text-[11px] text-slate-400 font-medium">Comedor y Transporte Escolar</span>
-      </div>
-      <div className="flex flex-wrap gap-2 pt-1">
-        {AVAILABLE_SERVICIOS.map((servicio) => {
-          const isSelected = studentServicios.includes(servicio);
-          return (
-            <button
-              key={servicio}
-              type="button"
-              onClick={() => handleToggleServicio(servicio)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
-                isSelected
-                  ? 'bg-blue-100 text-blue-900 border-blue-300 shadow-xs'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[15px]">
-                {isSelected ? 'check_circle' : 'add_circle'}
-              </span>
-              <span>{servicio}</span>
-            </button>
-          );
-        })}
-      </div>
-      <p className="text-[11px] text-slate-500 mt-1">
-        * Las actividades extracurriculares y deportivas se gestionan e inscriben desde la sección de <strong>Actividades Extracurriculares</strong>.
-      </p>
+    <div className="mt-1">
+      <label htmlFor="edit-student-estado-select" className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+        Estado Administrativo
+      </label>
+      <select
+        id="edit-student-estado-select"
+        data-testid="edit-student-status-select"
+        className="w-full sm:w-1/2 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={studentEstado}
+        onChange={(e) => setStudentEstado(e.target.value)}
+      >
+        <option value="Activo - Regular">Activo - Regular</option>
+        <option value="Documentación Pendiente">Documentación Pendiente</option>
+        <option value="Con Deuda Arancelaria">Con Deuda Arancelaria</option>
+        <option value="Baja Administrativa">Baja Administrativa</option>
+      </select>
     </div>
+  </div>
+);
+
+const EditStudentServicesBlock = ({
+  studentServicios,
+  handleToggleServicio,
+  recorridoTransporte,
+  setRecorridoTransporte,
+}) => (
+  <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex flex-col gap-2.5">
+    <div className="flex items-center justify-between">
+      <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+        <span className="material-symbols-outlined text-[16px] text-slate-400">room_service</span>
+        Servicios Institucionales
+      </h3>
+      <span className="text-[11px] text-slate-400 font-medium">Comedor y Transporte Escolar</span>
+    </div>
+    <div className="flex flex-wrap gap-2 pt-1">
+      {AVAILABLE_SERVICIOS.map((servicio) => {
+        const isSelected = studentServicios.includes(servicio);
+        return (
+          <button
+            key={servicio}
+            type="button"
+            onClick={() => handleToggleServicio(servicio)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
+              isSelected
+                ? 'bg-blue-100 text-blue-900 border-blue-300 shadow-xs'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[15px]">
+              {isSelected ? 'check_circle' : 'add_circle'}
+            </span>
+            <span>{servicio}</span>
+          </button>
+        );
+      })}
+    </div>
+
+    {studentServicios.includes('Transporte Escolar') && (
+      <div className="pt-2 flex flex-col gap-1">
+        <label
+          htmlFor="edit-student-transport-route-select"
+          className="text-[11px] font-bold text-slate-600 uppercase tracking-wider"
+        >
+          Recorrido del Servicio de Transporte (4 recorridos)
+        </label>
+        <select
+          id="edit-student-transport-route-select"
+          data-testid="edit-student-transport-route-select"
+          value={recorridoTransporte}
+          onChange={(e) => setRecorridoTransporte(e.target.value)}
+          className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        >
+          {TRANSPORT_ROUTES.map((route) => (
+            <option key={route.id} value={route.id}>
+              {route.nombre} — {route.zona} ({route.horarioIda})
+            </option>
+          ))}
+        </select>
+      </div>
+    )}
+
+    <p className="text-[11px] text-slate-500 mt-1">
+      * Las actividades extracurriculares y deportivas se gestionan e inscriben desde la sección de <strong>Actividades Extracurriculares</strong>.
+    </p>
+  </div>
+);
+
+const StudentFieldsTab = (props) => (
+  <div data-testid="section-student-fields" className="flex flex-col gap-5">
+    <EditStudentPersonalBlock {...props} />
+    <EditStudentAcademicBlock {...props} />
+    <EditStudentServicesBlock {...props} />
   </div>
 );
 
@@ -743,6 +786,7 @@ const getInitialStudentFormState = (student, matchedTutor) => {
           .map((s) => (s === 'Transporte' ? 'Transporte Escolar' : s))
           .filter((s) => AVAILABLE_SERVICIOS.includes(s))
       : ['Comedor Escolar'],
+    recorridoTransporte: student?.recorridoTransporte || 'Recorrido 1',
     tutorNombre: matchedTutor?.nombre || (student?.tutorNombre || '').replace(' (Tutor)', ''),
     tutorDni: formatDni(matchedTutor?.dni || ''),
     tutorTelefono: matchedTutor?.telefono || student?.tutorTelefono || '',
@@ -777,7 +821,7 @@ const EditStudentHeader = ({ student, isSubmitting, onClose }) => (
             {student.legajo}
           </span>
           <span>·</span>
-          <span className="truncate">{student.nombre}</span>
+          <span className="truncate">{student.nombreCompleto || student.nombre}</span>
         </div>
       </div>
     </div>
@@ -827,20 +871,12 @@ const EditStudentTabs = ({ activeTab, setActiveTab }) => (
   </div>
 );
 
-const EditStudentModalContent = ({
-  student,
-  tutors = [],
-  academicOffer = DEFAULT_ACADEMIC_OFFER,
-  onClose,
-  onSaveStudent,
-}) => {
-  // Navigation Tabs
-  const [activeTab, setActiveTab] = useState('student'); // 'student' | 'tutor'
+const useEditStudentModalForm = ({ student, tutors, academicOffer, onClose, onSaveStudent }) => {
+  const [activeTab, setActiveTab] = useState('student');
 
   const matchedTutor = getMatchedTutor(tutors, student);
   const [init] = useState(() => getInitialStudentFormState(student, matchedTutor));
 
-  // Student State
   const [studentNombre, setStudentNombre] = useState(init.studentNombre);
   const [studentApellido, setStudentApellido] = useState(init.studentApellido);
   const [studentDni, setStudentDni] = useState(init.studentDni);
@@ -851,8 +887,8 @@ const EditStudentModalContent = ({
   const [studentDivision, setStudentDivision] = useState(init.studentDivision);
   const [studentEstado, setStudentEstado] = useState(init.studentEstado);
   const [studentServicios, setStudentServicios] = useState(init.studentServicios);
+  const [recorridoTransporte, setRecorridoTransporte] = useState(init.recorridoTransporte);
 
-  // Tutor Mode ('current' | 'reassign')
   const [tutorMode, setTutorMode] = useState('current');
   const currentTutorId = matchedTutor?.id || student?.parentId || null;
   const [tutorNombre, setTutorNombre] = useState(init.tutorNombre);
@@ -861,21 +897,15 @@ const EditStudentModalContent = ({
   const [tutorEmail, setTutorEmail] = useState(init.tutorEmail);
   const [tutorDomicilio, setTutorDomicilio] = useState(init.tutorDomicilio);
 
-  // Reassignment State
   const [reassignedTutorId, setReassignedTutorId] = useState(null);
   const [tutorSearchFilter, setTutorSearchFilter] = useState('');
-
-  // UI State
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Available Tutors (Sorted A-Z)
   const availableTutors = (tutors || [])
     .filter((t) => !t.role || String(t.role).trim().toLowerCase() === 'padre')
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' }));
 
-
-  // Cursos disponibles para el nivel seleccionado según academicOffer dinámico
   const availableCursos = useMemo(() => {
     const offerCourses = Object.keys(academicOffer?.[studentNivel] || {});
     if (offerCourses.length > 0) {
@@ -891,10 +921,10 @@ const EditStudentModalContent = ({
     return sortCourseNames(CURSOS_POR_NIVEL[studentNivel] || []);
   }, [academicOffer, studentNivel, studentCurso]);
 
-  // Divisiones disponibles para el curso seleccionado
-  const availableDivisiones = useMemo(() => {
-    return getAvailableDivisiones(academicOffer, studentNivel, studentCurso);
-  }, [academicOffer, studentNivel, studentCurso]);
+  const availableDivisiones = useMemo(
+    () => getAvailableDivisiones(academicOffer, studentNivel, studentCurso),
+    [academicOffer, studentNivel, studentCurso]
+  );
 
   const handleNivelChange = (newNivel) => {
     setStudentNivel(newNivel);
@@ -920,9 +950,7 @@ const EditStudentModalContent = ({
     );
   };
 
-  // Filtered tutors for reassignment
   const filteredTutors = filterTutorsByTerm(availableTutors, tutorSearchFilter);
-
   const selectedReassignedTutor = availableTutors.find((t) => t.id === reassignedTutorId);
 
   const handleSubmit = async (e) => {
@@ -961,6 +989,7 @@ const EditStudentModalContent = ({
         studentDivision,
         studentEstado,
         studentServicios,
+        recorridoTransporte,
         currentTutorId,
         tutorMode,
         selectedReassignedTutor,
@@ -982,14 +1011,137 @@ const EditStudentModalContent = ({
     }
   };
 
+  return {
+    activeTab,
+    setActiveTab,
+    studentNombre,
+    setStudentNombre,
+    studentApellido,
+    setStudentApellido,
+    studentDni,
+    setStudentDni,
+    studentFechaNacimiento,
+    setStudentFechaNacimiento,
+    studentDomicilio,
+    setStudentDomicilio,
+    studentNivel,
+    handleNivelChange,
+    studentCurso,
+    handleCursoChange,
+    availableCursos,
+    studentDivision,
+    setStudentDivision,
+    availableDivisiones,
+    studentEstado,
+    setStudentEstado,
+    studentServicios,
+    handleToggleServicio,
+    recorridoTransporte,
+    setRecorridoTransporte,
+    tutorMode,
+    setTutorMode,
+    currentTutorId,
+    tutorNombre,
+    setTutorNombre,
+    tutorDni,
+    setTutorDni,
+    tutorTelefono,
+    setTutorTelefono,
+    tutorEmail,
+    setTutorEmail,
+    tutorDomicilio,
+    setTutorDomicilio,
+    tutorSearchFilter,
+    setTutorSearchFilter,
+    filteredTutors,
+    reassignedTutorId,
+    setReassignedTutorId,
+    selectedReassignedTutor,
+    formError,
+    isSubmitting,
+    handleSubmit,
+  };
+};
+
+const EditStudentModalFooter = ({ activeTab, setActiveTab, isSubmitting, onClose }) => (
+  <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
+    <button
+      type="button"
+      data-testid="edit-student-cancel-button"
+      onClick={onClose}
+      disabled={isSubmitting}
+      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border-none"
+    >
+      Cancelar
+    </button>
+
+    <div className="flex items-center gap-2">
+      {activeTab === 'student' ? (
+        <button
+          type="button"
+          data-testid="edit-student-next-button"
+          onClick={() => setActiveTab('tutor')}
+          className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
+        >
+          <span>Siguiente: Tutor</span>
+          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          data-testid="edit-student-prev-button"
+          onClick={() => setActiveTab('student')}
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
+        >
+          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span>Volver a Alumno</span>
+        </button>
+      )}
+
+      <button
+        type="submit"
+        data-testid="edit-student-submit-button"
+        disabled={isSubmitting}
+        className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer border-none flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (
+          <>
+            <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+            <span>Guardando cambios...</span>
+          </>
+        ) : (
+          <>
+            <span className="material-symbols-outlined text-[16px]">save</span>
+            <span>Guardar Cambios</span>
+          </>
+        )}
+      </button>
+    </div>
+  </div>
+);
+
+const EditStudentModalContent = ({
+  student,
+  tutors = [],
+  academicOffer = DEFAULT_ACADEMIC_OFFER,
+  onClose,
+  onSaveStudent,
+}) => {
+  const form = useEditStudentModalForm({
+    student,
+    tutors,
+    academicOffer,
+    onClose,
+    onSaveStudent,
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
-      {/* Backdrop */}
       <div
         data-testid="edit-student-modal-overlay"
         aria-hidden="true"
         onClick={() => {
-          if (!isSubmitting) onClose();
+          if (!form.isSubmitting) onClose();
         }}
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
       />
@@ -997,130 +1149,29 @@ const EditStudentModalContent = ({
         data-testid="edit-student-modal"
         className="relative z-10 w-full max-w-3xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-150 text-left"
       >
-        <EditStudentHeader student={student} isSubmitting={isSubmitting} onClose={onClose} />
-        <EditStudentTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <EditStudentHeader student={student} isSubmitting={form.isSubmitting} onClose={onClose} />
+        <EditStudentTabs activeTab={form.activeTab} setActiveTab={form.setActiveTab} />
 
-        {/* Form Error Notice */}
-        {formError && (
+        {form.formError && (
           <div
             data-testid="edit-student-error"
             className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2 shrink-0 animate-in fade-in"
           >
             <span className="material-symbols-outlined text-[18px] text-red-500">error</span>
-            <span>{formError}</span>
+            <span>{form.formError}</span>
           </div>
         )}
 
-        {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 flex flex-col gap-6 flex-1">
-          {/* TAB 1: DATOS DEL ALUMNO */}
-          {activeTab === 'student' && (
-            <StudentFieldsTab
-              studentNombre={studentNombre}
-              setStudentNombre={setStudentNombre}
-              studentApellido={studentApellido}
-              setStudentApellido={setStudentApellido}
-              studentDni={studentDni}
-              setStudentDni={setStudentDni}
-              studentFechaNacimiento={studentFechaNacimiento}
-              setStudentFechaNacimiento={setStudentFechaNacimiento}
-              studentDomicilio={studentDomicilio}
-              setStudentDomicilio={setStudentDomicilio}
-              studentNivel={studentNivel}
-              handleNivelChange={handleNivelChange}
-              studentCurso={studentCurso}
-              handleCursoChange={handleCursoChange}
-              availableCursos={availableCursos}
-              studentDivision={studentDivision}
-              setStudentDivision={setStudentDivision}
-              availableDivisiones={availableDivisiones}
-              studentEstado={studentEstado}
-              setStudentEstado={setStudentEstado}
-              studentServicios={studentServicios}
-              handleToggleServicio={handleToggleServicio}
-            />
-          )}
+        <form onSubmit={form.handleSubmit} className="overflow-y-auto p-6 flex flex-col gap-6 flex-1">
+          {form.activeTab === 'student' && <StudentFieldsTab {...form} />}
+          {form.activeTab === 'tutor' && <TutorFieldsTab {...form} />}
 
-          {/* TAB 2: TUTOR RESPONSABLE */}
-          {activeTab === 'tutor' && (
-            <TutorFieldsTab
-              tutorMode={tutorMode}
-              setTutorMode={setTutorMode}
-              currentTutorId={currentTutorId}
-              tutorNombre={tutorNombre}
-              setTutorNombre={setTutorNombre}
-              tutorDni={tutorDni}
-              setTutorDni={setTutorDni}
-              tutorTelefono={tutorTelefono}
-              setTutorTelefono={setTutorTelefono}
-              tutorEmail={tutorEmail}
-              setTutorEmail={setTutorEmail}
-              tutorDomicilio={tutorDomicilio}
-              setTutorDomicilio={setTutorDomicilio}
-              tutorSearchFilter={tutorSearchFilter}
-              setTutorSearchFilter={setTutorSearchFilter}
-              filteredTutors={filteredTutors}
-              reassignedTutorId={reassignedTutorId}
-              setReassignedTutorId={setReassignedTutorId}
-              selectedReassignedTutor={selectedReassignedTutor}
-            />
-          )}
-
-          {/* Modal Footer Controls */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
-            <button
-              type="button"
-              data-testid="edit-student-cancel-button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border-none"
-            >
-              Cancelar
-            </button>
-
-            <div className="flex items-center gap-2">
-              {activeTab === 'student' ? (
-                <button
-                  type="button"
-                  data-testid="edit-student-next-button"
-                  onClick={() => setActiveTab('tutor')}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
-                >
-                  <span>Siguiente: Tutor</span>
-                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  data-testid="edit-student-prev-button"
-                  onClick={() => setActiveTab('student')}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border-none flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                  <span>Volver a Alumno</span>
-                </button>
-              )}
-
-              <button
-                type="submit"
-                data-testid="edit-student-submit-button"
-                disabled={isSubmitting}
-                className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer border-none flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                    <span>Guardando cambios...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[16px]">save</span>
-                    <span>Guardar Cambios</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+          <EditStudentModalFooter
+            activeTab={form.activeTab}
+            setActiveTab={form.setActiveTab}
+            isSubmitting={form.isSubmitting}
+            onClose={onClose}
+          />
         </form>
       </div>
     </div>

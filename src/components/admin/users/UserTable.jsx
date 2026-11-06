@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import UserTableRowSkeleton from './UserTableRowSkeleton';
 import {
   getRoleBadge,
   getStatusBadge,
@@ -188,12 +189,26 @@ const UserTable = ({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 text-blue-600 mb-3 animate-spin">
-          <span className="material-symbols-outlined text-[24px]">sync</span>
+      <div data-testid="user-table-skeleton" className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.02)] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
+                <th className="py-3.5 px-6">Usuario &amp; Legajo</th>
+                <th className="py-3.5 px-6">DNI &amp; Contacto</th>
+                <th className="py-3.5 px-6">Rol Institucional</th>
+                <th className="py-3.5 px-6">Permisos</th>
+                <th className="py-3.5 px-6">Estado</th>
+                <th className="py-3.5 px-6 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {[1, 2, 3, 4, 5].map((idx) => (
+                <UserTableRowSkeleton key={idx} />
+              ))}
+            </tbody>
+          </table>
         </div>
-        <p className="text-xs font-bold text-slate-700">Cargando usuarios institucionales...</p>
-        <p className="text-[11px] text-slate-400 mt-1">Sincronizando cuentas y roles RBAC</p>
       </div>
     );
   }

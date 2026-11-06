@@ -47,7 +47,7 @@ test.describe('Autenticación y Dashboard de Administrador', () => {
     await passwordInput.fill(adminPassword);
 
     // 4. Enviar el formulario de autenticación
-    const submitButton = page.getByRole('button', { name: /acceso seguro/i });
+    const submitButton = page.getByRole('button', { name: /iniciar sesion|acceso seguro/i });
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
 
@@ -69,19 +69,22 @@ test.describe('Autenticación y Dashboard de Administrador', () => {
     await expect(adminSidebar.getByText(/dashboard general/i)).toBeVisible();
     await expect(adminSidebar.getByText(/alumnos & legajos/i)).toBeVisible();
 
-    // - Título principal del Dashboard
+    // - Título principal del Dashboard institucional
     const dashboardTitle = page.getByRole('heading', {
       level: 1,
-      name: /dashboard general/i,
+      name: /tablero general institucional|dashboard general/i,
     });
     await expect(dashboardTitle).toBeVisible();
 
-    // - Sección de contenido y métricas/descripción del panel institucional
+    // - Sección de contenido y métricas/KPIs del panel institucional
+    const kpisGrid = page.locator('[data-testid="kpis-main-grid"]');
+    await expect(kpisGrid).toBeVisible();
     await expect(
-      page.getByText(/módulo en construcción/i)
+      page.getByText(/matrícula total activa/i)
     ).toBeVisible();
-    await expect(
-      page.getByText(/métricas clave de asistencia/i)
-    ).toBeVisible();
+
+    // - Panel de servicios escolares y transporte
+    const servicesSection = page.locator('[data-testid="dashboard-services-section"]');
+    await expect(servicesSection).toBeVisible();
   });
 });

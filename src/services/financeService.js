@@ -26,6 +26,7 @@ const MONTH_NUMBERS = {
   'Agosto 2026': '08',
   'Septiembre 2026': '09',
   'Octubre 2026': '10',
+  'Noviembre 2026': '11',
 };
 
 const PAST_MONTHS = [

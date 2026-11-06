@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import StudentTableRowSkeleton from './StudentTableRowSkeleton';
 
 const getBadgeClass = (variant, isInactive) => {
   if (isInactive) {
@@ -234,7 +235,7 @@ const StudentInfoCell = ({ student, isInactive }) => {
                 : 'text-slate-800 group-hover:text-blue-600'
               }`}
           >
-            {student.nombre}
+            {student.nombreCompleto || student.nombre}
           </span>
           <span
             data-testid={`student-tutor-${student.id}`}
@@ -511,21 +512,11 @@ const StudentTable = ({
         </thead>
         <tbody data-testid="student-table-body" className="divide-y divide-slate-200/90 text-xs text-slate-700">
           {isLoading ? (
-            <tr data-testid="student-loading-row">
-              <td colSpan={5} className="py-12 text-center text-slate-400">
-                <div data-testid="student-loading-state" className="flex flex-col items-center justify-center gap-3">
-                  <span className="material-symbols-outlined text-4xl text-lime-500 animate-spin">
-                    sync
-                  </span>
-                  <p className="font-semibold text-slate-600 text-sm">
-                    Cargando alumnos...
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    Sincronizando información académica y tutores
-                  </p>
-                </div>
-              </td>
-            </tr>
+            <>
+              {[1, 2, 3, 4, 5].map((idx) => (
+                <StudentTableRowSkeleton key={idx} />
+              ))}
+            </>
           ) : students.length === 0 ? (
             <tr data-testid="student-empty-row">
               <td colSpan={5} className="py-12 text-center text-slate-400">

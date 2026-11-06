@@ -1,6 +1,7 @@
 import {
   collection,
   getDocs,
+  getDoc,
   doc,
   setDoc,
   updateDoc,
@@ -30,7 +31,7 @@ export const fetchAcademicCourses = async () => {
     const courses = [];
     querySnapshot.forEach((docSnap) => {
       // Ignoramos el documento raíz del catálogo 'current'
-      if (docSnap.id === 'current') return;
+      if (docSnap.id === 'current' || docSnap.id === 'subjects_catalog') return;
 
       const data = docSnap.data();
       // Verificamos que sea un documento de curso
@@ -58,7 +59,7 @@ export const subscribeToAcademicCourses = (onUpdate, onError) => {
     (snapshot) => {
       const courses = [];
       snapshot.forEach((docSnap) => {
-        if (docSnap.id === 'current') return;
+        if (docSnap.id === 'current' || docSnap.id === 'subjects_catalog') return;
         const data = docSnap.data();
         if (data.type === 'course' || data.isCourse || (data.nivelId && data.nombre)) {
           courses.push({
@@ -272,7 +273,7 @@ export const unassignTeacherFromAllCourses = async (teacherId, teacherName = nul
     let updatedCount = 0;
 
     snap.forEach((docSnap) => {
-      if (docSnap.id === 'current') return;
+      if (docSnap.id === 'current' || docSnap.id === 'subjects_catalog') return;
       const data = docSnap.data();
       const matchesId = data.docenteId && data.docenteId === teacherId;
       const matchesName =
@@ -296,5 +297,120 @@ export const unassignTeacherFromAllCourses = async (teacherId, teacherName = nul
     }
   } catch (err) {
     console.warn('Error al desvincular docente de cursos academicOffer:', err.message);
+  }
+};
+
+
+/**
+ * Obtiene el catálogo de materias y planes de estudio desde Firestore ('academicOffer/subjects_catalog').
+ */
+export const fetchAcademicSubjects = async () => {
+  try {
+    await ensureAdminAuth();
+    const docRef = doc(db, 'academicOffer', 'subjects_catalog');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (Array.isArray(data?.items)) {
+        return data.items;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn('Error al obtener catálogo de materias desde Firestore:', err.message);
+    return null;
+  }
+};
+
+/**
+ * Persiste el catálogo de materias y planes de estudio en Firestore ('academicOffer/subjects_catalog').
+ */
+export const saveAcademicSubjects = async (subjectsList = []) => {
+  try {
+    await ensureAdminAuth();
+    const docRef = doc(db, 'academicOffer', 'subjects_catalog');
+    await setDoc(docRef, {
+      items: subjectsList,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.warn('No se pudo persistir academicOffer/subjects_catalog:', err.message);
+  }
+};
+
+/**
+ * Sincroniza las cátedras y horarios asignados a un docente con el catálogo de materias en academicOffer/subjects_catalog.
+ */
+export const syncTeacherCatedrasToAcademicSubjectsApi = async (teacher, catedras = [], courses = []) => {
+  try {
+    const currentSubjects = (await fetchAcademicSubjects()) || [];
+    const teacherName =
+      teacher.nombreCompleto ||
+      (teacher.apellido ? `${teacher.nombre} ${teacher.apellido}` : teacher.nombre);
+    const teacherLegajo = teacher.legajo || '#DOC-1000';
+    const initials =
+      teacher.iniciales ||
+      (teacher.nombre ? `${teacher.nombre[0]}${teacher.apellido?.[0] || 'D'}`.toUpperCase() : 'DC');
+
+    const updatedSubjects = [...currentSubjects];
+
+    for (const cat of catedras) {
+      const cleanNombre = (cat.nombre || '').trim();
+      const cleanCurso = (cat.curso || '').trim();
+      if (!cleanNombre || !cleanCurso) continue;
+
+      const matchedCourse = (courses || []).find((c) => {
+        const cFullName = `${c.nombre} ${c.division || 'A'}`.toLowerCase();
+        return (
+          c.id === cat.cursoId ||
+          cFullName === cleanCurso.toLowerCase() ||
+          cleanCurso.toLowerCase().includes(String(c.nombre || '').toLowerCase())
+        );
+      });
+
+      const courseId =
+        matchedCourse?.id || cat.cursoId || `curso-${cleanCurso.replace(/\s+/g, '-').toLowerCase()}`;
+
+      const existingIndex = updatedSubjects.findIndex(
+        (s) =>
+          (s.cursoId === courseId || String(s.curso || '').toLowerCase() === cleanCurso.toLowerCase()) &&
+          String(s.nombre || '').trim().toLowerCase() === cleanNombre.toLowerCase()
+      );
+
+      const subjectData = {
+        id: existingIndex >= 0 ? updatedSubjects[existingIndex].id : `sub-${cat.id || Date.now()}`,
+        cursoId: courseId,
+        curso: cleanCurso,
+        division: cat.division || (cleanCurso.includes('B') ? 'B' : 'A'),
+        nombre: cleanNombre,
+        cargaHoraria: `${cat.horasSemanales || 4} hs / semana`,
+        horario: cat.horario || '',
+        profesor: {
+          id: teacher.id,
+          nombre: teacherName,
+          legajo: teacherLegajo,
+          initials,
+          avatarBg: 'bg-indigo-100 text-indigo-700',
+          online: true,
+        },
+        dictadoActivo: true,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingIndex >= 0) {
+        updatedSubjects[existingIndex] = {
+          ...updatedSubjects[existingIndex],
+          ...subjectData,
+        };
+      } else {
+        updatedSubjects.push(subjectData);
+      }
+    }
+
+    await saveAcademicSubjects(updatedSubjects);
+    return updatedSubjects;
+  } catch (err) {
+    console.warn('Error al sincronizar cátedras de docente con catálogo académico:', err.message);
+    return null;
   }
 };

@@ -3,6 +3,10 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { formatDni, calcularEdad } from '../../utils/validators';
+import {
+  getStudentTransportRoute,
+  getStudentSubjectsWithTeachers,
+} from '../../utils/academicUtils';
 import { getStudentEnrolledDisciplines } from './sports/sportsScheduleUtils';
 import {
   subscribeToSportsActivities,
@@ -113,7 +117,19 @@ const resolveTutorInfo = (student, tutors = []) => {
   };
 };
 const StudentDetailsHeader = ({ student, nivelStyle, onClose }) => {
-  const avatarInitials = student.initials || student.nombre?.slice(0, 2).toUpperCase() || 'AL';
+  const displayFullName =
+    student.nombreCompleto ||
+    (student.apellido ? `${student.nombre || ''} ${student.apellido}`.trim() : student.nombre) ||
+    'Sin Nombre';
+  const avatarInitials =
+    student.initials ||
+    displayFullName
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() ||
+    'AL';
   const legajoDisplay = student.legajo || `#LEG-${student.id.slice(0, 6)}`;
   const dniDisplay = formatDni(student.dni) || 'S/D';
 
@@ -132,7 +148,7 @@ const StudentDetailsHeader = ({ student, nivelStyle, onClose }) => {
               data-testid="student-details-name"
               className="text-lg sm:text-xl font-extrabold text-slate-900 truncate"
             >
-              {student.nombre}
+              {displayFullName}
             </h2>
             {getStatusBadge(student.estado)}
           </div>
@@ -172,30 +188,104 @@ const StudentInstitutionalServicesBlock = ({ student }) => {
     .filter((s) => ['Comedor Escolar', 'Transporte Escolar'].includes(s));
 
   const hasServicios = institutionalServices.length > 0;
+  const transportRoute = getStudentTransportRoute(student);
 
   return (
     <div className="bg-white p-3 rounded-md border border-slate-200/70 flex flex-col gap-1.5">
       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-        Servicios Institucionales
+        Servicios Institucionales (Comedor & Transporte)
       </span>
       {hasServicios ? (
-        <div className="flex flex-wrap gap-1.5 pt-0.5">
-          {institutionalServices.map((srv) => (
-            <span
-              key={srv}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 flex items-center gap-1"
-            >
-              <span className="material-symbols-outlined text-[13px] text-blue-500">
-                {srv.includes('Comedor') ? 'restaurant' : 'directions_bus'}
+        <div className="flex flex-col gap-2 pt-0.5">
+          <div className="flex flex-wrap gap-1.5">
+            {institutionalServices.map((srv) => (
+              <span
+                key={srv}
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200/60 flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[13px] text-blue-500">
+                  {srv.includes('Comedor') ? 'restaurant' : 'directions_bus'}
+                </span>
+                {srv}
               </span>
-              {srv}
-            </span>
-          ))}
+            ))}
+          </div>
+          {transportRoute && (
+            <div
+              data-testid="student-details-transport-route"
+              className="p-2 bg-slate-50 border border-slate-200/80 rounded-md text-[11px] text-slate-700 flex flex-wrap items-center justify-between gap-2"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[15px] text-blue-600">
+                  route
+                </span>
+                <span>
+                  <strong className="text-slate-900">{transportRoute.nombre}:</strong>{' '}
+                  {transportRoute.zona}
+                </span>
+              </div>
+              <span className="font-mono text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                Ida {transportRoute.horarioIda} · Regreso {transportRoute.horarioRegreso}
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <span className="text-xs text-slate-400 italic">
           Sin servicios institucionales (Comedor o Transporte Escolar) contratados.
         </span>
+      )}
+    </div>
+  );
+};
+
+const StudentSubjectsBlock = ({ student }) => {
+  const subjects = useMemo(() => getStudentSubjectsWithTeachers(student), [student]);
+
+  return (
+    <div
+      data-testid="student-details-subjects-section"
+      className="bg-white p-3 rounded-md border border-slate-200/70 flex flex-col gap-2"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+          Materias que Cursa &amp; Profesores a Cargo
+        </span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+          {subjects.length} {subjects.length === 1 ? 'materia' : 'materias'}
+        </span>
+      </div>
+
+      {subjects.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+          {subjects.map((subj) => (
+            <div
+              key={subj.id || subj.nombre}
+              className="p-2 bg-slate-50/80 border border-slate-200/80 rounded-md flex items-center justify-between gap-2 text-xs"
+            >
+              <div className="min-w-0">
+                <p className="font-bold text-slate-800 text-xs truncate m-0">
+                  {subj.nombre}
+                </p>
+                <p className="text-[11px] text-slate-500 truncate m-0 flex items-center gap-1 mt-0.5">
+                  <span className="material-symbols-outlined text-[13px] text-indigo-500">
+                    person
+                  </span>
+                  <span>{subj.profesor?.nombre || 'Docente asignado'}</span>
+                </p>
+              </div>
+              {subj.cargaHoraria && (
+                <span className="text-[10px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                  {subj.cargaHoraria}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-slate-400 italic m-0">
+          El alumno aún no tiene un curso activo asignado para listar sus materias.
+        </p>
       )}
     </div>
   );
@@ -267,7 +357,7 @@ const StudentExtracurricularBlock = ({ enrolledDisciplines = [] }) => {
   );
 };
 
-const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines, isAdminRole }) => {
+const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines }) => {
   const cursoDisplay = student.curso && student.curso !== 'sin asignar' ? student.curso : 'Sin asignar';
   const divisionDisplay =
     student.division && student.division !== 'sin asignar'
@@ -313,9 +403,9 @@ const StudentAcademicSection = ({ student, nivelStyle, enrolledDisciplines, isAd
         </div>
       </div>
 
-      {isAdminRole && <StudentInstitutionalServicesBlock student={student} />
-      }
-      {isAdminRole && <StudentExtracurricularBlock enrolledDisciplines={enrolledDisciplines} />}
+      <StudentSubjectsBlock student={student} />
+      <StudentInstitutionalServicesBlock student={student} />
+      <StudentExtracurricularBlock enrolledDisciplines={enrolledDisciplines} />
     </div>
   );
 };
@@ -987,8 +1077,8 @@ const StudentDetailsModal = ({
     await addPreceptoriaNoteToStudent({
       studentId: student.id,
       studentDni: student.dni,
-      studentLegajo: student.legajo,
-      studentName: student.nombre,
+      studentLegajo: student.studentID_login,
+      studentName: student.nombreCompleto || student.nombre,
       note: {
         tipo: tipo || 'Observación de Preceptoría',
         titulo: tipo || 'Observación de Preceptoría',
@@ -1017,8 +1107,8 @@ const StudentDetailsModal = ({
     await addEnfermeriaNoteToStudent({
       studentId: student.id,
       studentDni: student.dni,
-      studentLegajo: student.legajo,
-      studentName: student.nombre,
+      studentLegajo: student.studentID_login,
+      studentName: student.nombreCompleto || student.nombre,
       note: {
         tipo: tipo || 'Atención / Primeros Auxilios',
         motivo: motivo.trim(),
@@ -1038,8 +1128,8 @@ const StudentDetailsModal = ({
       await deletePreceptoriaNoteFromStudent({
         studentId: student.id,
         studentDni: student.dni,
-        studentLegajo: student.legajo,
-        studentName: student.nombre,
+        studentLegajo: student.studentID_login,
+        studentName: student.nombreCompleto || student.nombre,
         noteId: entryToDelete.id,
         noteFecha: entryToDelete.fecha,
       });
@@ -1083,9 +1173,6 @@ const StudentDetailsModal = ({
   }, [studentDocData, student]);
 
   const userRoleNorm = normalizeRole(currentUser?.role);
-  const isAdminRole =
-    currentUser?.role === 'user_admin' ||
-    ['Directivo', 'Administrativo'].includes(userRoleNorm);
   const canAddEnfermeria =
     currentUser?.role === 'user_admin' ||
     ['Directivo', 'Administrativo', 'Enfermeria'].includes(userRoleNorm);
@@ -1147,7 +1234,6 @@ const StudentDetailsModal = ({
             student={student}
             nivelStyle={nivelStyle}
             enrolledDisciplines={enrolledDisciplines}
-            isAdminRole={isAdminRole}
           />
           <StudentPersonalSection student={student} edad={edad} />
           <StudentTutorSection tutorInfo={tutorInfo} />

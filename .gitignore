@@ -33,3 +33,8 @@ serviceAccountKey.json
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Agents / Skills
+.agents/skills/
+skills-lock.json
+
