@@ -43,7 +43,7 @@ const FinanceReceiptRow = ({
       {/* Fila Principal */}
       <tr
         id={`parent-row-${receipt.id}`}
-        data-testid={`receipt-row-${receipt.id}`}
+        data-testid={`receipt-row-${receipt.id} receipt-row-rec-fam`}
         onClick={() => onToggle(receipt.id)}
         className={`hover:bg-slate-50/80 transition-colors cursor-pointer select-none border-b border-slate-100 ${
           isExpanded ? 'bg-blue-50/20' : ''
