@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const env =
   typeof import.meta !== 'undefined' && import.meta.env
@@ -29,6 +30,7 @@ export const auth = getAuth(app);
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
+export const storage = getStorage(app);
 
 // COMENTADO PARA CONECTAR A LA NUBE REAL:
 // if (import.meta.env.DEV || window.location.hostname === 'localhost') {

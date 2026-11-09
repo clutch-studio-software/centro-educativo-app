@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { addPreceptoriaNoteToStudent } from '../../../services/sportsService';
 import DashboardEntryDetailModal from './DashboardEntryDetailModal';
 import { PreceptoriaTableRowSkeleton } from './DashboardTableSkeleton';
@@ -96,10 +97,20 @@ const DashboardPreceptoriaView = ({
             Control de asistencia general, partes de tardanzas, actas disciplinarias y acuerdos de convivencia del alumnado por división.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white/10 backdrop-blur-xs px-4 py-3 rounded-2xl border border-white/20 self-start md:self-auto">
-          <div className="flex flex-col text-center">
-            <span className="text-2xl font-black text-white">{recentEntries.length}</span>
-            <span className="text-[10px] text-purple-200 font-semibold uppercase">Actas y partes</span>
+        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+          <Link
+            to="/admin/asistencias"
+            data-testid="btn-preceptoria-tomar-asistencia"
+            className="px-4 py-3 bg-white text-purple-800 hover:bg-purple-50 text-xs font-extrabold rounded-md shadow-sm transition-all flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-[18px]">fact_check</span>
+            <span>Registro de Asistencia por Curso</span>
+          </Link>
+          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-xs px-4 py-3 rounded-2xl border border-white/20">
+            <div className="flex flex-col text-center">
+              <span className="text-2xl font-black text-white">{recentEntries.length}</span>
+              <span className="text-[10px] text-purple-200 font-semibold uppercase">Actas y partes</span>
+            </div>
           </div>
         </div>
       </section>

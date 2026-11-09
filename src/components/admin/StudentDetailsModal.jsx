@@ -213,7 +213,7 @@ const StudentInstitutionalServicesBlock = ({ student }) => {
           {transportRoute && (
             <div
               data-testid="student-details-transport-route"
-              className="p-2 bg-slate-50 border border-slate-200/80 rounded-lg text-[11px] text-slate-700 flex flex-wrap items-center justify-between gap-2"
+              className="p-2 bg-slate-50 border border-slate-200/80 rounded-md text-[11px] text-slate-700 flex flex-wrap items-center justify-between gap-2"
             >
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[15px] text-blue-600">

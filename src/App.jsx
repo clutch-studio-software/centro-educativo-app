@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer';
 import ChangePasswordModal from './components/organisms/ChangePasswordModal';
 import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
+import FamilyPortalProtectedRoute from './components/portal/FamilyPortalProtectedRoute';
 
 // Public Pages (Lazy loaded for optimal initial bundle size)
 const Home = lazy(() => import('./pages/Home'));
@@ -17,9 +18,13 @@ const Login = lazy(() => import('./pages/Login'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+// Portal de Estudiantes y Familias (Autogestión e Inscripciones)
+const StudentParentPortal = lazy(() => import('./pages/portal/StudentParentPortal'));
+
 // Admin Pages (Lazy loaded for on-demand downloading)
 const AdminPanel = lazy(() => import('./pages/StudentsManagement'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AttendanceManagement = lazy(() => import('./pages/admin/AttendanceManagement'));
 const TeachersManagement = lazy(() => import('./pages/admin/TeachersManagement'));
 const AcademicOfferManagement = lazy(() => import('./pages/admin/AcademicOfferManagement'));
 const SportsManagement = lazy(() => import('./pages/admin/SportsManagement'));
@@ -59,10 +64,16 @@ function App() {
           <Route path="/levels" element={<Levels />} />
           <Route path="/login" element={<Login />} />
 
+          {/* Portal de Acceso Escolar para Estudiantes y Padres/Tutores */}
+          <Route element={<FamilyPortalProtectedRoute />}>
+            <Route path="/mi-portal" element={<StudentParentPortal />} />
+          </Route>
+
           {/* Rutas administrativas protegidas: sólo personal institucional autenticado */}
           <Route element={<AdminProtectedRoute />}>
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/alumnos" element={<AdminPanel />} />
+            <Route path="/admin/asistencias" element={<AttendanceManagement />} />
             <Route path="/admin/legacy" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/docentes" element={<TeachersManagement />} />

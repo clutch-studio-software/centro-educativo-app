@@ -46,10 +46,10 @@ service cloud.firestore {
     // Collection: sportsActivities
     // Document ID: Discipline ID
     // Fields:
-    //   - name, category, schedule, enrolledStudents
+    //   - name, category, schedule, enrolledStudents, inscriptos, cupoMax, cupoOcupado
     //
     // Collection: systemConfig
-    // Document ID: Config key (e.g., 'rbac_roles')
+    // Document ID: Config key (e.g., 'rbac_roles', 'billing_emissions')
     // Fields:
     //   - role permissions mapping, updatedAt: timestamp
     // ===============================================================
@@ -70,26 +70,6 @@ service cloud.firestore {
          'studentIds' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
          studentId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.studentIds)
       );
-    }
-
-    function isParentAllowedStudentUpdate() {
-      let allowedFields = [
-        'servicios', 'recorridoTransporte', 'transporteFechaInicio',
-        'transporteBajaSolicitada', 'transporteBajaProgramada',
-        'comedor', 'comedorFechaInicio', 'comedorBajaSolicitada',
-        'comedorBajaProgramada', 'observacionesComedor',
-        'deportes', 'deporteFechaInicio', 'deportesSuscripciones',
-        'entradasEnfermeria', 'entradasPreceptoria',
-        'comprobantesPago', 'asistencias', 'updatedAt'
-      ];
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields) &&
-        (!('parentId' in resource.data) || request.resource.data.parentId == resource.data.parentId) &&
-        (!('id' in resource.data) || request.resource.data.id == resource.data.id) &&
-        (!('studentID_login' in resource.data) || request.resource.data.studentID_login == resource.data.studentID_login) &&
-        (!('dni' in resource.data) || request.resource.data.dni == resource.data.dni) &&
-        (!('nivel' in resource.data) || request.resource.data.nivel == resource.data.nivel) &&
-        (!('curso' in resource.data) || request.resource.data.curso == resource.data.curso) &&
-        (!('division' in resource.data) || request.resource.data.division == resource.data.division);
     }
 
     function isStaffRole(role) {
@@ -124,6 +104,27 @@ service cloud.firestore {
       );
     }
 
+    // Validador de campos permitidos e inmutables para actualización de estudiantes por padres/tutores
+    function isParentAllowedStudentUpdate() {
+      let allowedFields = [
+        'servicios', 'recorridoTransporte', 'transporteFechaInicio',
+        'transporteBajaSolicitada', 'transporteBajaProgramada',
+        'comedor', 'comedorFechaInicio', 'comedorBajaSolicitada',
+        'comedorBajaProgramada', 'observacionesComedor',
+        'deportes', 'deporteFechaInicio', 'deportesSuscripciones',
+        'entradasEnfermeria', 'entradasPreceptoria',
+        'comprobantesPago', 'asistencias', 'updatedAt'
+      ];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields) &&
+        (!('parentId' in resource.data) || request.resource.data.parentId == resource.data.parentId) &&
+        (!('id' in resource.data) || request.resource.data.id == resource.data.id) &&
+        (!('studentID_login' in resource.data) || request.resource.data.studentID_login == resource.data.studentID_login) &&
+        (!('dni' in resource.data) || request.resource.data.dni == resource.data.dni) &&
+        (!('nivel' in resource.data) || request.resource.data.nivel == resource.data.nivel) &&
+        (!('curso' in resource.data) || request.resource.data.curso == resource.data.curso) &&
+        (!('division' in resource.data) || request.resource.data.division == resource.data.division);
+    }
+
     // Colección users (Perfiles de padres, personal docente, salud, preceptoría y directivos)
     match /users/{userId} {
       // Escritura únicamente permitida a administradores autorizados
@@ -138,8 +139,10 @@ service cloud.firestore {
       // Creación y eliminación reservada a administradores autorizados
       allow create, delete: if isAdmin();
 
-      // Modificación permitida a administradores/personal institucional o padres vinculados en campos permitidos
-      allow update: if isStaff() || (isLinkedParent(studentId) && isParentAllowedStudentUpdate());
+      // Modificación permitida a administradores y personal institucional, o al padre/tutor titular con restricción de campos inmutables
+      allow update: if isStaff() || (
+        isLinkedParent(studentId) && isParentAllowedStudentUpdate()
+      );
       
       // Lectura permitida al propio alumno, al padre/tutor vinculado, o al personal institucional autorizado
       allow read: if isOwner(studentId) || isLinkedParent(studentId) || isStaff();
@@ -164,13 +167,15 @@ service cloud.firestore {
     }
 
     // Colección sportsActivities (Disciplinas deportivas y actividades extracurriculares)
-    match /sportsActivities/{docId} {
+    match /sportsActivities/{disciplineId} {
       // Lectura para cualquier usuario institucional autenticado
       allow read: if isAuthenticated();
       
-      // Creación y actualización permitida a personal, administradores o usuarios autenticados (inscripciones)
-      allow create, update: if isStaff() || isAdmin() || isAuthenticated();
-      allow delete: if isAdmin();
+      // Creación y eliminación reservadas exclusivamente a administradores
+      allow create, delete: if isAdmin();
+
+      // Modificación permitida a administradores, personal institucional o usuarios autenticados (tutores al inscribir/desinscribir alumnos)
+      allow update: if isStaff() || isAdmin() || isAuthenticated();
     }
 
     // Colección tariffs_config (Configuración centralizada de aranceles y tarifas)
@@ -199,14 +204,16 @@ service cloud.firestore {
       // Creación para usuarios autenticados (tutores al subir comprobante o personal)
       allow create: if isAuthenticated();
 
-      // Conciliación, aprobación y rechazo por personal institucional o administradores, o actualización por el tutor al adjuntar comprobantes
-      allow update: if isStaff() || isAdmin() || isAuthenticated();
+      // Conciliación, aprobación y rechazo por personal institucional o administradores, o actualización por el tutor de su recibo pendiente al adjuntar comprobantes
+      allow update: if isStaff() || isAdmin() || (
+        isAuthenticated() && resource.data.status == 'pendiente'
+      );
 
       // Eliminación únicamente por administradores o personal institucional
       allow delete: if isAdmin() || isStaff();
     }
 
-    // Colección systemConfig (Configuraciones del sistema y matriz de roles/permisos RBAC)
+    // Colección systemConfig (Configuraciones del sistema, billing_emissions y matriz de roles/permisos RBAC)
     match /systemConfig/{docId} {
       // Lectura permitida si el usuario es staff o administrador institucional
       allow read: if isStaff() || isAdmin();

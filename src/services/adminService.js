@@ -455,6 +455,22 @@ export const updateStudentAndTutorApi = async ({
     studentUpdates.recorridoTransporte = studentData.recorridoTransporte;
   }
 
+  if (studentData.transporteFechaInicio !== undefined) {
+    studentUpdates.transporteFechaInicio = studentData.transporteFechaInicio;
+  }
+
+  if (studentData.transporteBajaSolicitada !== undefined) {
+    studentUpdates.transporteBajaSolicitada = studentData.transporteBajaSolicitada;
+  }
+
+  if (studentData.transporteBajaProgramada !== undefined) {
+    studentUpdates.transporteBajaProgramada = studentData.transporteBajaProgramada;
+  }
+
+  if (studentData.deportes !== undefined) {
+    studentUpdates.deportes = studentData.deportes;
+  }
+
   if (studentData.apellido !== undefined) {
     studentUpdates.apellido = studentData.apellido.trim();
   }

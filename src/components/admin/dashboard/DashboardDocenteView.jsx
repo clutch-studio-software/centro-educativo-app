@@ -40,7 +40,15 @@ const DashboardDocenteView = ({ user, teachers = EMPTY_TEACHERS, isLoading = fal
             Legajo <strong>{currentTeacher?.legajo || '#DOC-2027'}</strong> · {currentTeacher?.especialidad || 'Profesor'} · {currentTeacher?.cargaHoras || 0} hs/sem asignadas.
           </p>
         </div>
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          <Link
+            to="/admin/asistencias"
+            data-testid="btn-docente-tomar-asistencia"
+            className="px-4 py-2.5 bg-amber-300 text-slate-900 hover:bg-amber-200 text-xs font-extrabold rounded-md shadow-sm transition-all flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-[16px]">fact_check</span>
+            <span>Tomar Asistencia</span>
+          </Link>
           <Link
             to="/admin/alumnos"
             data-testid="btn-docente-ver-alumnos"
