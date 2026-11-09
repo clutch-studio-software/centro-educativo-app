@@ -29,6 +29,7 @@ const FinanceManagement = () => {
     selectedMonth,
     setSelectedMonth,
     billingCycleInfo,
+    activeBillingAction,
     isNextMonthEmitted,
     isEmitModalOpen,
     isEmitting,
@@ -117,6 +118,7 @@ const FinanceManagement = () => {
               onRecalculateBalances={handleRecalculateBalances}
               isRecalculating={isRecalculating}
               billingCycleInfo={billingCycleInfo}
+              activeBillingAction={activeBillingAction}
               isNextMonthEmitted={isNextMonthEmitted}
               onOpenEmitModal={handleOpenEmitModal}
               isEmitting={isEmitting}
@@ -205,7 +207,7 @@ const FinanceManagement = () => {
         {/* Modal: Confirmación de Emisión Manual de Facturación */}
         <FinanceEmitBillingModal
           isOpen={isEmitModalOpen}
-          targetMonth={billingCycleInfo?.nextMonth}
+          targetMonth={activeBillingAction?.targetMonth || billingCycleInfo?.currentMonth}
           onClose={handleCloseEmitModal}
           onConfirm={handleEmitMonthBilling}
           isEmitting={isEmitting}

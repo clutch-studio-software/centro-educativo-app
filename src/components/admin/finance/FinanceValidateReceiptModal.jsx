@@ -4,7 +4,12 @@ import { formatCurrency } from '../../../utils/financeUtils';
 const FinanceValidateReceiptModal = ({ receipt, onClose, onConfirm }) => {
   if (!receipt) return null;
 
-  const formattedAmount = formatCurrency(receipt.declaredAmount);
+  const voucher = receipt.activeVoucher || receipt.bankingVoucher;
+  const amountToImpute = voucher
+    ? Number(voucher.amount || voucher.declaredAmount || voucher.transferredAmount) ||
+      receipt.declaredAmount
+    : receipt.declaredAmount;
+  const formattedAmount = formatCurrency(amountToImpute);
 
   return (
     <div
@@ -159,7 +164,7 @@ const FinanceValidateReceiptModal = ({ receipt, onClose, onConfirm }) => {
             type="button"
             id="btn-confirm-payment"
             data-testid="btn-confirm-payment"
-            onClick={() => onConfirm(receipt.id)}
+            onClick={() => onConfirm(receipt.id, receipt.activeVoucher?.id)}
             className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-blue-600 text-white text-xs font-bold shadow-xs hover:bg-blue-700 transition-all cursor-pointer border-none"
           >
             <span className="material-symbols-outlined text-[16px]">check_circle</span>

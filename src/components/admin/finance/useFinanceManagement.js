@@ -11,6 +11,7 @@ import {
   recalculateAllBalancesApi,
   fetchMonthTotalApi,
   getBillingCycleInfo,
+  getActiveBillingTarget,
   checkMonthEmittedApi,
   emitMonthBillingApi,
 } from '../../../services/financeService';
@@ -28,6 +29,7 @@ export const useFinanceManagement = () => {
   const pageSize = 5;
 
   const billingCycleInfo = useMemo(() => getBillingCycleInfo(), []);
+  const [isCurrentMonthEmitted, setIsCurrentMonthEmitted] = useState(false);
   const [isNextMonthEmitted, setIsNextMonthEmitted] = useState(false);
   const [isEmitModalOpen, setIsEmitModalOpen] = useState(false);
   const [isEmitting, setIsEmitting] = useState(false);
@@ -37,20 +39,48 @@ export const useFinanceManagement = () => {
     setCurrentPage(1);
   }, []);
 
-  // Verificar si el próximo mes ya fue emitido
+  // Verificar estado de emisión del mes actual y del próximo (si corresponde a partir del 20)
   useEffect(() => {
     let isMounted = true;
-    checkMonthEmittedApi(billingCycleInfo.nextMonth)
+
+    checkMonthEmittedApi(billingCycleInfo.currentMonth)
       .then((emitted) => {
-        if (isMounted) setIsNextMonthEmitted(emitted);
+        if (isMounted) setIsCurrentMonthEmitted(emitted);
       })
       .catch(() => {
-        if (isMounted) setIsNextMonthEmitted(false);
+        if (isMounted) setIsCurrentMonthEmitted(false);
       });
+
+    if (billingCycleInfo.isNextMonthWindow) {
+      checkMonthEmittedApi(billingCycleInfo.nextMonth)
+        .then((emitted) => {
+          if (isMounted) setIsNextMonthEmitted(emitted);
+        })
+        .catch(() => {
+          if (isMounted) setIsNextMonthEmitted(false);
+        });
+    } else {
+      setIsNextMonthEmitted(false);
+    }
+
     return () => {
       isMounted = false;
     };
-  }, [billingCycleInfo.nextMonth]);
+  }, [
+    billingCycleInfo.currentMonth,
+    billingCycleInfo.nextMonth,
+    billingCycleInfo.isNextMonthWindow,
+  ]);
+
+  const activeBillingAction = useMemo(
+    () =>
+      getActiveBillingTarget(
+        billingCycleInfo,
+        isCurrentMonthEmitted,
+        isNextMonthEmitted
+      ),
+    [billingCycleInfo, isCurrentMonthEmitted, isNextMonthEmitted]
+  );
 
   // Modals state
   const [validatingReceipt, setValidatingReceipt] = useState(null);
@@ -98,16 +128,27 @@ export const useFinanceManagement = () => {
   }, []);
 
   const handleApprovePayment = useCallback(
-    async (receiptId) => {
+    async (receiptId, voucherId = null) => {
       const receiptNumber = `#REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
       // Actualización optimista local
       setReceipts((prev) =>
         prev.map((item) => {
           if (item.id === receiptId) {
+            const vouchers = (item.vouchers || []).map((v) => {
+              if (!voucherId || v.id === voucherId || v.operationCode === voucherId) {
+                return { ...v, voucherStatus: 'Conciliado OK', rejectionReason: null };
+              }
+              return v;
+            });
+            const allApproved =
+              vouchers.length === 0 || vouchers.every((v) => v.voucherStatus === 'Conciliado OK');
+
             return {
               ...item,
-              status: 'aprobado',
-              receiptNumber,
+              status: allApproved ? 'aprobado' : item.status,
+              receiptNumber: allApproved ? (item.receiptNumber || receiptNumber) : item.receiptNumber,
+              vouchers,
+              vouchersHistory: vouchers,
               bankingVoucher: {
                 ...item.bankingVoucher,
                 voucherStatus: 'Conciliado OK',
@@ -121,10 +162,12 @@ export const useFinanceManagement = () => {
 
       // Persistir en Firebase Firestore
       try {
-        await approvePaymentApi(receiptId, receiptNumber);
+        await approvePaymentApi(receiptId, receiptNumber, voucherId);
         showNotification(
           'success',
-          `¡Pago aprobado! Se generó el Recibo Oficial ${receiptNumber} y fue registrado en Firebase.`
+          voucherId
+            ? '¡Comprobante específico conciliado con éxito en Firebase!'
+            : `¡Pago aprobado! Se generó el Recibo Oficial ${receiptNumber} y fue registrado en Firebase.`
         );
       } catch (err) {
         console.error('Error aprobando pago en Firestore:', err);
@@ -138,16 +181,25 @@ export const useFinanceManagement = () => {
   );
 
   const handleRejectPayment = useCallback(
-    async (receiptId, reason) => {
+    async (receiptId, reason, voucherId = null) => {
       const finalReason = reason || 'Comprobante observado por el área de tesorería.';
       // Actualización optimista local
       setReceipts((prev) =>
         prev.map((item) => {
           if (item.id === receiptId) {
+            const vouchers = (item.vouchers || []).map((v) => {
+              if (!voucherId || v.id === voucherId || v.operationCode === voucherId) {
+                return { ...v, voucherStatus: 'Observado', rejectionReason: finalReason };
+              }
+              return v;
+            });
+
             return {
               ...item,
               status: 'rechazado',
               rejectionReason: finalReason,
+              vouchers,
+              vouchersHistory: vouchers,
               bankingVoucher: {
                 ...item.bankingVoucher,
                 voucherStatus: 'Observado',
@@ -161,10 +213,12 @@ export const useFinanceManagement = () => {
 
       // Persistir en Firebase Firestore
       try {
-        await rejectPaymentApi(receiptId, finalReason);
+        await rejectPaymentApi(receiptId, finalReason, voucherId);
         showNotification(
           'error',
-          'Comprobante observado/rechazado en Firebase. Se envió la notificación de regularización.'
+          voucherId
+            ? 'Comprobante específico observado en Firebase. Se notificó al tutor para su regularización.'
+            : 'Comprobante observado/rechazado en Firebase. Se envió la notificación de regularización.'
         );
       } catch (err) {
         console.error('Error rechazando pago en Firestore:', err);
@@ -176,7 +230,6 @@ export const useFinanceManagement = () => {
     },
     [showNotification]
   );
-
 
   const handleExportBalance = useCallback(() => {
     // Generar archivo CSV descargable con los comprobantes actuales
@@ -242,6 +295,9 @@ export const useFinanceManagement = () => {
           return prev;
         });
         setSelectedMonth(targetMonth);
+        if (targetMonth === billingCycleInfo.currentMonth) {
+          setIsCurrentMonthEmitted(true);
+        }
         if (targetMonth === billingCycleInfo.nextMonth) {
           setIsNextMonthEmitted(true);
         }
@@ -260,7 +316,12 @@ export const useFinanceManagement = () => {
         setIsEmitting(false);
       }
     },
-    [billingCycleInfo.nextMonth, setSelectedMonth, showNotification]
+    [
+      billingCycleInfo.currentMonth,
+      billingCycleInfo.nextMonth,
+      setSelectedMonth,
+      showNotification,
+    ]
   );
 
   const handleResetFilters = useCallback(() => {
@@ -376,6 +437,8 @@ export const useFinanceManagement = () => {
     receipts,
     availableMonths,
     billingCycleInfo,
+    activeBillingAction,
+    isCurrentMonthEmitted,
     isNextMonthEmitted,
     isEmitModalOpen,
     isEmitting,
