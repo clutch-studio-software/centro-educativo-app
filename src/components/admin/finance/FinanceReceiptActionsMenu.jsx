@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { downloadInstitutionalReceiptPdf } from '../../../utils/financePdfGenerator';
 
 const FinanceReceiptActionsMenu = ({
   receipt,
@@ -121,6 +122,22 @@ const FinanceReceiptActionsMenu = ({
               <span className="font-medium">Ver Observación</span>
             </button>
           )}
+
+          {/* Opción Descargar Recibo Oficial de la Institución */}
+          <button
+            type="button"
+            data-testid={`menu-opt-download-receipt-${receipt.id}`}
+            onClick={() => {
+              setIsOpen(false);
+              downloadInstitutionalReceiptPdf(receipt);
+            }}
+            className="flex items-center gap-2.5 px-3.5 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer border-none bg-transparent w-full text-left"
+          >
+            <span className="material-symbols-outlined text-[18px] text-blue-600">
+              receipt_long
+            </span>
+            <span className="font-medium">Descargar Recibo Oficial</span>
+          </button>
 
           {/* Opción general: Ver Comprobante Adjunto o aviso si no cargó */}
           {receipt.bankingVoucher ? (

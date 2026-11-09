@@ -10,6 +10,10 @@ import {
   rejectPaymentApi,
   recalculateAllBalancesApi,
   fetchMonthTotalApi,
+  getBillingCycleInfo,
+  getActiveBillingTarget,
+  checkMonthEmittedApi,
+  emitMonthBillingApi,
 } from '../../../services/financeService';
 
 export const useFinanceManagement = () => {
@@ -19,14 +23,64 @@ export const useFinanceManagement = () => {
   const [expandedRowId, setExpandedRowId] = useState('fam-0118'); // open by default as in HTML
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(FINANCE_STATUSES.TODOS);
-  const [selectedMonth, setSelectedMonthState] = useState('Octubre 2026');
+  const [availableMonths, setAvailableMonths] = useState(FINANCE_MONTHS);
+  const [selectedMonth, setSelectedMonthState] = useState(FINANCE_MONTHS[0]);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
+
+  const billingCycleInfo = useMemo(() => getBillingCycleInfo(), []);
+  const [isCurrentMonthEmitted, setIsCurrentMonthEmitted] = useState(false);
+  const [isNextMonthEmitted, setIsNextMonthEmitted] = useState(false);
+  const [isEmitModalOpen, setIsEmitModalOpen] = useState(false);
+  const [isEmitting, setIsEmitting] = useState(false);
 
   const setSelectedMonth = useCallback((month) => {
     setSelectedMonthState(month);
     setCurrentPage(1);
   }, []);
+
+  // Verificar estado de emisión del mes actual y del próximo (si corresponde a partir del 20)
+  useEffect(() => {
+    let isMounted = true;
+
+    checkMonthEmittedApi(billingCycleInfo.currentMonth)
+      .then((emitted) => {
+        if (isMounted) setIsCurrentMonthEmitted(emitted);
+      })
+      .catch(() => {
+        if (isMounted) setIsCurrentMonthEmitted(false);
+      });
+
+    if (billingCycleInfo.isNextMonthWindow) {
+      checkMonthEmittedApi(billingCycleInfo.nextMonth)
+        .then((emitted) => {
+          if (isMounted) setIsNextMonthEmitted(emitted);
+        })
+        .catch(() => {
+          if (isMounted) setIsNextMonthEmitted(false);
+        });
+    } else {
+      setIsNextMonthEmitted(false);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    billingCycleInfo.currentMonth,
+    billingCycleInfo.nextMonth,
+    billingCycleInfo.isNextMonthWindow,
+  ]);
+
+  const activeBillingAction = useMemo(
+    () =>
+      getActiveBillingTarget(
+        billingCycleInfo,
+        isCurrentMonthEmitted,
+        isNextMonthEmitted
+      ),
+    [billingCycleInfo, isCurrentMonthEmitted, isNextMonthEmitted]
+  );
 
   // Modals state
   const [validatingReceipt, setValidatingReceipt] = useState(null);
@@ -74,16 +128,27 @@ export const useFinanceManagement = () => {
   }, []);
 
   const handleApprovePayment = useCallback(
-    async (receiptId) => {
+    async (receiptId, voucherId = null) => {
       const receiptNumber = `#REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
       // Actualización optimista local
       setReceipts((prev) =>
         prev.map((item) => {
           if (item.id === receiptId) {
+            const vouchers = (item.vouchers || []).map((v) => {
+              if (!voucherId || v.id === voucherId || v.operationCode === voucherId) {
+                return { ...v, voucherStatus: 'Conciliado OK', rejectionReason: null };
+              }
+              return v;
+            });
+            const allApproved =
+              vouchers.length === 0 || vouchers.every((v) => v.voucherStatus === 'Conciliado OK');
+
             return {
               ...item,
-              status: 'aprobado',
-              receiptNumber,
+              status: allApproved ? 'aprobado' : item.status,
+              receiptNumber: allApproved ? (item.receiptNumber || receiptNumber) : item.receiptNumber,
+              vouchers,
+              vouchersHistory: vouchers,
               bankingVoucher: {
                 ...item.bankingVoucher,
                 voucherStatus: 'Conciliado OK',
@@ -97,10 +162,12 @@ export const useFinanceManagement = () => {
 
       // Persistir en Firebase Firestore
       try {
-        await approvePaymentApi(receiptId, receiptNumber);
+        await approvePaymentApi(receiptId, receiptNumber, voucherId);
         showNotification(
           'success',
-          `¡Pago aprobado! Se generó el Recibo Oficial ${receiptNumber} y fue registrado en Firebase.`
+          voucherId
+            ? '¡Comprobante específico conciliado con éxito en Firebase!'
+            : `¡Pago aprobado! Se generó el Recibo Oficial ${receiptNumber} y fue registrado en Firebase.`
         );
       } catch (err) {
         console.error('Error aprobando pago en Firestore:', err);
@@ -114,16 +181,25 @@ export const useFinanceManagement = () => {
   );
 
   const handleRejectPayment = useCallback(
-    async (receiptId, reason) => {
+    async (receiptId, reason, voucherId = null) => {
       const finalReason = reason || 'Comprobante observado por el área de tesorería.';
       // Actualización optimista local
       setReceipts((prev) =>
         prev.map((item) => {
           if (item.id === receiptId) {
+            const vouchers = (item.vouchers || []).map((v) => {
+              if (!voucherId || v.id === voucherId || v.operationCode === voucherId) {
+                return { ...v, voucherStatus: 'Observado', rejectionReason: finalReason };
+              }
+              return v;
+            });
+
             return {
               ...item,
               status: 'rechazado',
               rejectionReason: finalReason,
+              vouchers,
+              vouchersHistory: vouchers,
               bankingVoucher: {
                 ...item.bankingVoucher,
                 voucherStatus: 'Observado',
@@ -137,10 +213,12 @@ export const useFinanceManagement = () => {
 
       // Persistir en Firebase Firestore
       try {
-        await rejectPaymentApi(receiptId, finalReason);
+        await rejectPaymentApi(receiptId, finalReason, voucherId);
         showNotification(
           'error',
-          'Comprobante observado/rechazado en Firebase. Se envió la notificación de regularización.'
+          voucherId
+            ? 'Comprobante específico observado en Firebase. Se notificó al tutor para su regularización.'
+            : 'Comprobante observado/rechazado en Firebase. Se envió la notificación de regularización.'
         );
       } catch (err) {
         console.error('Error rechazando pago en Firestore:', err);
@@ -152,7 +230,6 @@ export const useFinanceManagement = () => {
     },
     [showNotification]
   );
-
 
   const handleExportBalance = useCallback(() => {
     // Generar archivo CSV descargable con los comprobantes actuales
@@ -198,26 +275,76 @@ export const useFinanceManagement = () => {
     }
   }, [selectedMonth, showNotification]);
 
+  const handleOpenEmitModal = useCallback(() => {
+    setIsEmitModalOpen(true);
+  }, []);
+
+  const handleCloseEmitModal = useCallback(() => {
+    setIsEmitModalOpen(false);
+  }, []);
+
+  const handleEmitMonthBilling = useCallback(
+    async (targetMonth) => {
+      setIsEmitting(true);
+      try {
+        const result = await emitMonthBillingApi(targetMonth);
+        setAvailableMonths((prev) => {
+          if (!prev.includes(targetMonth)) {
+            return [targetMonth, ...prev];
+          }
+          return prev;
+        });
+        setSelectedMonth(targetMonth);
+        if (targetMonth === billingCycleInfo.currentMonth) {
+          setIsCurrentMonthEmitted(true);
+        }
+        if (targetMonth === billingCycleInfo.nextMonth) {
+          setIsNextMonthEmitted(true);
+        }
+        setIsEmitModalOpen(false);
+        showNotification({
+          type: 'success',
+          message: `Facturas y deudas de ${targetMonth} emitidas con éxito (${result.count} comprobantes generados).`,
+        });
+      } catch (err) {
+        console.error(`Error emitiendo facturación de ${targetMonth}:`, err);
+        showNotification({
+          type: 'error',
+          message: `No se pudo emitir la facturación de ${targetMonth}: ${err.message}`,
+        });
+      } finally {
+        setIsEmitting(false);
+      }
+    },
+    [
+      billingCycleInfo.currentMonth,
+      billingCycleInfo.nextMonth,
+      setSelectedMonth,
+      showNotification,
+    ]
+  );
+
   const handleResetFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedStatus(FINANCE_STATUSES.TODOS);
-    setSelectedMonth('Octubre 2026');
+    setSelectedMonth(availableMonths[0] || 'Noviembre 2026');
     setCurrentPage(1);
-  }, [setSelectedMonth]);
+  }, [availableMonths, setSelectedMonth]);
 
   // Filtered receipts
   const filteredReceipts = useMemo(() => {
     return receipts.filter((receipt) => {
       const term = searchTerm.toLowerCase().trim();
+      const children = Array.isArray(receipt.children) ? receipt.children : [];
       const matchesSearch =
         !term ||
-        receipt.tutor.toLowerCase().includes(term) ||
-        receipt.tutorDni.replace(/\./g, '').includes(term.replace(/\./g, '')) ||
-        receipt.familyCode.toLowerCase().includes(term) ||
-        receipt.children.some(
+        (receipt.tutor && receipt.tutor.toLowerCase().includes(term)) ||
+        (receipt.tutorDni && receipt.tutorDni.replace(/\./g, '').includes(term.replace(/\./g, ''))) ||
+        (receipt.familyCode && receipt.familyCode.toLowerCase().includes(term)) ||
+        children.some(
           (c) =>
-            c.name.toLowerCase().includes(term) ||
-            c.legajo.toLowerCase().includes(term)
+            (c.name && c.name.toLowerCase().includes(term)) ||
+            (c.legajo && c.legajo.toLowerCase().includes(term))
         );
 
       let matchesStatus = true;
@@ -248,7 +375,7 @@ export const useFinanceManagement = () => {
     () =>
       receipts
         .filter((r) => r.status === 'pendiente')
-        .reduce((acc, curr) => acc + curr.declaredAmount, 0),
+        .reduce((acc, curr) => acc + (Number(curr.declaredAmount) || 0), 0),
     [receipts]
   );
   const approvedCount = useMemo(
@@ -266,12 +393,12 @@ export const useFinanceManagement = () => {
   );
 
   const previousMonth = useMemo(() => {
-    const idx = FINANCE_MONTHS.indexOf(selectedMonth);
-    if (idx !== -1 && idx + 1 < FINANCE_MONTHS.length) {
-      return FINANCE_MONTHS[idx + 1];
+    const idx = availableMonths.indexOf(selectedMonth);
+    if (idx !== -1 && idx + 1 < availableMonths.length) {
+      return availableMonths[idx + 1];
     }
     return null;
-  }, [selectedMonth]);
+  }, [availableMonths, selectedMonth]);
 
   const [previousMonthTotal, setPreviousMonthTotal] = useState(null);
 
@@ -308,6 +435,16 @@ export const useFinanceManagement = () => {
 
   return {
     receipts,
+    availableMonths,
+    billingCycleInfo,
+    activeBillingAction,
+    isCurrentMonthEmitted,
+    isNextMonthEmitted,
+    isEmitModalOpen,
+    isEmitting,
+    handleOpenEmitModal,
+    handleCloseEmitModal,
+    handleEmitMonthBilling,
     activeTab,
     setActiveTab,
     expandedRowId,

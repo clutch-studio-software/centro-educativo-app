@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
+import BillingAutoEmissionModal from './finance/BillingAutoEmissionModal';
+import { useBillingAutoEmission } from '../../hooks/useBillingAutoEmission';
 
 const DEFAULT_BREADCRUMBS = [];
 
@@ -13,6 +15,14 @@ const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = DEFAULT_B
       return false;
     }
   });
+
+  const {
+    isAutoModalOpen,
+    autoModalMonth,
+    autoModalCount,
+    handleCloseAutoModal,
+    handleGoToFinance,
+  } = useBillingAutoEmission();
 
   const handleToggleCollapse = () => {
     const nextVal = !isCollapsed;
@@ -59,6 +69,15 @@ const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = DEFAULT_B
           {children}
         </main>
       </div>
+
+      {/* Modal de Emisión Automática de Facturas */}
+      <BillingAutoEmissionModal
+        isOpen={isAutoModalOpen}
+        month={autoModalMonth}
+        receiptsCount={autoModalCount}
+        onClose={handleCloseAutoModal}
+        onGoToFinance={handleGoToFinance}
+      />
     </div>
   );
 };

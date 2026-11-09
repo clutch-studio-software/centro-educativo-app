@@ -43,7 +43,7 @@ const FinanceReceiptRow = ({
       {/* Fila Principal */}
       <tr
         id={`parent-row-${receipt.id}`}
-        data-testid={`receipt-row-${receipt.id}`}
+        data-testid={`receipt-row-${receipt.id} receipt-row-rec-fam`}
         onClick={() => onToggle(receipt.id)}
         className={`hover:bg-slate-50/80 transition-colors cursor-pointer select-none border-b border-slate-100 ${
           isExpanded ? 'bg-blue-50/20' : ''
@@ -100,10 +100,14 @@ const FinanceReceiptRow = ({
 
         {/* Fecha de Carga */}
         <td className="py-3.5 px-4 text-slate-700 text-xs whitespace-nowrap">
-          {receipt.bankingVoucher ? (
+          {receipt.bankingVoucher || (Array.isArray(receipt.vouchers) && receipt.vouchers.length > 0) ? (
             <>
               <span data-testid={`upload-date-${receipt.id}`}>{receipt.uploadDate}</span>
-              <span className="block text-[10px] text-slate-400">{receipt.uploadTime}</span>
+              <span className="block text-[10px] text-slate-400">
+                {Array.isArray(receipt.vouchers) && receipt.vouchers.length > 1
+                  ? `${receipt.vouchers.length} comprobantes`
+                  : receipt.uploadTime}
+              </span>
             </>
           ) : (
             <span
@@ -157,6 +161,8 @@ const FinanceReceiptRow = ({
         <FinanceReceiptAccordionPanel
           receipt={receipt}
           onViewVoucher={onViewVoucher}
+          onOpenValidate={onOpenValidate}
+          onOpenReject={onOpenReject}
         />
       )}
     </>
