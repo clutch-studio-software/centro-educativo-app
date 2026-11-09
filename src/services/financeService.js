@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   updateDoc,
   query,
@@ -17,6 +18,21 @@ import { INITIAL_RECEIPTS } from '../data/mockFinanceData';
 
 const RECEIPTS_COLLECTION = 'finance_receipts';
 
+export const SPANISH_MONTH_NAMES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
+
 const MONTH_NUMBERS = {
   'Marzo 2026': '03',
   'Abril 2026': '04',
@@ -26,6 +42,8 @@ const MONTH_NUMBERS = {
   'Agosto 2026': '08',
   'Septiembre 2026': '09',
   'Octubre 2026': '10',
+  'Noviembre 2026': '11',
+  'Diciembre 2026': '12',
 };
 
 const PAST_MONTHS = [
@@ -36,6 +54,7 @@ const PAST_MONTHS = [
   'Julio 2026',
   'Agosto 2026',
   'Septiembre 2026',
+  'Octubre 2026',
 ];
 
 const DEFAULT_LEVEL_PRICES = {
@@ -73,7 +92,7 @@ export const buildMonthReceipts = ({
   baseReceipts = INITIAL_RECEIPTS,
 }) => {
   const isPastMonth = PAST_MONTHS.includes(month);
-  const monthNum = MONTH_NUMBERS[month] || '10';
+  const monthNum = getMonthNumber(month);
   let academicLevels = DEFAULT_LEVEL_PRICES;
   if (Array.isArray(tariffsConfig?.tariffs?.academicLevels)) {
     const map = {};
@@ -422,11 +441,13 @@ export const fetchOrSeedMonthReceiptsApi = async (month) => {
 
     const list = snap.docs.map((d) => {
       const data = d.data();
+      const children = Array.isArray(data.children) ? data.children : [];
       // Si no es mes pasado y el comprobante contiene mock anterior no subido por tutor, sanitizarlo
       if (!isPastMonth && data.bankingVoucher && !data.bankingVoucher.isUploadedByTutor) {
         needsSanitization = true;
         const cleaned = {
           ...data,
+          children,
           id: d.id,
           uploadDate: 'Sin comprobante',
           uploadTime: 'Pendiente',
@@ -437,6 +458,7 @@ export const fetchOrSeedMonthReceiptsApi = async (month) => {
       }
       return {
         ...data,
+        children,
         id: d.id,
       };
     });
@@ -510,9 +532,11 @@ export const subscribeToMonthReceipts = (month, onUpdate, onError) => {
       const isPastMonth = PAST_MONTHS.includes(month);
       const list = snapshot.docs.map((d) => {
         const data = d.data();
+        const children = Array.isArray(data.children) ? data.children : [];
         if (!isPastMonth && data.bankingVoucher && !data.bankingVoucher.isUploadedByTutor) {
           return {
             ...data,
+            children,
             id: d.id,
             uploadDate: 'Sin comprobante',
             uploadTime: 'Pendiente',
@@ -521,6 +545,7 @@ export const subscribeToMonthReceipts = (month, onUpdate, onError) => {
         }
         return {
           ...data,
+          children,
           id: d.id,
         };
       });
@@ -803,6 +828,231 @@ export const fetchMonthTotalApi = async (month) => {
       (sum, r) => sum + (Number(r.declaredAmount) || 0),
       0
     );
+  }
+};
+
+export const getMonthNumber = (month) => {
+  if (MONTH_NUMBERS[month]) return MONTH_NUMBERS[month];
+  const [name] = String(month || '').split(' ');
+  const idx = SPANISH_MONTH_NAMES.findIndex(
+    (m) => m.toLowerCase() === (name || '').toLowerCase()
+  );
+  return idx !== -1 ? String(idx + 1).padStart(2, '0') : '11';
+};
+
+export const getMonthLabel = (date = new Date()) => {
+  const mIndex = date.getMonth();
+  const year = date.getFullYear();
+  return `${SPANISH_MONTH_NAMES[mIndex]} ${year}`;
+};
+
+export const getNextMonthLabel = (date = new Date()) => {
+  const nextDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  return `${SPANISH_MONTH_NAMES[nextDate.getMonth()]} ${nextDate.getFullYear()}`;
+};
+
+/**
+ * Devuelve la información del ciclo de facturación escolar actual:
+ * - Mes en curso
+ * - Mes siguiente
+ * - Si está habilitada la emisión manual para el mes siguiente (a partir del día 20)
+ * - Si venció el plazo manual para el mes actual (a partir del día 5)
+ */
+export const getBillingCycleInfo = (referenceDate = new Date()) => {
+  const day = referenceDate.getDate();
+  const currentMonth = getMonthLabel(referenceDate);
+  const nextMonth = getNextMonthLabel(referenceDate);
+  const currentMonthName = SPANISH_MONTH_NAMES[referenceDate.getMonth()];
+
+  const canEmitNextMonth = day >= 20;
+  const isPastManualDeadlineForCurrentMonth = day >= 5;
+
+  return {
+    day,
+    currentMonth,
+    nextMonth,
+    currentMonthName,
+    canEmitNextMonth,
+    isPastManualDeadlineForCurrentMonth,
+  };
+};
+
+/**
+ * Verifica si las facturas de un mes ya fueron emitidas en Firestore o en la configuración.
+ */
+export const checkMonthEmittedApi = async (month) => {
+  if (!month) return false;
+  try {
+    const receiptsRef = collection(db, RECEIPTS_COLLECTION);
+    const q = query(receiptsRef, where('month', '==', month));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      return true;
+    }
+  } catch (err) {
+    console.warn(`Aviso verificando emisión de ${month} en receipts:`, err.message);
+  }
+
+  try {
+    const configSnap = await getDoc(doc(db, 'systemConfig', 'billing_emissions'));
+    if (configSnap.exists()) {
+      const data = configSnap.data();
+      if (data && data[month]) {
+        return true;
+      }
+    }
+  } catch (err) {
+    console.warn(`Aviso verificando emisión de ${month} en systemConfig:`, err.message);
+  }
+
+  return false;
+};
+
+/**
+ * Emite las facturas y deudas escolares para un mes específico.
+ * Cruza alumnos, tutores, disciplinas deportivas y tarifas institucionales vigentes.
+ */
+export const emitMonthBillingApi = async (month, options = {}) => {
+  await ensureAdminAuth();
+
+  const alreadyEmitted = await checkMonthEmittedApi(month);
+  if (alreadyEmitted && !options.force) {
+    const q = query(collection(db, RECEIPTS_COLLECTION), where('month', '==', month));
+    const snap = await getDocs(q);
+    const list = snap.docs.map((d) => ({
+      ...d.data(),
+      children: Array.isArray(d.data().children) ? d.data().children : [],
+      id: d.id,
+    }));
+    return {
+      success: true,
+      alreadyExisted: true,
+      count: list.length,
+      receipts: list,
+      month,
+      isAutomatic: Boolean(options.isAutomatic),
+    };
+  }
+
+  const [tariffsConfig, disciplinesSnap, studentsSnap, usersSnap] = await Promise.all([
+    fetchTariffsConfig().catch(() => null),
+    fetchSportsActivities().catch(() => []),
+    getDocs(collection(db, 'students')).catch(() => ({ docs: [] })),
+    getDocs(collection(db, 'users')).catch(() => ({ docs: [] })),
+  ]);
+
+  const students = studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const allUsers = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const parents = allUsers.filter((u) => String(u.role || '').trim().toLowerCase() === 'padre');
+
+  const generatedReceipts = buildMonthReceipts({
+    month,
+    students,
+    parents,
+    disciplines: disciplinesSnap,
+    tariffsConfig,
+    baseReceipts: INITIAL_RECEIPTS,
+  });
+
+  try {
+    const batch = writeBatch(db);
+    generatedReceipts.forEach((r) => {
+      const docRef = doc(db, RECEIPTS_COLLECTION, r.id);
+      batch.set(docRef, {
+        ...r,
+        createdAt: serverTimestamp(),
+      });
+    });
+
+    const emissionsDocRef = doc(db, 'systemConfig', 'billing_emissions');
+    batch.set(
+      emissionsDocRef,
+      {
+        [month]: {
+          emittedAt: new Date().toISOString(),
+          emittedBy: options.emittedBy || 'Administración',
+          type: options.isAutomatic ? 'automatic' : 'manual',
+          count: generatedReceipts.length,
+        },
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
+  } catch (err) {
+    console.error(`Error guardando facturas emitidas del mes ${month}:`, err);
+    throw err;
+  }
+
+  return {
+    success: true,
+    alreadyExisted: false,
+    count: generatedReceipts.length,
+    receipts: generatedReceipts,
+    month,
+    isAutomatic: Boolean(options.isAutomatic),
+  };
+};
+
+/**
+ * Evalúa si se debe ejecutar la emisión automática al iniciar sesión un administrador:
+ * Si para el día 5 de un mes no se emitieron las facturas de dicho mes,
+ * se ejecuta la emisión automática y se devuelve la información para notificar con modal.
+ */
+export const checkAndExecuteAutoBillingEmissionApi = async (
+  currentUser,
+  referenceDate = new Date()
+) => {
+  if (!currentUser) return null;
+
+  const role = String(currentUser.rol || currentUser.role || '').toLowerCase();
+  const isAdmin =
+    role === 'user_admin' ||
+    role === 'directivo' ||
+    role === 'administrador' ||
+    role === 'admin' ||
+    role === 'director' ||
+    role === 'administrativo';
+
+  if (!isAdmin) return null;
+
+  const cycleInfo = getBillingCycleInfo(referenceDate);
+  const currentMonth = cycleInfo.currentMonth;
+
+  if (!cycleInfo.isPastManualDeadlineForCurrentMonth) {
+    return null;
+  }
+
+  const isEmitted = await checkMonthEmittedApi(currentMonth);
+  if (isEmitted) {
+    return null;
+  }
+
+  const sessionKey = `billing_auto_emitted_in_progress_${currentMonth}`;
+  if (sessionStorage.getItem(sessionKey)) {
+    return null;
+  }
+  sessionStorage.setItem(sessionKey, 'true');
+
+  try {
+    const emitterName =
+      currentUser.nombreCompleto || currentUser.nombre || currentUser.email || 'Sistema Automático';
+
+    const result = await emitMonthBillingApi(currentMonth, {
+      emittedBy: emitterName,
+      isAutomatic: true,
+    });
+
+    return {
+      autoEmitted: true,
+      month: currentMonth,
+      count: result.count,
+    };
+  } catch (err) {
+    console.error('Error durante la emisión automática de facturas:', err);
+    sessionStorage.removeItem(sessionKey);
+    return null;
   }
 };
 

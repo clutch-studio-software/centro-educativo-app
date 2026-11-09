@@ -11,6 +11,7 @@ import FinanceTariffsView from '../../components/admin/finance/tariffs/FinanceTa
 import FinanceValidateReceiptModal from '../../components/admin/finance/FinanceValidateReceiptModal';
 import FinanceRejectReceiptModal from '../../components/admin/finance/FinanceRejectReceiptModal';
 import FinanceVoucherModal from '../../components/admin/finance/FinanceVoucherModal';
+import FinanceEmitBillingModal from '../../components/admin/finance/FinanceEmitBillingModal';
 import { useFinanceManagement } from '../../components/admin/finance/useFinanceManagement';
 import { FINANCE_STATUSES } from '../../data/mockFinanceData';
 
@@ -24,8 +25,16 @@ const FinanceManagement = () => {
     setSearchTerm,
     selectedStatus,
     setSelectedStatus,
+    availableMonths,
     selectedMonth,
     setSelectedMonth,
+    billingCycleInfo,
+    isNextMonthEmitted,
+    isEmitModalOpen,
+    isEmitting,
+    handleOpenEmitModal,
+    handleCloseEmitModal,
+    handleEmitMonthBilling,
     currentPage,
     setCurrentPage,
     pageSize,
@@ -107,6 +116,10 @@ const FinanceManagement = () => {
               onExportBalance={handleExportBalance}
               onRecalculateBalances={handleRecalculateBalances}
               isRecalculating={isRecalculating}
+              billingCycleInfo={billingCycleInfo}
+              isNextMonthEmitted={isNextMonthEmitted}
+              onOpenEmitModal={handleOpenEmitModal}
+              isEmitting={isEmitting}
             />
 
             {/* Quick KPI Strip Bento */}
@@ -134,6 +147,7 @@ const FinanceManagement = () => {
               pendingCount={pendingCount}
               approvedCount={approvedCount}
               rejectedCount={rejectedCount}
+              months={availableMonths}
             />
 
             {/* Tabla Principal Acordeón */}
@@ -186,6 +200,15 @@ const FinanceManagement = () => {
         <FinanceVoucherModal
           receipt={viewingVoucher}
           onClose={() => setViewingVoucher(null)}
+        />
+
+        {/* Modal: Confirmación de Emisión Manual de Facturación */}
+        <FinanceEmitBillingModal
+          isOpen={isEmitModalOpen}
+          targetMonth={billingCycleInfo?.nextMonth}
+          onClose={handleCloseEmitModal}
+          onConfirm={handleEmitMonthBilling}
+          isEmitting={isEmitting}
         />
       </div>
     </AdminLayout>

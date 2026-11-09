@@ -12,6 +12,7 @@ const FinanceFilterBar = ({
   pendingCount = 14,
   approvedCount = 142,
   rejectedCount = 3,
+  months = FINANCE_MONTHS,
 }) => {
   return (
     <div
@@ -90,7 +91,7 @@ const FinanceFilterBar = ({
             onChange={(e) => onMonthChange(e.target.value)}
             className="appearance-none pl-8 pr-8 py-2.5 rounded-full bg-slate-100 text-xs font-semibold text-slate-700 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/40 cursor-pointer hover:bg-slate-200/70 transition-colors border border-transparent"
           >
-            {FINANCE_MONTHS.map((month) => (
+            {months.map((month) => (
               <option key={month} value={month}>
                 {month}
               </option>

@@ -47,6 +47,11 @@ service cloud.firestore {
     // Document ID: Discipline ID
     // Fields:
     //   - name, category, schedule, enrolledStudents
+    //
+    // Collection: systemConfig
+    // Document ID: Config key (e.g., 'rbac_roles')
+    // Fields:
+    //   - role permissions mapping, updatedAt: timestamp
     // ===============================================================
 
     // Helper functions for institutional authorization
@@ -173,6 +178,15 @@ service cloud.firestore {
 
       // Eliminación únicamente por administradores
       allow delete: if isAdmin();
+    }
+
+    // Colección systemConfig (Configuraciones del sistema y matriz de roles/permisos RBAC)
+    match /systemConfig/{docId} {
+      // Lectura permitida si el usuario es staff o administrador institucional
+      allow read: if isStaff() || isAdmin();
+
+      // Escritura permitida exclusivamente si el usuario es administrador
+      allow write: if isAdmin();
     }
   }
 }

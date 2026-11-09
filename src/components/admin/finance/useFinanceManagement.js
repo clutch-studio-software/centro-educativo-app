@@ -10,6 +10,9 @@ import {
   rejectPaymentApi,
   recalculateAllBalancesApi,
   fetchMonthTotalApi,
+  getBillingCycleInfo,
+  checkMonthEmittedApi,
+  emitMonthBillingApi,
 } from '../../../services/financeService';
 
 export const useFinanceManagement = () => {
@@ -19,14 +22,35 @@ export const useFinanceManagement = () => {
   const [expandedRowId, setExpandedRowId] = useState('fam-0118'); // open by default as in HTML
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(FINANCE_STATUSES.TODOS);
-  const [selectedMonth, setSelectedMonthState] = useState('Octubre 2026');
+  const [availableMonths, setAvailableMonths] = useState(FINANCE_MONTHS);
+  const [selectedMonth, setSelectedMonthState] = useState(FINANCE_MONTHS[0]);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
+
+  const billingCycleInfo = useMemo(() => getBillingCycleInfo(), []);
+  const [isNextMonthEmitted, setIsNextMonthEmitted] = useState(false);
+  const [isEmitModalOpen, setIsEmitModalOpen] = useState(false);
+  const [isEmitting, setIsEmitting] = useState(false);
 
   const setSelectedMonth = useCallback((month) => {
     setSelectedMonthState(month);
     setCurrentPage(1);
   }, []);
+
+  // Verificar si el próximo mes ya fue emitido
+  useEffect(() => {
+    let isMounted = true;
+    checkMonthEmittedApi(billingCycleInfo.nextMonth)
+      .then((emitted) => {
+        if (isMounted) setIsNextMonthEmitted(emitted);
+      })
+      .catch(() => {
+        if (isMounted) setIsNextMonthEmitted(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [billingCycleInfo.nextMonth]);
 
   // Modals state
   const [validatingReceipt, setValidatingReceipt] = useState(null);
@@ -198,26 +222,68 @@ export const useFinanceManagement = () => {
     }
   }, [selectedMonth, showNotification]);
 
+  const handleOpenEmitModal = useCallback(() => {
+    setIsEmitModalOpen(true);
+  }, []);
+
+  const handleCloseEmitModal = useCallback(() => {
+    setIsEmitModalOpen(false);
+  }, []);
+
+  const handleEmitMonthBilling = useCallback(
+    async (targetMonth) => {
+      setIsEmitting(true);
+      try {
+        const result = await emitMonthBillingApi(targetMonth);
+        setAvailableMonths((prev) => {
+          if (!prev.includes(targetMonth)) {
+            return [targetMonth, ...prev];
+          }
+          return prev;
+        });
+        setSelectedMonth(targetMonth);
+        if (targetMonth === billingCycleInfo.nextMonth) {
+          setIsNextMonthEmitted(true);
+        }
+        setIsEmitModalOpen(false);
+        showNotification({
+          type: 'success',
+          message: `Facturas y deudas de ${targetMonth} emitidas con éxito (${result.count} comprobantes generados).`,
+        });
+      } catch (err) {
+        console.error(`Error emitiendo facturación de ${targetMonth}:`, err);
+        showNotification({
+          type: 'error',
+          message: `No se pudo emitir la facturación de ${targetMonth}: ${err.message}`,
+        });
+      } finally {
+        setIsEmitting(false);
+      }
+    },
+    [billingCycleInfo.nextMonth, setSelectedMonth, showNotification]
+  );
+
   const handleResetFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedStatus(FINANCE_STATUSES.TODOS);
-    setSelectedMonth('Octubre 2026');
+    setSelectedMonth(availableMonths[0] || 'Noviembre 2026');
     setCurrentPage(1);
-  }, [setSelectedMonth]);
+  }, [availableMonths, setSelectedMonth]);
 
   // Filtered receipts
   const filteredReceipts = useMemo(() => {
     return receipts.filter((receipt) => {
       const term = searchTerm.toLowerCase().trim();
+      const children = Array.isArray(receipt.children) ? receipt.children : [];
       const matchesSearch =
         !term ||
-        receipt.tutor.toLowerCase().includes(term) ||
-        receipt.tutorDni.replace(/\./g, '').includes(term.replace(/\./g, '')) ||
-        receipt.familyCode.toLowerCase().includes(term) ||
-        receipt.children.some(
+        (receipt.tutor && receipt.tutor.toLowerCase().includes(term)) ||
+        (receipt.tutorDni && receipt.tutorDni.replace(/\./g, '').includes(term.replace(/\./g, ''))) ||
+        (receipt.familyCode && receipt.familyCode.toLowerCase().includes(term)) ||
+        children.some(
           (c) =>
-            c.name.toLowerCase().includes(term) ||
-            c.legajo.toLowerCase().includes(term)
+            (c.name && c.name.toLowerCase().includes(term)) ||
+            (c.legajo && c.legajo.toLowerCase().includes(term))
         );
 
       let matchesStatus = true;
@@ -248,7 +314,7 @@ export const useFinanceManagement = () => {
     () =>
       receipts
         .filter((r) => r.status === 'pendiente')
-        .reduce((acc, curr) => acc + curr.declaredAmount, 0),
+        .reduce((acc, curr) => acc + (Number(curr.declaredAmount) || 0), 0),
     [receipts]
   );
   const approvedCount = useMemo(
@@ -266,12 +332,12 @@ export const useFinanceManagement = () => {
   );
 
   const previousMonth = useMemo(() => {
-    const idx = FINANCE_MONTHS.indexOf(selectedMonth);
-    if (idx !== -1 && idx + 1 < FINANCE_MONTHS.length) {
-      return FINANCE_MONTHS[idx + 1];
+    const idx = availableMonths.indexOf(selectedMonth);
+    if (idx !== -1 && idx + 1 < availableMonths.length) {
+      return availableMonths[idx + 1];
     }
     return null;
-  }, [selectedMonth]);
+  }, [availableMonths, selectedMonth]);
 
   const [previousMonthTotal, setPreviousMonthTotal] = useState(null);
 
@@ -308,6 +374,14 @@ export const useFinanceManagement = () => {
 
   return {
     receipts,
+    availableMonths,
+    billingCycleInfo,
+    isNextMonthEmitted,
+    isEmitModalOpen,
+    isEmitting,
+    handleOpenEmitModal,
+    handleCloseEmitModal,
+    handleEmitMonthBilling,
     activeTab,
     setActiveTab,
     expandedRowId,
