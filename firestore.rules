@@ -47,6 +47,11 @@ service cloud.firestore {
     // Document ID: Discipline ID
     // Fields:
     //   - name, category, schedule, enrolledStudents, inscriptos, cupoMax, cupoOcupado
+    //
+    // Collection: systemConfig
+    // Document ID: Config key (e.g., 'rbac_roles', 'billing_emissions')
+    // Fields:
+    //   - role permissions mapping, updatedAt: timestamp
     // ===============================================================
 
     // Helper functions for institutional authorization
@@ -56,10 +61,6 @@ service cloud.firestore {
 
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    function isParentOf(parentId) {
-      return isAuthenticated() && request.auth.uid == parentId;
     }
 
     function isLinkedParent(studentId) {
@@ -166,7 +167,7 @@ service cloud.firestore {
     }
 
     // Colección sportsActivities (Disciplinas deportivas y actividades extracurriculares)
-    match /sportsActivities/{docId} {
+    match /sportsActivities/{disciplineId} {
       // Lectura para cualquier usuario institucional autenticado
       allow read: if isAuthenticated();
       
@@ -203,13 +204,22 @@ service cloud.firestore {
       // Creación para usuarios autenticados (tutores al subir comprobante o personal)
       allow create: if isAuthenticated();
 
-      // Conciliación, aprobación y rechazo por personal institucional o administradores, o actualización por el tutor de su recibo pendiente
+      // Conciliación, aprobación y rechazo por personal institucional o administradores, o actualización por el tutor de su recibo pendiente al adjuntar comprobantes
       allow update: if isStaff() || isAdmin() || (
         isAuthenticated() && resource.data.status == 'pendiente'
       );
 
-      // Eliminación únicamente por administradores
-      allow delete: if isAdmin();
+      // Eliminación únicamente por administradores o personal institucional
+      allow delete: if isAdmin() || isStaff();
+    }
+
+    // Colección systemConfig (Configuraciones del sistema, billing_emissions y matriz de roles/permisos RBAC)
+    match /systemConfig/{docId} {
+      // Lectura permitida si el usuario es staff o administrador institucional
+      allow read: if isStaff() || isAdmin();
+
+      // Escritura permitida exclusivamente si el usuario es administrador
+      allow write: if isAdmin();
     }
   }
 }

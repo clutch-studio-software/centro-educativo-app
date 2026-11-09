@@ -7,7 +7,11 @@ const FinanceRejectReceiptModal = ({ receipt, onClose, onConfirm }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onConfirm(receipt.id, reason.trim() || 'Comprobante observado por inconsistencias en el importe o datos.');
+    onConfirm(
+      receipt.id,
+      reason.trim() || 'Comprobante observado por inconsistencias en el importe o datos.',
+      receipt.activeVoucher?.id
+    );
   };
 
   return (
