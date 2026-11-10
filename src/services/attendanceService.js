@@ -20,6 +20,10 @@ import {
 } from '../components/admin/teachers/teacherScheduleUtils.js';
 import { INITIAL_COURSES, INITIAL_SUBJECTS } from '../data/mockAcademicOffer.js';
 import { persistStudentLocal } from './familyPortalService.js';
+import {
+  sendInstitutionalNotification,
+  resolveStudentNotificationTarget,
+} from './notificationsService.js';
 
 const DAY_MAPPING = {
   0: { key: 'dom', label: 'Domingo', tokens: ['dom', 'domingo'] },
@@ -330,6 +334,7 @@ export const computeUpdatedAttendanceObject = (rawAsistencias = {}, updatedHisto
   const faltasInjustificadas = updatedHistorial.filter(
     (h) =>
       h.estado === 'injustificada' ||
+      h.estado === 'justificacion_rechazada' ||
       String(h.tipo || '').toLowerCase().includes('injustificada')
   ).length;
   const faltasJustificadas = updatedHistorial.filter(
@@ -337,7 +342,8 @@ export const computeUpdatedAttendanceObject = (rawAsistencias = {}, updatedHisto
       h.estado === 'justificada' ||
       h.estado === 'justificacion_pendiente' ||
       (String(h.tipo || '').toLowerCase().includes('justificada') &&
-        !String(h.tipo || '').toLowerCase().includes('injustificada'))
+        !String(h.tipo || '').toLowerCase().includes('injustificada') &&
+        h.estado !== 'justificacion_rechazada')
   ).length;
 
   const totalFaltas = faltasInjustificadas + faltasJustificadas;
@@ -391,6 +397,7 @@ export const saveCourseDailyAttendanceApi = async ({
 
   const batch = writeBatch(db);
   const updatedStudentsList = [];
+  const pendingNotifications = [];
 
   for (const student of courseStudents) {
     if (!student?.id) continue;
@@ -456,9 +463,55 @@ export const saveCourseDailyAttendanceApi = async ({
       asistencias: updatedAsistencias,
       updatedAt: serverTimestamp(),
     });
+
+    const normalizedEstado = String(estado).toLowerCase();
+    if (
+      ['ausente', 'falta', 'injustificada', 'tardanza'].includes(normalizedEstado)
+    ) {
+      const studentFullName = (
+        student.nombreCompleto ||
+        `${student.nombre || ''} ${student.apellido || ''}`.trim() ||
+        student.nombre ||
+        'Alumno'
+      ).trim();
+
+      pendingNotifications.push({
+        student,
+        payload: {
+          parentId:
+            student.parentId || student.tutorUid || student.parentUid || null,
+          studentId: student.id,
+          studentName: studentFullName,
+          category: 'inasistencia',
+          title: `Registro de ${tipoLabel}`,
+          body: `${studentFullName}: Se registró ${tipoLabel} en la fecha ${dateStr}.`,
+          targetTab: 'academic',
+          recordId: entryPayload.id,
+          status: 'info',
+        },
+      });
+    }
   }
 
   await batch.commit();
+
+  // Despachar notificaciones de inasistencias/tardanzas sin bloquear el flujo principal
+  await Promise.all(
+    pendingNotifications.map(async ({ student, payload }) => {
+      const { parentId, studentName } = await resolveStudentNotificationTarget({
+        studentId: student.id,
+        studentData: student,
+        fallbackStudentName: payload.studentName,
+        fallbackParentId: payload.parentId,
+      });
+      return sendInstitutionalNotification({
+        ...payload,
+        parentId,
+        studentName,
+      });
+    })
+  );
+
   return updatedStudentsList;
 };
 
@@ -488,8 +541,12 @@ export const approveStudentJustificationApi = async ({
     ? [...rawAsistencias.historial]
     : [];
 
+  const nowIso = new Date().toISOString();
+  let resolvedFecha = String(absenceId);
+
   const updatedHistorial = existingHistorial.map((h) => {
     if (String(h.id) === String(absenceId) || h.fecha === absenceId) {
+      resolvedFecha = h.fecha || resolvedFecha;
       return {
         ...h,
         estado: 'justificada',
@@ -497,9 +554,10 @@ export const approveStudentJustificationApi = async ({
         justificada: true,
         justificacion: {
           ...(h.justificacion || {}),
-          estado: 'Aprobada por Preceptoría',
+          estado: 'Justificación Aprobada',
           aprobadoPor: staffName,
-          fechaAprobacion: new Date().toISOString(),
+          fechaAprobacion: nowIso,
+          fechaResolucion: nowIso,
         },
       };
     }
@@ -517,6 +575,124 @@ export const approveStudentJustificationApi = async ({
   await updateDoc(doc(db, 'students', student.id), {
     asistencias: updatedAsistencias,
     updatedAt: serverTimestamp(),
+  });
+
+  const { parentId, studentName } = await resolveStudentNotificationTarget({
+    studentId: student.id,
+    studentData: student,
+    fallbackStudentName:
+      student.nombreCompleto ||
+      `${student.nombre || ''} ${student.apellido || ''}`.trim() ||
+      student.nombre,
+    fallbackParentId:
+      student.parentId || student.tutorUid || student.parentUid || null,
+  });
+
+  await sendInstitutionalNotification({
+    parentId,
+    studentId: student.id,
+    studentName,
+    category: 'justificacion',
+    title: 'Justificación de Inasistencia Aprobada',
+    body: `${studentName}: Se aprobó el certificado de la inasistencia del ${resolvedFecha}.`,
+    targetTab: 'academic',
+    status: 'aprobado',
+    recordId: absenceId,
+  });
+
+  return updatedStudent;
+};
+
+/**
+ * Rechaza una justificación de inasistencia enviada por el tutor de un alumno
+ */
+export const rejectStudentJustificationApi = async ({
+  student,
+  absenceId,
+  reason = '',
+  staffUser,
+}) => {
+  if (!student?.id || !absenceId) return student;
+  await ensureAdminAuth();
+
+  const staffName =
+    staffUser?.nombreCompleto ||
+    staffUser?.displayName ||
+    staffUser?.nombre ||
+    'Preceptoría / Administración';
+
+  const motivoRechazo =
+    (reason && String(reason).trim()) || 'Verifique la documentación adjunta';
+
+  const rawAsistencias =
+    student.asistencias && typeof student.asistencias === 'object'
+      ? student.asistencias
+      : { historial: [] };
+
+  const existingHistorial = Array.isArray(rawAsistencias.historial)
+    ? [...rawAsistencias.historial]
+    : [];
+
+  const nowIso = new Date().toISOString();
+  let resolvedFecha = String(absenceId);
+
+  const updatedHistorial = existingHistorial.map((h) => {
+    if (String(h.id) === String(absenceId) || h.fecha === absenceId) {
+      resolvedFecha = h.fecha || resolvedFecha;
+      return {
+        ...h,
+        estado: 'justificacion_rechazada',
+        tipo: 'Falta Injustificada',
+        justificada: false,
+        justificacion: {
+          ...(h.justificacion || {}),
+          estado: 'Justificación Rechazada',
+          motivoRechazo,
+          rechazadoPor: staffName,
+          fechaResolucion: nowIso,
+        },
+      };
+    }
+    return h;
+  });
+
+  const updatedAsistencias = computeUpdatedAttendanceObject(
+    rawAsistencias,
+    updatedHistorial
+  );
+  const updatedStudent = {
+    ...student,
+    asistencias: updatedAsistencias,
+  };
+
+  persistStudentLocal(updatedStudent);
+
+  await updateDoc(doc(db, 'students', student.id), {
+    asistencias: updatedAsistencias,
+    updatedAt: serverTimestamp(),
+  });
+
+  const { parentId, studentName } = await resolveStudentNotificationTarget({
+    studentId: student.id,
+    studentData: student,
+    fallbackStudentName:
+      student.nombreCompleto ||
+      `${student.nombre || ''} ${student.apellido || ''}`.trim() ||
+      student.nombre,
+    fallbackParentId:
+      student.parentId || student.tutorUid || student.parentUid || null,
+  });
+
+  await sendInstitutionalNotification({
+    parentId,
+    studentId: student.id,
+    studentName,
+    category: 'justificacion',
+    title: 'Justificación de Inasistencia Rechazada',
+    body: `${studentName}: Se rechazó la justificación del ${resolvedFecha}. Motivo: ${motivoRechazo}.`,
+    targetTab: 'academic',
+    status: 'rechazado',
+    recordId: absenceId,
   });
 
   return updatedStudent;

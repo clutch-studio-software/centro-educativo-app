@@ -15,6 +15,7 @@ import { ensureAdminAuth } from './teachersService';
 import { fetchTariffsConfig } from './tariffsService';
 import { fetchSportsActivities } from './sportsService';
 import { INITIAL_RECEIPTS } from '../data/mockFinanceData';
+import { sendInstitutionalNotification } from './notificationsService';
 
 const RECEIPTS_COLLECTION = 'finance_receipts';
 
@@ -627,6 +628,138 @@ export const subscribeToMonthReceipts = (month, onUpdate, onError) => {
 };
 
 /**
+ * Sincroniza el estado del comprobante en students/{childId}.comprobantesPago
+ * y envía la notificación institucional + Push Notification al tutor.
+ */
+const syncReceiptDecisionAndNotify = async ({
+  receiptId,
+  receiptData = {},
+  isApproved,
+  officialReceiptNumber = null,
+  reason = null,
+}) => {
+  try {
+    const receiptMonth =
+      receiptData.month || receiptData.invoicePeriod || receiptData.period || 'Actual';
+    const children = Array.isArray(receiptData.children) ? receiptData.children : [];
+    let resolvedParentUid =
+      receiptData.parentUid || receiptData.tutorUid || receiptData.parentId || null;
+
+    const targetDni = cleanDni(receiptData.parentDni || receiptData.tutorDni || '');
+
+    if (!resolvedParentUid && targetDni) {
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        for (const uDoc of usersSnap.docs) {
+          const uData = uDoc.data();
+          if (cleanDni(uData.dni) === targetDni) {
+            resolvedParentUid = uDoc.id;
+            break;
+          }
+        }
+      } catch {
+        // Ignorar fallo en búsqueda de tutor por DNI
+      }
+    }
+
+    // Sincronizar comprobantesPago en cada hijo asociado
+    for (const child of children) {
+      const childId = child?.id ? String(child.id).trim() : '';
+      if (!childId || childId.startsWith('child-')) continue;
+
+      try {
+        const studentRef = doc(db, 'students', childId);
+        const studentSnap = await getDoc(studentRef);
+        if (!studentSnap.exists()) continue;
+
+        const stData = studentSnap.data();
+        if (!resolvedParentUid && (stData.parentId || stData.tutorUid || stData.parentUid)) {
+          resolvedParentUid = stData.parentId || stData.tutorUid || stData.parentUid;
+        }
+
+        const prevVouchers = Array.isArray(stData.comprobantesPago)
+          ? [...stData.comprobantesPago]
+          : [];
+
+        let matched = false;
+        const nextStatus = isApproved ? 'conciliado' : 'rechazado';
+        const updatedVouchers = prevVouchers.map((v) => {
+          const samePeriod =
+            v.invoicePeriod === receiptMonth ||
+            v.period === receiptMonth ||
+            v.month === receiptMonth ||
+            v.id === receiptId;
+          if (samePeriod) {
+            matched = true;
+            return {
+              ...v,
+              status: nextStatus,
+              officialReceiptNumber: isApproved
+                ? officialReceiptNumber
+                : v.officialReceiptNumber || null,
+              rejectionReason: isApproved ? null : reason,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return v;
+        });
+
+        if (!matched && prevVouchers.length > 0) {
+          updatedVouchers.unshift({
+            id: receiptId,
+            invoicePeriod: receiptMonth,
+            declaredAmount: Number(receiptData.declaredAmount) || 0,
+            status: nextStatus,
+            officialReceiptNumber: isApproved ? officialReceiptNumber : null,
+            rejectionReason: isApproved ? null : reason,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+
+        if (matched || prevVouchers.length > 0) {
+          await updateDoc(studentRef, {
+            comprobantesPago: updatedVouchers,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch (childErr) {
+        console.warn(
+          `Aviso sincronizando comprobantesPago en alumno ${childId}:`,
+          childErr?.message || childErr
+        );
+      }
+    }
+
+    const studentNames =
+      children
+        .map((c) => c.name || c.nombre)
+        .filter(Boolean)
+        .join(', ') ||
+      receiptData.parentName ||
+      receiptData.tutor ||
+      '';
+
+    await sendInstitutionalNotification({
+      parentId: resolvedParentUid,
+      studentId: children[0]?.id || null,
+      studentName: studentNames,
+      category: 'pago',
+      title: isApproved
+        ? 'Comprobante de Pago Aprobado'
+        : 'Comprobante de Pago Rechazado',
+      body: isApproved
+        ? `Período ${receiptMonth}: Su pago fue conciliado por Administración (Recibo ${officialReceiptNumber}).`
+        : `Período ${receiptMonth}: Su comprobante fue observado (${reason}). Puede adjuntar documentación respaldatoria adicional desde la App Móvil.`,
+      targetTab: 'billing',
+      status: isApproved ? 'aprobado' : 'rechazado',
+      recordId: receiptId,
+    });
+  } catch (err) {
+    console.warn('Aviso en notificación de pago:', err?.message || err);
+  }
+};
+
+/**
  * Aprueba un comprobante de pago en Firestore y asigna el número de recibo oficial.
  * Soporta aprobación global o de un voucher específico dentro de vouchersHistory.
  */
@@ -641,8 +774,13 @@ export const approvePaymentApi = async (
   const snap = await getDoc(docRef);
   const data = snap.exists() ? snap.data() : {};
 
+  const isExplicitReceiptCode =
+    typeof explicitReceiptNumber === 'string' &&
+    explicitReceiptNumber.trim().startsWith('#');
+
   const receiptNumber =
-    explicitReceiptNumber ||
+    (isExplicitReceiptCode ? explicitReceiptNumber.trim() : null) ||
+    data.officialReceiptNumber ||
     data.receiptNumber ||
     `#REC-2026-${1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000)}`;
 
@@ -681,6 +819,9 @@ export const approvePaymentApi = async (
   const updates = {
     status: allApproved ? 'aprobado' : data.status,
     receiptNumber: allApproved ? receiptNumber : data.receiptNumber || null,
+    officialReceiptNumber: allApproved
+      ? receiptNumber
+      : data.officialReceiptNumber || data.receiptNumber || null,
     vouchersHistory: vouchers,
     validatedAt: serverTimestamp(),
   };
@@ -690,6 +831,13 @@ export const approvePaymentApi = async (
   }
 
   await updateDoc(docRef, updates);
+
+  await syncReceiptDecisionAndNotify({
+    receiptId,
+    receiptData: data,
+    isApproved: true,
+    officialReceiptNumber: receiptNumber,
+  });
 
   return receiptNumber;
 };
@@ -748,6 +896,13 @@ export const rejectPaymentApi = async (receiptId, reason, voucherId = null) => {
   }
 
   await updateDoc(docRef, updates);
+
+  await syncReceiptDecisionAndNotify({
+    receiptId,
+    receiptData: data,
+    isApproved: false,
+    reason: finalReason,
+  });
 
   return finalReason;
 };

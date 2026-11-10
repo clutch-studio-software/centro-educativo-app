@@ -7,6 +7,7 @@ import {
   computeDailyCourseAttendanceMetrics,
   saveCourseDailyAttendanceApi,
   approveStudentJustificationApi,
+  rejectStudentJustificationApi,
 } from '../../services/attendanceService.js';
 import { getTodayDateString } from '../../utils/transportSubscriptionUtils.js';
 
@@ -201,6 +202,39 @@ export const useAttendanceManagementState = ({ user, isDocente }) => {
     }
   };
 
+  const handleRejectJustification = async (student, absenceId, reason = '') => {
+    if (dataState.saving) return;
+    setDataState((prev) => ({ ...prev, saving: true, feedback: null }));
+    try {
+      const updatedStudent = await rejectStudentJustificationApi({
+        student,
+        absenceId,
+        reason,
+        staffUser: user,
+      });
+      setDataState((prev) => ({
+        ...prev,
+        saving: false,
+        students: prev.students.map((s) =>
+          String(s.id) === String(updatedStudent.id) ? updatedStudent : s
+        ),
+        feedback: {
+          type: 'success',
+          message: `Justificación rechazada para ${student.nombreCompleto || student.nombre}.`,
+        },
+      }));
+    } catch (err) {
+      setDataState((prev) => ({
+        ...prev,
+        saving: false,
+        feedback: {
+          type: 'error',
+          message: err.message || 'Error al rechazar la justificación.',
+        },
+      }));
+    }
+  };
+
   return {
     todayStr,
     dataState,
@@ -220,5 +254,6 @@ export const useAttendanceManagementState = ({ user, isDocente }) => {
     handleMarkAllPresent,
     handleSaveAttendance,
     handleApproveJustification,
+    handleRejectJustification,
   };
 };

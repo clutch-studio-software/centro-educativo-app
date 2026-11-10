@@ -21,6 +21,10 @@ import {
   sortWeekDays,
   checkScheduleConflict,
 } from '../components/admin/sports/sportsScheduleUtils.js';
+import {
+  sendInstitutionalNotification,
+  resolveStudentNotificationTarget,
+} from './notificationsService.js';
 
 const SPORTS_COLLECTION = 'sportsActivities';
 const generarId = (prefijo) => `${prefijo}-${Date.now()}-${crypto.randomUUID().slice(0, 4)}`;
@@ -656,6 +660,26 @@ export const addPreceptoriaNoteToStudent = async ({
       );
     }
 
+    const resolvedStudentId = targetDocRef?.id || studentId || null;
+    const { parentId: resolvedParentId, studentName: resolvedStudentName } =
+      await resolveStudentNotificationTarget({
+        studentId: resolvedStudentId,
+        studentData: currentData,
+        fallbackStudentName: studentName,
+      });
+
+    await sendInstitutionalNotification({
+      parentId: resolvedParentId,
+      studentId: resolvedStudentId,
+      studentName: resolvedStudentName,
+      category: 'preceptoria',
+      title: `Novedad de Preceptoría (${newNote.tipo || 'Acta'})`,
+      body: `${resolvedStudentName}: ${newNote.motivo || newNote.detalle || ''}`,
+      targetTab: 'academic',
+      recordId: newNote.id,
+      status: 'info',
+    });
+
     return newNote;
   } catch (err) {
     console.warn('Error al registrar nota de preceptoría:', err.message);
@@ -717,6 +741,34 @@ export const addEnfermeriaNoteToStudent = async ({
       );
     }
 
+    const resolvedStudentId = targetDocRef?.id || studentId || null;
+    const { parentId: resolvedParentId, studentName: resolvedStudentName } =
+      await resolveStudentNotificationTarget({
+        studentId: resolvedStudentId,
+        studentData: currentData,
+        fallbackStudentName: studentName,
+      });
+
+    const sintoma =
+      newNote.sintoma || newNote.tipo || 'Atención / Primeros Auxilios';
+    const atencion =
+      newNote.atencion ||
+      newNote.motivo ||
+      newNote.detalle ||
+      'Atención clínica registrada';
+
+    await sendInstitutionalNotification({
+      parentId: resolvedParentId,
+      studentId: resolvedStudentId,
+      studentName: resolvedStudentName,
+      category: 'enfermeria',
+      title: 'Atención en Enfermería',
+      body: `${resolvedStudentName}: ${sintoma} — ${atencion}`,
+      targetTab: 'academic',
+      recordId: newNote.id,
+      status: 'info',
+    });
+
     return newNote;
   } catch (err) {
     console.warn('Error al registrar nota de enfermería:', err.message);
@@ -748,14 +800,17 @@ export const markEnfermeriaNoteAsNotified = async ({
         ? currentData.historialEnfermeria
         : [];
 
+      let targetEntry = null;
       const updatedNotes = existingNotes.map((n) => {
         if (n.id === noteId || (noteId && String(n.id) === String(noteId))) {
-          return {
+          const updatedItem = {
             ...n,
             notificadoFamilias: true,
             fechaNotificacion: new Date().toISOString(),
             notificadoPor: author || 'Enfermería Escolar',
           };
+          targetEntry = updatedItem;
+          return updatedItem;
         }
         return n;
       });
@@ -768,6 +823,37 @@ export const markEnfermeriaNoteAsNotified = async ({
         },
         { merge: true }
       );
+
+      if (targetEntry) {
+        const resolvedStudentId = targetDocRef.id || studentId || null;
+        const { parentId: resolvedParentId, studentName: resolvedStudentName } =
+          await resolveStudentNotificationTarget({
+            studentId: resolvedStudentId,
+            studentData: currentData,
+          });
+        const sintoma =
+          targetEntry.sintoma ||
+          targetEntry.tipo ||
+          'Atención / Primeros Auxilios';
+        const atencion =
+          targetEntry.atencion ||
+          targetEntry.motivo ||
+          targetEntry.detalle ||
+          'Atención clínica registrada';
+
+        await sendInstitutionalNotification({
+          parentId: resolvedParentId,
+          studentId: resolvedStudentId,
+          studentName: resolvedStudentName,
+          category: 'enfermeria',
+          title: 'Atención en Enfermería',
+          body: `${resolvedStudentName}: ${sintoma} — ${atencion}`,
+          targetTab: 'academic',
+          recordId: targetEntry.id || noteId,
+          status: 'info',
+        });
+      }
+
       return true;
     }
     return false;
