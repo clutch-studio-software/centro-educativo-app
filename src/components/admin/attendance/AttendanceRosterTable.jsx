@@ -35,6 +35,74 @@ const ATTENDANCE_OPTIONS = [
   },
 ];
 
+const PendingJustificationCard = ({
+  student,
+  pj,
+  currentMotivo,
+  onApproveJustification,
+  onRejectJustification,
+}) => {
+  const canResolve =
+    pj.estado === 'justificacion_pendiente' ||
+    pj.justificacion?.estado === 'Pendiente de revisión';
+
+  return (
+    <div className="p-2 rounded-md bg-blue-50/80 border border-blue-200 text-[11px] text-blue-900 flex flex-wrap items-center justify-between gap-2">
+      <div className="space-y-0.5">
+        <span className="font-bold block">
+          Falta {pj.fecha}: {pj.justificacion?.motivo || 'Justificativo'}
+        </span>
+        {pj.justificacion?.detalle && (
+          <span className="text-blue-700 block">{pj.justificacion.detalle}</span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        {pj.justificacion?.comprobanteUrl && (
+          <a
+            href={pj.justificacion.comprobanteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid={`admin-view-justification-file-${student.id}`}
+            className="px-2 py-1 rounded bg-white text-blue-700 hover:text-blue-900 border border-blue-200 font-bold text-[10px] flex items-center gap-1 no-underline"
+          >
+            <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+            <span>Ver Comprobante</span>
+          </a>
+        )}
+
+        {canResolve && onApproveJustification && (
+          <button
+            type="button"
+            onClick={() => onApproveJustification(student, pj.id || pj.fecha)}
+            data-testid={`btn-approve-justification-${student.id}`}
+            className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer border-none"
+          >
+            Aprobar
+          </button>
+        )}
+
+        {canResolve && onRejectJustification && (
+          <button
+            type="button"
+            onClick={() =>
+              onRejectJustification(
+                student,
+                pj.id || pj.fecha,
+                currentMotivo || 'Verifique la documentación adjunta'
+              )
+            }
+            data-testid={`btn-reject-justification-${student.id}`}
+            className="px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] cursor-pointer border-none"
+          >
+            Rechazar
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /**
  * Tabla interactiva de toma de asistencia diaria por curso y revisión de justificativos adjuntos
  */
@@ -44,6 +112,7 @@ const AttendanceRosterTable = ({
   onStatusChange,
   onMotivoChange,
   onApproveJustification,
+  onRejectJustification,
   isSaving = false,
 }) => {
   if (students.length === 0) {
@@ -169,49 +238,14 @@ const AttendanceRosterTable = ({
                     {pendingJustifications.length > 0 && (
                       <div className="space-y-1 pt-0.5">
                         {pendingJustifications.slice(0, 2).map((pj) => (
-                          <div
+                          <PendingJustificationCard
                             key={pj.id || pj.fecha}
-                            className="p-2 rounded-md bg-blue-50/80 border border-blue-200 text-[11px] text-blue-900 flex flex-wrap items-center justify-between gap-2"
-                          >
-                            <div className="space-y-0.5">
-                              <span className="font-bold block">
-                                Falta {pj.fecha}: {pj.justificacion?.motivo || 'Justificativo'}
-                              </span>
-                              {pj.justificacion?.detalle && (
-                                <span className="text-blue-700 block">
-                                  {pj.justificacion.detalle}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-1.5">
-                              {pj.justificacion?.comprobanteUrl && (
-                                <a
-                                  href={pj.justificacion.comprobanteUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  data-testid={`admin-view-justification-file-${student.id}`}
-                                  className="px-2 py-1 rounded bg-white text-blue-700 hover:text-blue-900 border border-blue-200 font-bold text-[10px] flex items-center gap-1 no-underline"
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">
-                                    open_in_new
-                                  </span>
-                                  <span>Ver Comprobante</span>
-                                </a>
-                              )}
-
-                              {pj.estado === 'justificacion_pendiente' && onApproveJustification && (
-                                <button
-                                  type="button"
-                                  onClick={() => onApproveJustification(student, pj.id || pj.fecha)}
-                                  data-testid={`btn-approve-justification-${student.id}`}
-                                  className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer border-none"
-                                >
-                                  Aprobar
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                            student={student}
+                            pj={pj}
+                            currentMotivo={currentEntry.motivo}
+                            onApproveJustification={onApproveJustification}
+                            onRejectJustification={onRejectJustification}
+                          />
                         ))}
                       </div>
                     )}

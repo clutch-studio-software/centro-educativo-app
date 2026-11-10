@@ -113,7 +113,8 @@ service cloud.firestore {
         'comedorBajaProgramada', 'observacionesComedor',
         'deportes', 'deporteFechaInicio', 'deportesSuscripciones',
         'entradasEnfermeria', 'entradasPreceptoria',
-        'comprobantesPago', 'asistencias', 'updatedAt'
+        'comprobantesPago', 'asistencias',
+        'expoPushToken', 'expoPushTokens', 'updatedAt'
       ];
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields) &&
         (!('parentId' in resource.data) || request.resource.data.parentId == resource.data.parentId) &&
@@ -125,12 +126,22 @@ service cloud.firestore {
         (!('division' in resource.data) || request.resource.data.division == resource.data.division);
     }
 
+    function isAllowedUserSelfUpdate() {
+      let allowedUserFields = [
+        'email', 'telefono', 'domicilio',
+        'expoPushToken', 'expoPushTokens', 'updatedAt'
+      ];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedUserFields) &&
+        (!('role' in resource.data) || request.resource.data.role == resource.data.role) &&
+        (!('dni' in resource.data) || request.resource.data.dni == resource.data.dni) &&
+        (!('nombre' in resource.data) || request.resource.data.nombre == resource.data.nombre) &&
+        (!('studentIds' in resource.data) || request.resource.data.studentIds == resource.data.studentIds);
+    }
+
     // Colección users (Perfiles de padres, personal docente, salud, preceptoría y directivos)
     match /users/{userId} {
-      // Escritura únicamente permitida a administradores autorizados
-      allow write: if isAdmin();
-      
-      // Lectura permitida al propio usuario dueño del documento o a personal institucional autorizado
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isOwner(userId) && isAllowedUserSelfUpdate());
       allow read: if isOwner(userId) || isStaff();
     }
     
@@ -220,6 +231,13 @@ service cloud.firestore {
 
       // Escritura permitida exclusivamente si el usuario es administrador
       allow write: if isAdmin();
+    }
+
+    // Colección notifications (Notificaciones push e in-app para tutores y alumnos)
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isStaff() || isAdmin() || isAuthenticated();
+      allow delete: if isAdmin() || isStaff();
     }
   }
 }
