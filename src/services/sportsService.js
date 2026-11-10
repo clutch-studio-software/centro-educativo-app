@@ -607,174 +607,154 @@ const findStudentDocAndData = async ({
   return { targetDocRef: null, currentData: null };
 };
 
-/**
- * Agrega un registro / nota de Preceptoría al perfil del estudiante en Firestore
- */
-export const addPreceptoriaNoteToStudent = async ({
+const buildStudentNotePayload = (prefix, defaultRoleLabel, note = {}) => {
+  const currentAuthUser = auth.currentUser;
+  const authorFromAuth =
+    currentAuthUser?.displayName ||
+    currentAuthUser?.email?.split('@')[0] ||
+    defaultRoleLabel;
+  const authorEmailFromAuth = currentAuthUser?.email || '';
+
+  return {
+    id: generarId(prefix),
+    fecha: new Date().toISOString(),
+    autor: note?.autor || authorFromAuth,
+    autorRol: note?.autorRol || defaultRoleLabel,
+    autorEmail: note?.autorEmail || authorEmailFromAuth,
+    autorUid: note?.autorUid || currentAuthUser?.uid || null,
+    ...note,
+  };
+};
+
+const prependNoteToStudentField = async (targetDocRef, currentData, fieldName, newNote) => {
+  if (!targetDocRef) return;
+  const existingNotes = Array.isArray(currentData?.[fieldName])
+    ? currentData[fieldName]
+    : [];
+  await setDoc(
+    targetDocRef,
+    {
+      [fieldName]: [newNote, ...existingNotes],
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
+
+const notifyEnfermeriaStudentEvent = async ({
+  targetDocRef,
   studentId,
-  studentDni,
-  studentLegajo,
-  studentName,
+  currentData,
+  fallbackStudentName = '',
+  entry = {},
+  fallbackRecordId = null,
+}) => {
+  const resolvedStudentId = targetDocRef?.id || studentId || null;
+  const { parentId, studentName } = await resolveStudentNotificationTarget({
+    studentId: resolvedStudentId,
+    studentData: currentData,
+    fallbackStudentName,
+  });
+  const sintoma = entry.sintoma || entry.tipo || 'Atención / Primeros Auxilios';
+  const atencion =
+    entry.atencion || entry.motivo || entry.detalle || 'Atención clínica registrada';
+
+  await sendInstitutionalNotification({
+    parentId,
+    studentId: resolvedStudentId,
+    studentName,
+    category: 'enfermeria',
+    title: 'Atención en Enfermería',
+    body: `${studentName}: ${sintoma} — ${atencion}`,
+    targetTab: 'academic',
+    recordId: entry.id || fallbackRecordId,
+    status: 'info',
+  });
+};
+
+const recordStudentNoteAndNotify = async ({
+  studentQuery,
+  prefix,
+  defaultRoleLabel,
+  fieldName,
   note,
+  errorLabel,
+  onNotify,
 }) => {
   try {
     await ensureAdminAuth();
+    const { targetDocRef, currentData } =
+      await findStudentDocAndData(studentQuery);
+    const newNote = buildStudentNotePayload(prefix, defaultRoleLabel, note);
 
-    const { targetDocRef, currentData } = await findStudentDocAndData({
-      studentId,
-      studentDni,
-      studentLegajo,
-      studentName,
-    });
+    await prependNoteToStudentField(
+      targetDocRef,
+      currentData,
+      fieldName,
+      newNote
+    );
 
-    const currentAuthUser = auth.currentUser;
-    const authorFromAuth =
-      currentAuthUser?.displayName ||
-      currentAuthUser?.email?.split('@')[0] ||
-      'Preceptoría y Administración';
-    const authorEmailFromAuth = currentAuthUser?.email || '';
-
-    const newNote = {
-      id: generarId('prec'),
-      fecha: new Date().toISOString(),
-      autor: note?.autor || authorFromAuth,
-      autorRol: note?.autorRol || 'Preceptoría / Administración',
-      autorEmail: note?.autorEmail || authorEmailFromAuth,
-      autorUid: note?.autorUid || currentAuthUser?.uid || null,
-      ...note,
-    };
-
-    if (targetDocRef) {
-      const existingNotes = Array.isArray(currentData?.entradasPreceptoria)
-        ? currentData.entradasPreceptoria
-        : [];
-      const updatedNotes = [newNote, ...existingNotes];
-
-      await setDoc(
-        targetDocRef,
-        {
-          entradasPreceptoria: updatedNotes,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-
-    const resolvedStudentId = targetDocRef?.id || studentId || null;
-    const { parentId: resolvedParentId, studentName: resolvedStudentName } =
-      await resolveStudentNotificationTarget({
-        studentId: resolvedStudentId,
-        studentData: currentData,
-        fallbackStudentName: studentName,
-      });
-
-    await sendInstitutionalNotification({
-      parentId: resolvedParentId,
-      studentId: resolvedStudentId,
-      studentName: resolvedStudentName,
-      category: 'preceptoria',
-      title: `Novedad de Preceptoría (${newNote.tipo || 'Acta'})`,
-      body: `${resolvedStudentName}: ${newNote.motivo || newNote.detalle || ''}`,
-      targetTab: 'academic',
-      recordId: newNote.id,
-      status: 'info',
-    });
-
+    await onNotify({ targetDocRef, currentData, newNote });
     return newNote;
   } catch (err) {
-    console.warn('Error al registrar nota de preceptoría:', err.message);
+    console.warn(`Error al registrar nota de ${errorLabel}:`, err.message);
     return null;
   }
 };
+
+/**
+ * Agrega un registro / nota de Preceptoría al perfil del estudiante en Firestore
+ */
+export const addPreceptoriaNoteToStudent = (params) =>
+  recordStudentNoteAndNotify({
+    studentQuery: params,
+    prefix: 'prec',
+    defaultRoleLabel: 'Preceptoría / Administración',
+    fieldName: 'entradasPreceptoria',
+    note: params?.note,
+    errorLabel: 'preceptoría',
+    onNotify: async ({ targetDocRef, currentData, newNote }) => {
+      const resolvedStudentId = targetDocRef?.id || params?.studentId || null;
+      const { parentId, studentName } = await resolveStudentNotificationTarget({
+        studentId: resolvedStudentId,
+        studentData: currentData,
+        fallbackStudentName: params?.studentName,
+      });
+
+      await sendInstitutionalNotification({
+        parentId,
+        studentId: resolvedStudentId,
+        studentName,
+        category: 'preceptoria',
+        title: `Novedad de Preceptoría (${newNote.tipo || 'Acta'})`,
+        body: `${studentName}: ${newNote.motivo || newNote.detalle || ''}`,
+        targetTab: 'academic',
+        recordId: newNote.id,
+        status: 'info',
+      });
+    },
+  });
 
 /**
  * Agrega un registro / atención de Enfermería al perfil del estudiante en Firestore (inmutable)
  */
-export const addEnfermeriaNoteToStudent = async ({
-  studentId,
-  studentDni,
-  studentLegajo,
-  studentName,
-  note,
-}) => {
-  try {
-    await ensureAdminAuth();
-
-    const { targetDocRef, currentData } = await findStudentDocAndData({
-      studentId,
-      studentDni,
-      studentLegajo,
-      studentName,
-    });
-
-    const currentAuthUser = auth.currentUser;
-    const authorFromAuth =
-      currentAuthUser?.displayName ||
-      currentAuthUser?.email?.split('@')[0] ||
-      'Enfermería Escolar';
-    const authorEmailFromAuth = currentAuthUser?.email || '';
-
-    const newNote = {
-      id: generarId('enf'),
-      fecha: new Date().toISOString(),
-      autor: note?.autor || authorFromAuth,
-      autorRol: note?.autorRol || 'Enfermería Escolar',
-      autorEmail: note?.autorEmail || authorEmailFromAuth,
-      autorUid: note?.autorUid || currentAuthUser?.uid || null,
-      categoria: 'Enfermería',
-      ...note,
-    };
-
-    if (targetDocRef) {
-      const existingNotes = Array.isArray(currentData?.entradasEnfermeria)
-        ? currentData.entradasEnfermeria
-        : [];
-      const updatedNotes = [newNote, ...existingNotes];
-
-      await setDoc(
+export const addEnfermeriaNoteToStudent = (params) =>
+  recordStudentNoteAndNotify({
+    studentQuery: params,
+    prefix: 'enf',
+    defaultRoleLabel: 'Enfermería Escolar',
+    fieldName: 'entradasEnfermeria',
+    note: { categoria: 'Enfermería', ...(params?.note || {}) },
+    errorLabel: 'enfermería',
+    onNotify: ({ targetDocRef, currentData, newNote }) =>
+      notifyEnfermeriaStudentEvent({
         targetDocRef,
-        {
-          entradasEnfermeria: updatedNotes,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-
-    const resolvedStudentId = targetDocRef?.id || studentId || null;
-    const { parentId: resolvedParentId, studentName: resolvedStudentName } =
-      await resolveStudentNotificationTarget({
-        studentId: resolvedStudentId,
-        studentData: currentData,
-        fallbackStudentName: studentName,
-      });
-
-    const sintoma =
-      newNote.sintoma || newNote.tipo || 'Atención / Primeros Auxilios';
-    const atencion =
-      newNote.atencion ||
-      newNote.motivo ||
-      newNote.detalle ||
-      'Atención clínica registrada';
-
-    await sendInstitutionalNotification({
-      parentId: resolvedParentId,
-      studentId: resolvedStudentId,
-      studentName: resolvedStudentName,
-      category: 'enfermeria',
-      title: 'Atención en Enfermería',
-      body: `${resolvedStudentName}: ${sintoma} — ${atencion}`,
-      targetTab: 'academic',
-      recordId: newNote.id,
-      status: 'info',
-    });
-
-    return newNote;
-  } catch (err) {
-    console.warn('Error al registrar nota de enfermería:', err.message);
-    return null;
-  }
-};
+        studentId: params?.studentId,
+        currentData,
+        fallbackStudentName: params?.studentName,
+        entry: newNote,
+      }),
+  });
 
 /**
  * Marca una atención de enfermería existente como notificada a los tutores (irreversible).
@@ -825,32 +805,12 @@ export const markEnfermeriaNoteAsNotified = async ({
       );
 
       if (targetEntry) {
-        const resolvedStudentId = targetDocRef.id || studentId || null;
-        const { parentId: resolvedParentId, studentName: resolvedStudentName } =
-          await resolveStudentNotificationTarget({
-            studentId: resolvedStudentId,
-            studentData: currentData,
-          });
-        const sintoma =
-          targetEntry.sintoma ||
-          targetEntry.tipo ||
-          'Atención / Primeros Auxilios';
-        const atencion =
-          targetEntry.atencion ||
-          targetEntry.motivo ||
-          targetEntry.detalle ||
-          'Atención clínica registrada';
-
-        await sendInstitutionalNotification({
-          parentId: resolvedParentId,
-          studentId: resolvedStudentId,
-          studentName: resolvedStudentName,
-          category: 'enfermeria',
-          title: 'Atención en Enfermería',
-          body: `${resolvedStudentName}: ${sintoma} — ${atencion}`,
-          targetTab: 'academic',
-          recordId: targetEntry.id || noteId,
-          status: 'info',
+        await notifyEnfermeriaStudentEvent({
+          targetDocRef,
+          studentId,
+          currentData,
+          entry: targetEntry,
+          fallbackRecordId: noteId,
         });
       }
 

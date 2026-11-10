@@ -122,34 +122,25 @@ export const resolveStudentNotificationTarget = async ({
  */
 const collectRecipientPushTokens = async ({ parentId, studentId }) => {
   const tokenSet = new Set();
+  const docTargets = [
+    ['users', parentId],
+    ['students', studentId],
+  ];
 
-  const tasks = [];
+  await Promise.all(
+    docTargets
+      .filter(([, id]) => Boolean(id))
+      .map(([colName, id]) =>
+        getDoc(doc(db, colName, String(id).trim()))
+          .then((snap) => {
+            if (snap.exists()) {
+              extractTokensFromDocData(snap.data()).forEach((t) => tokenSet.add(t));
+            }
+          })
+          .catch(() => {})
+      )
+  );
 
-  if (parentId) {
-    tasks.push(
-      getDoc(doc(db, 'users', String(parentId).trim()))
-        .then((snap) => {
-          if (snap.exists()) {
-            extractTokensFromDocData(snap.data()).forEach((t) => tokenSet.add(t));
-          }
-        })
-        .catch(() => {})
-    );
-  }
-
-  if (studentId) {
-    tasks.push(
-      getDoc(doc(db, 'students', String(studentId).trim()))
-        .then((snap) => {
-          if (snap.exists()) {
-            extractTokensFromDocData(snap.data()).forEach((t) => tokenSet.add(t));
-          }
-        })
-        .catch(() => {})
-    );
-  }
-
-  await Promise.all(tasks);
   return Array.from(tokenSet);
 };
 

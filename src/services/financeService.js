@@ -759,6 +759,47 @@ const syncReceiptDecisionAndNotify = async ({
   }
 };
 
+const updateReceiptVouchersState = (
+  data,
+  voucherId,
+  targetVoucherStatus,
+  rejectionReason = null
+) => {
+  const initialVouchers =
+    Array.isArray(data.vouchersHistory) && data.vouchersHistory.length > 0
+      ? [...data.vouchersHistory]
+      : data.bankingVoucher
+        ? [{ ...data.bankingVoucher }]
+        : [];
+
+  const vouchers = initialVouchers.map((v) => {
+    const matchesTarget =
+      !voucherId || v.id === voucherId || v.operationCode === voucherId;
+    if (!matchesTarget) return v;
+    return {
+      ...v,
+      voucherStatus: targetVoucherStatus,
+      rejectionReason,
+    };
+  });
+
+  const primaryVoucher =
+    vouchers.length > 0
+      ? { ...vouchers[0] }
+      : data.bankingVoucher
+        ? { ...data.bankingVoucher }
+        : null;
+
+  return { vouchers, primaryVoucher };
+};
+
+const loadReceiptDocForDecision = async (receiptId) => {
+  await ensureAdminAuth();
+  const docRef = doc(db, RECEIPTS_COLLECTION, receiptId);
+  const snap = await getDoc(docRef);
+  return { docRef, data: snap.exists() ? snap.data() : {} };
+};
+
 /**
  * Aprueba un comprobante de pago en Firestore y asigna el número de recibo oficial.
  * Soporta aprobación global o de un voucher específico dentro de vouchersHistory.
@@ -768,11 +809,7 @@ export const approvePaymentApi = async (
   explicitReceiptNumber = null,
   voucherId = null
 ) => {
-  await ensureAdminAuth();
-
-  const docRef = doc(db, RECEIPTS_COLLECTION, receiptId);
-  const snap = await getDoc(docRef);
-  const data = snap.exists() ? snap.data() : {};
+  const { docRef, data } = await loadReceiptDocForDecision(receiptId);
 
   const isExplicitReceiptCode =
     typeof explicitReceiptNumber === 'string' &&
@@ -784,39 +821,22 @@ export const approvePaymentApi = async (
     data.receiptNumber ||
     `#REC-2026-${1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000)}`;
 
-  let vouchers =
-    Array.isArray(data.vouchersHistory) && data.vouchersHistory.length > 0
-      ? [...data.vouchersHistory]
-      : data.bankingVoucher
-        ? [{ ...data.bankingVoucher }]
-        : [];
-
-  if (voucherId && vouchers.length > 0) {
-    vouchers = vouchers.map((v) => {
-      if (v.id === voucherId || v.operationCode === voucherId) {
-        return { ...v, voucherStatus: 'Conciliado OK', rejectionReason: null };
-      }
-      return v;
-    });
-  } else if (vouchers.length > 0) {
-    vouchers = vouchers.map((v) => ({
-      ...v,
-      voucherStatus: 'Conciliado OK',
-      rejectionReason: null,
-    }));
-  }
+  const { vouchers, primaryVoucher } = updateReceiptVouchersState(
+    data,
+    voucherId,
+    'Conciliado OK',
+    null
+  );
 
   const allApproved =
-    vouchers.length === 0 || vouchers.every((v) => v.voucherStatus === 'Conciliado OK');
-
-  const primaryVoucher =
-    vouchers.length > 0 ? vouchers[0] : data.bankingVoucher ? { ...data.bankingVoucher } : null;
+    vouchers.length === 0 ||
+    vouchers.every((v) => v.voucherStatus === 'Conciliado OK');
 
   if (primaryVoucher && allApproved) {
     primaryVoucher.voucherStatus = 'Conciliado OK';
   }
 
-  const updates = {
+  await updateDoc(docRef, {
     status: allApproved ? 'aprobado' : data.status,
     receiptNumber: allApproved ? receiptNumber : data.receiptNumber || null,
     officialReceiptNumber: allApproved
@@ -824,13 +844,8 @@ export const approvePaymentApi = async (
       : data.officialReceiptNumber || data.receiptNumber || null,
     vouchersHistory: vouchers,
     validatedAt: serverTimestamp(),
-  };
-
-  if (primaryVoucher) {
-    updates.bankingVoucher = primaryVoucher;
-  }
-
-  await updateDoc(docRef, updates);
+    ...(primaryVoucher ? { bankingVoucher: primaryVoucher } : {}),
+  });
 
   await syncReceiptDecisionAndNotify({
     receiptId,
@@ -847,55 +862,28 @@ export const approvePaymentApi = async (
  * Soporta rechazo global o de un voucher específico dentro de vouchersHistory.
  */
 export const rejectPaymentApi = async (receiptId, reason, voucherId = null) => {
-  await ensureAdminAuth();
-
   const finalReason = reason || 'Comprobante observado por el área de tesorería.';
-  const docRef = doc(db, RECEIPTS_COLLECTION, receiptId);
-  const snap = await getDoc(docRef);
-  const data = snap.exists() ? snap.data() : {};
+  const { docRef, data } = await loadReceiptDocForDecision(receiptId);
 
-  let vouchers =
-    Array.isArray(data.vouchersHistory) && data.vouchersHistory.length > 0
-      ? [...data.vouchersHistory]
-      : data.bankingVoucher
-        ? [{ ...data.bankingVoucher }]
-        : [];
-
-  if (voucherId && vouchers.length > 0) {
-    vouchers = vouchers.map((v) => {
-      if (v.id === voucherId || v.operationCode === voucherId) {
-        return { ...v, voucherStatus: 'Observado', rejectionReason: finalReason };
-      }
-      return v;
-    });
-  } else if (vouchers.length > 0) {
-    vouchers = vouchers.map((v) => ({
-      ...v,
-      voucherStatus: 'Observado',
-      rejectionReason: finalReason,
-    }));
-  }
-
-  const primaryVoucher =
-    vouchers.length > 0 ? vouchers[0] : data.bankingVoucher ? { ...data.bankingVoucher } : null;
+  const { vouchers, primaryVoucher } = updateReceiptVouchersState(
+    data,
+    voucherId,
+    'Observado',
+    finalReason
+  );
 
   if (primaryVoucher) {
     primaryVoucher.voucherStatus = 'Observado';
     primaryVoucher.rejectionReason = finalReason;
   }
 
-  const updates = {
+  await updateDoc(docRef, {
     status: 'rechazado',
     rejectionReason: finalReason,
     vouchersHistory: vouchers,
     rejectedAt: serverTimestamp(),
-  };
-
-  if (primaryVoucher) {
-    updates.bankingVoucher = primaryVoucher;
-  }
-
-  await updateDoc(docRef, updates);
+    ...(primaryVoucher ? { bankingVoucher: primaryVoucher } : {}),
+  });
 
   await syncReceiptDecisionAndNotify({
     receiptId,
