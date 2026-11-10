@@ -7,6 +7,7 @@ import {
   computeDailyCourseAttendanceMetrics,
   saveCourseDailyAttendanceApi,
   approveStudentJustificationApi,
+  rejectStudentJustificationApi,
 } from '../../services/attendanceService.js';
 import { getTodayDateString } from '../../utils/transportSubscriptionUtils.js';
 
@@ -169,15 +170,16 @@ export const useAttendanceManagementState = ({ user, isDocente }) => {
     }
   };
 
-  const handleApproveJustification = async (student, absenceId) => {
+  const executeJustificationResolution = async ({
+    student,
+    actionFn,
+    successLabel,
+    errorFallback,
+  }) => {
     if (dataState.saving) return;
     setDataState((prev) => ({ ...prev, saving: true, feedback: null }));
     try {
-      const updatedStudent = await approveStudentJustificationApi({
-        student,
-        absenceId,
-        staffUser: user,
-      });
+      const updatedStudent = await actionFn();
       setDataState((prev) => ({
         ...prev,
         saving: false,
@@ -186,7 +188,7 @@ export const useAttendanceManagementState = ({ user, isDocente }) => {
         ),
         feedback: {
           type: 'success',
-          message: `Justificación de inasistencia aprobada para ${student.nombreCompleto || student.nombre}.`,
+          message: `${successLabel} para ${student.nombreCompleto || student.nombre}.`,
         },
       }));
     } catch (err) {
@@ -195,11 +197,34 @@ export const useAttendanceManagementState = ({ user, isDocente }) => {
         saving: false,
         feedback: {
           type: 'error',
-          message: err.message || 'Error al aprobar la justificación.',
+          message: err.message || errorFallback,
         },
       }));
     }
   };
+
+  const handleApproveJustification = (student, absenceId) =>
+    executeJustificationResolution({
+      student,
+      actionFn: () =>
+        approveStudentJustificationApi({ student, absenceId, staffUser: user }),
+      successLabel: 'Justificación de inasistencia aprobada',
+      errorFallback: 'Error al aprobar la justificación.',
+    });
+
+  const handleRejectJustification = (student, absenceId, reason = '') =>
+    executeJustificationResolution({
+      student,
+      actionFn: () =>
+        rejectStudentJustificationApi({
+          student,
+          absenceId,
+          reason,
+          staffUser: user,
+        }),
+      successLabel: 'Justificación rechazada',
+      errorFallback: 'Error al rechazar la justificación.',
+    });
 
   return {
     todayStr,
@@ -220,5 +245,6 @@ export const useAttendanceManagementState = ({ user, isDocente }) => {
     handleMarkAllPresent,
     handleSaveAttendance,
     handleApproveJustification,
+    handleRejectJustification,
   };
 };

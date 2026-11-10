@@ -51,6 +51,7 @@ const AttendanceContentArea = ({
   onStatusChange,
   onMotivoChange,
   onApproveJustification,
+  onRejectJustification,
 }) => {
   if (loading) {
     return (
@@ -131,6 +132,7 @@ const AttendanceContentArea = ({
         onStatusChange={onStatusChange}
         onMotivoChange={onMotivoChange}
         onApproveJustification={onApproveJustification}
+        onRejectJustification={onRejectJustification}
         isSaving={saving}
       />
     </section>
@@ -224,6 +226,7 @@ const AttendanceManagement = () => {
             state.updateStudentEdit(studentId, { motivo: newMotivo })
           }
           onApproveJustification={state.handleApproveJustification}
+          onRejectJustification={state.handleRejectJustification}
         />
       </div>
     </AdminLayout>
