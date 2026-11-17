@@ -1074,40 +1074,22 @@ exports.cf_saveAcademicOffer = (0, https_1.onRequest)({ cors: true, invoker: 'pu
 const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 const BROADCAST_FIRESTORE_BATCH_LIMIT = 450;
 const BROADCAST_EXPO_BATCH_LIMIT = 100;
-function isValidExpoPushToken(token) {
-    if (typeof token !== 'string')
-        return false;
-    const trimmed = token.trim();
-    return trimmed.startsWith('ExponentPushToken[') || trimmed.startsWith('ExpoPushToken[');
-}
-function extractExpoPushTokens(data) {
+const EXPO_PUSH_TOKEN_PATTERN = /^Expo(?:nent)?PushToken\[.+\]$/;
+function collectValidExpoTokens(data, targetSet) {
     if (!data || typeof data !== 'object')
-        return [];
-    const candidates = [];
-    if (typeof data.expoPushToken === 'string') {
-        candidates.push(data.expoPushToken.trim());
-    }
-    if (Array.isArray(data.expoPushTokens)) {
-        for (const item of data.expoPushTokens) {
-            if (typeof item === 'string') {
-                candidates.push(item.trim());
-            }
-            else if (item && typeof item.token === 'string') {
-                candidates.push(item.token.trim());
-            }
+        return;
+    const rawTokens = [
+        data.expoPushToken,
+        ...(Array.isArray(data.expoPushTokens)
+            ? data.expoPushTokens.map((item) => (typeof item === 'string' ? item : item?.token))
+            : []),
+    ];
+    for (const candidate of rawTokens) {
+        const trimmed = typeof candidate === 'string' ? candidate.trim() : '';
+        if (EXPO_PUSH_TOKEN_PATTERN.test(trimmed)) {
+            targetSet.add(trimmed);
         }
     }
-    return candidates.filter(isValidExpoPushToken);
-}
-function isParentUserRole(role) {
-    const normalized = String(role || '').trim().toLowerCase();
-    return normalized === 'padre' || normalized === 'tutor' || normalized === 'parent';
-}
-function resolveBroadcastStudentName(data) {
-    return (data?.nombreCompleto ||
-        `${data?.nombre || ''} ${data?.apellido || ''}`.trim() ||
-        data?.name ||
-        'Alumno').trim();
 }
 /**
  * 15. cf_sendBroadcastNotification
@@ -1158,56 +1140,47 @@ exports.cf_sendBroadcastNotification = (0, https_1.onRequest)({ cors: true, invo
         const docsToCreate = [];
         const tokenSet = new Set();
         const createdAtIso = new Date().toISOString();
+        const buildNotificationPayload = (parentId, studentId, studentName) => ({
+            parentId,
+            userId: parentId,
+            studentId,
+            studentName,
+            category,
+            title,
+            body,
+            targetTab,
+            recordId: null,
+            status,
+            read: false,
+            leida: false,
+            createdAt: createdAtIso,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
         let parentCount = 0;
         let studentCount = 0;
         if (includeParents) {
             const usersSnap = await db.collection('users').get();
             for (const uDoc of usersSnap.docs) {
                 const uData = uDoc.data();
-                if (!isParentUserRole(uData?.role))
+                const role = String(uData?.role || '').trim().toLowerCase();
+                if (!['padre', 'tutor', 'parent'].includes(role))
                     continue;
                 parentCount++;
-                docsToCreate.push({
-                    parentId: uDoc.id,
-                    userId: uDoc.id,
-                    studentId: null,
-                    studentName: '',
-                    category,
-                    title,
-                    body,
-                    targetTab,
-                    recordId: null,
-                    status,
-                    read: false,
-                    leida: false,
-                    createdAt: createdAtIso,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                });
-                extractExpoPushTokens(uData).forEach((t) => tokenSet.add(t));
+                docsToCreate.push(buildNotificationPayload(uDoc.id, null, ''));
+                collectValidExpoTokens(uData, tokenSet);
             }
         }
         if (includeStudents) {
             const studentsSnap = await db.collection('students').get();
             for (const sDoc of studentsSnap.docs) {
                 const sData = sDoc.data();
+                const studentName = (sData?.nombreCompleto ||
+                    `${sData?.nombre || ''} ${sData?.apellido || ''}`.trim() ||
+                    sData?.name ||
+                    'Alumno').trim();
                 studentCount++;
-                docsToCreate.push({
-                    parentId: null,
-                    userId: null,
-                    studentId: sDoc.id,
-                    studentName: resolveBroadcastStudentName(sData),
-                    category,
-                    title,
-                    body,
-                    targetTab,
-                    recordId: null,
-                    status,
-                    read: false,
-                    leida: false,
-                    createdAt: createdAtIso,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                });
-                extractExpoPushTokens(sData).forEach((t) => tokenSet.add(t));
+                docsToCreate.push(buildNotificationPayload(null, sDoc.id, studentName));
+                collectValidExpoTokens(sData, tokenSet);
             }
         }
         if (isDryRun) {
