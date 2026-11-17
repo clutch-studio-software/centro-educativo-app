@@ -215,13 +215,25 @@ service cloud.firestore {
       // Creación para usuarios autenticados (tutores al subir comprobante o personal)
       allow create: if isAuthenticated();
 
-      // Conciliación, aprobación y rechazo por personal institucional o administradores, o actualización por el tutor de su recibo pendiente al adjuntar comprobantes
+      // Conciliación, aprobación y rechazo por personal institucional o administradores, o actualización por el tutor titular al adjuntar nuevos comprobantes (incluso sobre facturas con pagos parciales previos aprobados/rechazados/sin_comprobante)
       allow update: if isStaff() || isAdmin() || (
-        isAuthenticated() && resource.data.status == 'pendiente'
+        isAuthenticated() && (
+          resource.data.status == 'pendiente' ||
+          request.resource.data.status == 'pendiente' ||
+          ('parentId' in resource.data && resource.data.parentId == request.auth.uid) ||
+          ('tutorUid' in resource.data && resource.data.tutorUid == request.auth.uid) ||
+          ('parentId' in request.resource.data && request.resource.data.parentId == request.auth.uid) ||
+          ('tutorUid' in request.resource.data && request.resource.data.tutorUid == request.auth.uid)
+        )
       );
 
-      // Eliminación únicamente por administradores o personal institucional
-      allow delete: if isAdmin() || isStaff();
+      // Eliminación por administradores, personal institucional o consolidación de duplicados del propio tutor
+      allow delete: if isAdmin() || isStaff() || (
+        isAuthenticated() && (
+          ('parentId' in resource.data && resource.data.parentId == request.auth.uid) ||
+          ('tutorUid' in resource.data && resource.data.tutorUid == request.auth.uid)
+        )
+      );
     }
 
     // Colección systemConfig (Configuraciones del sistema, billing_emissions y matriz de roles/permisos RBAC)
