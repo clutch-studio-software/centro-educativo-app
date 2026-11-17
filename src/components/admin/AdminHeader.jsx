@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const AdminHeader = ({ onToggleMobile, isCollapsed = false, breadcrumbs = [] }) => {
+const AdminHeader = ({ onToggleMobile, isCollapsed = false, breadcrumbs = [], actions = null }) => {
   return (
     <header
       data-testid="admin-header"
@@ -44,6 +44,12 @@ const AdminHeader = ({ onToggleMobile, isCollapsed = false, breadcrumbs = [] }) 
           ))}
         </nav>
       </div>
+
+      {actions && (
+        <div data-testid="admin-header-actions" className="flex items-center gap-2 shrink-0">
+          {actions}
+        </div>
+      )}
     </header>
   );
 };

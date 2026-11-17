@@ -8,6 +8,7 @@ import DashboardDirectivoView from '../../components/admin/dashboard/DashboardDi
 import DashboardEnfermeriaView from '../../components/admin/dashboard/DashboardEnfermeriaView';
 import DashboardPreceptoriaView from '../../components/admin/dashboard/DashboardPreceptoriaView';
 import DashboardDocenteView from '../../components/admin/dashboard/DashboardDocenteView';
+import BroadcastNotificationModal from '../../components/admin/dashboard/BroadcastNotificationModal';
 import {
   computeEnrollmentStats,
   getRecentEnfermeriaEntries,
@@ -29,6 +30,7 @@ const AdminDashboard = () => {
   const [teachers, setTeachers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notification, setNotification] = useState(null);
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -65,8 +67,34 @@ const AdminDashboard = () => {
     [students]
   );
 
+  const handleBroadcastSuccess = useCallback((result) => {
+    const docsCount = result?.stats?.firestoreDocsCreated ?? 0;
+    const pushCount = result?.stats?.pushSentCount ?? 0;
+    setNotification({
+      type: 'success',
+      message: `Aviso institucional enviado: ${docsCount} notificaciones registradas y ${pushCount} push enviados.`,
+    });
+  }, []);
+
+  const canSendBroadcast = isDirectivo || isAdministrativo;
+  const headerActions = canSendBroadcast ? (
+    <button
+      type="button"
+      data-testid="open-broadcast-notification-btn"
+      onClick={() => setIsBroadcastModalOpen(true)}
+      className="min-h-10 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer border-none"
+    >
+      <span className="material-symbols-outlined text-[18px]">campaign</span>
+      <span className="hidden sm:inline">Aviso Institucional</span>
+    </button>
+  ) : null;
+
   return (
-    <AdminLayout activeItem="dashboard" breadcrumbs={['Dashboard General']}>
+    <AdminLayout
+      activeItem="dashboard"
+      breadcrumbs={['Dashboard General']}
+      headerActions={headerActions}
+    >
       <div data-testid="admin-dashboard-page" className="flex flex-col w-full gap-6">
         <AdminToast notification={notification} onClose={() => setNotification(null)} />
 
@@ -114,6 +142,13 @@ const AdminDashboard = () => {
           />
         )}
       </div>
+
+      {canSendBroadcast && isBroadcastModalOpen && (
+        <BroadcastNotificationModal
+          onClose={() => setIsBroadcastModalOpen(false)}
+          onSuccess={handleBroadcastSuccess}
+        />
+      )}
     </AdminLayout>
   );
 };

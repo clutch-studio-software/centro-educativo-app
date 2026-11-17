@@ -6,7 +6,12 @@ import { useBillingAutoEmission } from '../../hooks/useBillingAutoEmission';
 
 const DEFAULT_BREADCRUMBS = [];
 
-const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = DEFAULT_BREADCRUMBS }) => {
+const AdminLayout = ({
+  children,
+  activeItem = 'alumnos',
+  breadcrumbs = DEFAULT_BREADCRUMBS,
+  headerActions = null,
+}) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
@@ -59,6 +64,7 @@ const AdminLayout = ({ children, activeItem = 'alumnos', breadcrumbs = DEFAULT_B
           onToggleMobile={() => setIsMobileOpen(!isMobileOpen)}
           isCollapsed={isCollapsed}
           breadcrumbs={breadcrumbs}
+          actions={headerActions}
         />
 
         {/* Content Body */}
