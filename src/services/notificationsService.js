@@ -7,6 +7,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase.js';
+import { callAdminFunction } from './adminService';
 
 const NOTIFICATIONS_COLLECTION = 'notifications';
 const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
@@ -241,5 +242,30 @@ export const sendInstitutionalNotification = async (payload = {}) => {
     );
     return null;
   }
+};
+
+/**
+ * Invoca la Cloud Function cf_sendBroadcastNotification para simular (dryRun)
+ * o enviar avisos institucionales masivos a tutores y/o alumnos.
+ *
+ * @param {Object} payload
+ * @param {string} payload.title
+ * @param {string} payload.body
+ * @param {'all'|'parents'|'students'} [payload.audience='all']
+ * @param {'info'|'preceptoria'|'enfermeria'|'inasistencia'|'justificacion'|'pago'} [payload.category='info']
+ * @param {'academic'|'billing'} [payload.targetTab='academic']
+ * @param {'info'|'aprobado'|'rechazado'|'observado'} [payload.status='info']
+ * @param {boolean} [payload.dryRun=false]
+ */
+export const sendBroadcastInstitutionalNotification = async (payload = {}) => {
+  return await callAdminFunction('cf_sendBroadcastNotification', {
+    title: String(payload.title || '').trim(),
+    body: String(payload.body || '').trim(),
+    audience: payload.audience || 'all',
+    category: payload.category || 'info',
+    targetTab: payload.targetTab || 'academic',
+    status: payload.status || 'info',
+    dryRun: Boolean(payload.dryRun),
+  });
 };
 
