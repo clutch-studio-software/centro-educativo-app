@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cf_saveAcademicOffer = exports.cf_getAcademicOffer = exports.cf_deleteStudent = exports.cf_completePasswordChange = exports.cf_updateUserProfile = exports.cf_changeStudentPassword = exports.cf_verifyCredentials = exports.cf_resetUserPasswordToDni = exports.cf_createAdministrativeUser = exports.cf_resetStudentPassword = exports.cf_loginStudent = exports.cf_activateStudentAccount = exports.cf_updateParentEmailAndResend = exports.cf_resendActivationLink = exports.cf_createParentAndStudents = void 0;
+exports.cf_sendBroadcastNotification = exports.cf_saveAcademicOffer = exports.cf_getAcademicOffer = exports.cf_deleteStudent = exports.cf_completePasswordChange = exports.cf_updateUserProfile = exports.cf_changeStudentPassword = exports.cf_verifyCredentials = exports.cf_resetUserPasswordToDni = exports.cf_createAdministrativeUser = exports.cf_resetStudentPassword = exports.cf_loginStudent = exports.cf_activateStudentAccount = exports.cf_updateParentEmailAndResend = exports.cf_resendActivationLink = exports.cf_createParentAndStudents = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
 const crypto = __importStar(require("crypto"));
@@ -1069,6 +1069,228 @@ exports.cf_saveAcademicOffer = (0, https_1.onRequest)({ cors: true, invoker: 'pu
     catch (error) {
         console.error('Error en cf_saveAcademicOffer:', error);
         res.status(500).send({ error: error.message || 'Error al guardar oferta académica.' });
+    }
+});
+const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
+const BROADCAST_FIRESTORE_BATCH_LIMIT = 450;
+const BROADCAST_EXPO_BATCH_LIMIT = 100;
+function isValidExpoPushToken(token) {
+    if (typeof token !== 'string')
+        return false;
+    const trimmed = token.trim();
+    return trimmed.startsWith('ExponentPushToken[') || trimmed.startsWith('ExpoPushToken[');
+}
+function extractExpoPushTokens(data) {
+    if (!data || typeof data !== 'object')
+        return [];
+    const candidates = [];
+    if (typeof data.expoPushToken === 'string') {
+        candidates.push(data.expoPushToken.trim());
+    }
+    if (Array.isArray(data.expoPushTokens)) {
+        for (const item of data.expoPushTokens) {
+            if (typeof item === 'string') {
+                candidates.push(item.trim());
+            }
+            else if (item && typeof item.token === 'string') {
+                candidates.push(item.token.trim());
+            }
+        }
+    }
+    return candidates.filter(isValidExpoPushToken);
+}
+function isParentUserRole(role) {
+    const normalized = String(role || '').trim().toLowerCase();
+    return normalized === 'padre' || normalized === 'tutor' || normalized === 'parent';
+}
+function resolveBroadcastStudentName(data) {
+    return (data?.nombreCompleto ||
+        `${data?.nombre || ''} ${data?.apellido || ''}`.trim() ||
+        data?.name ||
+        'Alumno').trim();
+}
+/**
+ * 15. cf_sendBroadcastNotification
+ * Envía (o simula con dryRun) una notificación institucional masiva a tutores y/o alumnos,
+ * registrándola en Firestore (notifications) y despachando Push Notifications vía Expo.
+ */
+exports.cf_sendBroadcastNotification = (0, https_1.onRequest)({ cors: true, invoker: 'public' }, async (req, res) => {
+    try {
+        if (req.method !== 'POST') {
+            res.status(405).send({ error: 'Método no permitido. Use POST.' });
+            return;
+        }
+        let callerClaims;
+        try {
+            callerClaims = await verifyAuth(req);
+        }
+        catch (authErr) {
+            res.status(401).send({ error: authErr.message || 'No autorizado.' });
+            return;
+        }
+        const callerRole = String(callerClaims?.role || '').trim().toLowerCase();
+        if (!['user_admin', 'directivo', 'administrativo', 'staff'].includes(callerRole)) {
+            res.status(403).send({ error: 'Permisos insuficientes para enviar avisos institucionales.' });
+            return;
+        }
+        const { title: rawTitle, body: rawBody, audience: rawAudience = 'all', category: rawCategory = 'info', targetTab: rawTargetTab = 'academic', status: rawStatus = 'info', dryRun = false, } = req.body || {};
+        const title = String(rawTitle || '').trim();
+        const body = String(rawBody || '').trim();
+        const audience = String(rawAudience || 'all').trim().toLowerCase();
+        const category = String(rawCategory || 'info').trim();
+        const targetTab = String(rawTargetTab || 'academic').trim();
+        const status = String(rawStatus || 'info').trim();
+        const isDryRun = Boolean(dryRun);
+        if (!title || !body) {
+            res.status(400).send({ error: 'Los campos "title" y "body" son obligatorios.' });
+            return;
+        }
+        if (!['all', 'parents', 'students'].includes(audience)) {
+            res.status(400).send({ error: 'El parámetro "audience" debe ser "all", "parents" o "students".' });
+            return;
+        }
+        if (!['academic', 'billing'].includes(targetTab)) {
+            res.status(400).send({ error: 'El parámetro "targetTab" debe ser "academic" o "billing".' });
+            return;
+        }
+        const includeParents = audience === 'all' || audience === 'parents';
+        const includeStudents = audience === 'all' || audience === 'students';
+        const docsToCreate = [];
+        const tokenSet = new Set();
+        const createdAtIso = new Date().toISOString();
+        let parentCount = 0;
+        let studentCount = 0;
+        if (includeParents) {
+            const usersSnap = await db.collection('users').get();
+            for (const uDoc of usersSnap.docs) {
+                const uData = uDoc.data();
+                if (!isParentUserRole(uData?.role))
+                    continue;
+                parentCount++;
+                docsToCreate.push({
+                    parentId: uDoc.id,
+                    userId: uDoc.id,
+                    studentId: null,
+                    studentName: '',
+                    category,
+                    title,
+                    body,
+                    targetTab,
+                    recordId: null,
+                    status,
+                    read: false,
+                    leida: false,
+                    createdAt: createdAtIso,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                extractExpoPushTokens(uData).forEach((t) => tokenSet.add(t));
+            }
+        }
+        if (includeStudents) {
+            const studentsSnap = await db.collection('students').get();
+            for (const sDoc of studentsSnap.docs) {
+                const sData = sDoc.data();
+                studentCount++;
+                docsToCreate.push({
+                    parentId: null,
+                    userId: null,
+                    studentId: sDoc.id,
+                    studentName: resolveBroadcastStudentName(sData),
+                    category,
+                    title,
+                    body,
+                    targetTab,
+                    recordId: null,
+                    status,
+                    read: false,
+                    leida: false,
+                    createdAt: createdAtIso,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                extractExpoPushTokens(sData).forEach((t) => tokenSet.add(t));
+            }
+        }
+        if (isDryRun) {
+            res.status(200).send({
+                dryRun: true,
+                stats: {
+                    parentCount,
+                    studentCount,
+                    firestoreDocsCount: docsToCreate.length,
+                    uniquePushTokensCount: tokenSet.size,
+                },
+                preview: {
+                    title,
+                    body,
+                    audience,
+                    category,
+                    targetTab,
+                    status,
+                },
+            });
+            return;
+        }
+        const notifCol = db.collection('notifications');
+        const commitPromises = [];
+        for (let i = 0; i < docsToCreate.length; i += BROADCAST_FIRESTORE_BATCH_LIMIT) {
+            const chunk = docsToCreate.slice(i, i + BROADCAST_FIRESTORE_BATCH_LIMIT);
+            const batch = db.batch();
+            for (const payload of chunk) {
+                batch.set(notifCol.doc(), payload);
+            }
+            commitPromises.push(batch.commit());
+        }
+        await Promise.all(commitPromises);
+        const uniqueTokens = Array.from(tokenSet);
+        const tokenChunks = [];
+        for (let i = 0; i < uniqueTokens.length; i += BROADCAST_EXPO_BATCH_LIMIT) {
+            tokenChunks.push(uniqueTokens.slice(i, i + BROADCAST_EXPO_BATCH_LIMIT));
+        }
+        const pushResults = await Promise.all(tokenChunks.map(async (chunk) => {
+            const messages = chunk.map((token) => ({
+                to: token,
+                sound: 'default',
+                title,
+                body,
+                data: {
+                    category,
+                    studentId: null,
+                    targetTab,
+                    recordId: null,
+                },
+            }));
+            try {
+                const expoRes = await fetch(EXPO_PUSH_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(messages),
+                });
+                return expoRes.ok ? { sent: chunk.length, failed: 0 } : { sent: 0, failed: 1 };
+            }
+            catch {
+                return { sent: 0, failed: 1 };
+            }
+        }));
+        const pushSentCount = pushResults.reduce((acc, r) => acc + r.sent, 0);
+        const pushFailedChunks = pushResults.reduce((acc, r) => acc + r.failed, 0);
+        res.status(200).send({
+            dryRun: false,
+            stats: {
+                parentCount,
+                studentCount,
+                firestoreDocsCreated: docsToCreate.length,
+                uniquePushTokensCount: uniqueTokens.length,
+                pushSentCount,
+                pushFailedChunks,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Error en cf_sendBroadcastNotification:', error);
+        res.status(500).send({ error: error.message || 'Error al procesar el aviso institucional.' });
     }
 });
 //# sourceMappingURL=index.js.map
